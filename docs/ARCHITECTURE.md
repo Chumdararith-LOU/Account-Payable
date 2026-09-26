@@ -20,6 +20,7 @@ dashboard + FastAPI service.
 | `dashboard.py` | Streamlit KPI dashboard: metric cards, top-discrepancy bar chart (Plotly), processing log table |
 | `generate_test_docs.py` | Generates bilingual EN/Khmer test docs (PO/GRNI/INV/PARD) as PDF+PNG via WeasyPrint + pdftoppm |
 | `apmatch/ocr/engine.py` | `LatinOCREngine` — deterministic, offline, CPU-only wrapper around PaddleOCR 3.7.0 (PP-OCRv6_medium det/rec) for Latin/numeric text; returns `OCRResult` (frozen dataclasses) and `to_prototype_json()` matching the `output/ocr/*.json` schema (text_blocks only; tables arrive in P1-05) |
+| `apmatch/ocr/khmer.py` | `KhmerOCREngine` — deterministic, offline, CPU-only wrapper around TrorYongOCR (tror-yong-ocr 0.2.7) for Khmer-script text; recognition-only (no detection), operates on cropped single-line regions, returns the same `OCRResult` schema with bbox = (0, 0, w, h) of the crop |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium. Model weights are
 vendored at `models/paddleocr/` (gitignored, ~170 MB) and pointed at via the
@@ -74,7 +75,10 @@ See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:
 - `cloudflared-linux-amd64` is a Linux binary, unusable on this macOS host.
 - `tror-yong-ocr` is installed in `anpr` but unaudited (audit performed in
   P1-01 step 11; see report).
-- Khmer script not yet supported (P1-04).
+- Khmer OCR does not integrate with PP-OCRv6's detector yet — router lands
+  in P1-04b.
+- `KhmerOCREngine.recognize()` operates on cropped regions only (tror-yong-ocr
+  has no text detection); routing by region is P1-04b's responsibility.
 - Table/layout extraction not yet implemented (P1-05).
 - opencv-contrib-python pinned to 4.10.0.84 by paddlex, overriding the
   previous 4.11.0.86 — verify ultralytics still imports (checked in P1-03,

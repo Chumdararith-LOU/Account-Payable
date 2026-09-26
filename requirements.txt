@@ -12,6 +12,10 @@ uvicorn[standard]>=0.30
 streamlit>=1.40
 plotly>=6.0
 python-dotenv>=1.0
+pillow>=10
+# Khmer OCR. Weights vendored in models/khmer/ (gitignored).
+# See D-007.
+tror-yong-ocr==0.2.7
 # Storage (Phase 1 target)
 psycopg[binary]>=3.1
 alembic>=1.13
