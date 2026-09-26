@@ -56,8 +56,8 @@ See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:
 - API key hardcoded in `api.py` (`DPAI-DEMO-2026`).
 - `PRICE_TOLERANCE = 0.01` in `ai_engine.py` is commented "1%" but the
   proposal (Plan.md §5) says ±5% — code/comment drift.
-- `remark_generator.py` imports `anthropic` — dead code (never imported by
-  the engine); to be replaced by a deterministic template module in P1-07.
+- LLM/generative code fully removed (P1-02, D-005). Template remark module
+  lands in P1-07.
 - No OCR invocation code exists in the repo; the OCR JSONs in `output/ocr/`
   were produced externally.
 - `cloudflared-linux-amd64` is a Linux binary, unusable on this macOS host.
