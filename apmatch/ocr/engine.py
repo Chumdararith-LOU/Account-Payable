@@ -5,8 +5,8 @@ Latin-script and numeric text recognition. It is fully deterministic,
 runs CPU-only, makes zero network calls at runtime (offline env vars are
 set before paddleocr is imported, and model weights are read from a
 local vendored directory), and uses no generative model anywhere.
-Khmer script is out of scope here (P1-04); table/layout extraction is
-P1-05.
+Khmer script is out of scope here (P1-04); table/layout extraction lives
+in apmatch.layout.structure (P1-05).
 """
 
 from __future__ import annotations
@@ -42,11 +42,24 @@ class TextBlock:
 
 
 @dataclass(frozen=True)
+class Table:
+    """One recognized table. bbox = (x0, y0, x1, y1) with x0<x1, y0<y1.
+
+    html is the table's HTML rendering (prototype schema: {"html": ...}).
+    """
+
+    html: str
+    bbox: tuple[float, float, float, float]
+    page_index: int = 0
+
+
+@dataclass(frozen=True)
 class OCRResult:
     """All text lines recognized in one image, in engine output order."""
 
     source_file: str
     text_blocks: tuple[TextBlock, ...]
+    tables: tuple[Table, ...] = field(default=())
 
 
 class LatinOCREngine:

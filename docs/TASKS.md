@@ -8,7 +8,7 @@
 | P1-03 | OCR engine wrapper (Latin/numeric) | done | (P1-03) |
 | P1-04 | Khmer OCR module (tror-yong-ocr) | done | (P1-04) |
 | P1-04b | Khmer dropout guard, script router, AGENTS fix | done | (P1-04b) |
-| P1-05 | Layout/table structuring | pending | |
+| P1-05 | Layout/table structuring | done | (P1-05) |
 | P1-06 | Arithmetic validation layer | pending | |
 | P1-07 | Template remark module (replaces removed LLM code) | pending | |
 | P1-08 | Matching engine hardening | pending | |

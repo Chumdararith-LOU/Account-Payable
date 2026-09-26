@@ -19,18 +19,21 @@ dashboard + FastAPI service.
 | `api.py` | FastAPI service v1.1: `/health`, `/samples`, `/stats`, `/process`, `/process-direct`, `/process-file`; API-key auth; embedded demo HTML page |
 | `dashboard.py` | Streamlit KPI dashboard: metric cards, top-discrepancy bar chart (Plotly), processing log table |
 | `generate_test_docs.py` | Generates bilingual EN/Khmer test docs (PO/GRNI/INV/PARD) as PDF+PNG via WeasyPrint + pdftoppm |
-| `apmatch/ocr/engine.py` | `LatinOCREngine` — deterministic, offline, CPU-only wrapper around PaddleOCR 3.7.0 (PP-OCRv6_medium det/rec) for Latin/numeric text; returns `OCRResult` (frozen dataclasses) and `to_prototype_json()` matching the `output/ocr/*.json` schema (text_blocks only; tables arrive in P1-05) |
+| `apmatch/ocr/engine.py` | `LatinOCREngine` — deterministic, offline, CPU-only wrapper around PaddleOCR 3.7.0 (PP-OCRv6_medium det/rec) for Latin/numeric text; returns `OCRResult` (frozen dataclasses, incl. optional `tables: tuple[Table, ...]`) and `to_prototype_json()` matching the `output/ocr/*.json` schema |
 | `apmatch/ocr/khmer.py` | `KhmerOCREngine` — deterministic, offline, CPU-only wrapper around TrorYongOCR (tror-yong-ocr 0.2.7) for Khmer-script text; recognition-only (no detection), operates on cropped single-line regions, returns the same `OCRResult` schema with bbox = (0, 0, w, h) of the crop |
+| `apmatch/layout/structure.py` | `LayoutEngine` — deterministic, offline, CPU-only wrapper around PaddleOCR 3.7.0 PP-StructureV3 for table extraction; returns `tuple[Table, ...]` (`Table` dataclass: html + bbox + page_index) and `to_prototype_json()` matching the prototype's `tables` schema (single `html` key). Called independently of the OCR router |
 
-`LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium. Model weights are
-vendored at `models/paddleocr/` (gitignored, ~170 MB) and pointed at via the
-constructor's `*_model_dir` kwargs; offline env vars
-(`PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True`, `HF_HUB_OFFLINE=1`,
-`TRANSFORMERS_OFFLINE=1`) are set inside `__init__` before the paddleocr
-import. One-time provisioning of the vendored cache:
+`LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
+PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
+15 model dirs, ~1.9 GB) and pointed at via the constructors' `*_model_dir`
+kwargs; offline env vars (`PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True`,
+`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`) are set inside `__init__` before
+the paddleocr import. One-time provisioning of the vendored cache:
 `cp -R ~/.paddlex/official_models/. models/paddleocr/`. Zero-network runtime
-is proven by `scripts/verify_offline.py` (socket.connect blocked) and
-`tests/ocr/test_offline.py`.
+is proven by `scripts/verify_offline.py` + `tests/ocr/test_offline.py` (OCR)
+and `scripts/verify_offline_structure.py` +
+`tests/layout/test_structure_offline.py` (tables), both with socket.connect
+blocked.
 
 Supporting: `migrate_to_db.py` (one-shot JSON→SQLite), `generate_report.py`
 (static HTML completion report), `set_api_key_visible.py` (writes `.env`),
@@ -86,7 +89,14 @@ See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:
   plus zeroing every dropout module's `p`. Regression-guarded by
   tests/ocr/test_khmer_dropout_fix.py. If upstream releases a fix,
   revisit and remove the workaround.
-- Table/layout extraction not yet implemented (P1-05).
+- Khmer engine output is not script-strict — a single text block may mix
+  Khmer and Latin characters (e.g. `( Whiteboard ) ក្តារខៀន`). Downstream
+  field extractors (P1-08+) must not assume single-script blocks.
+- PP-StructureV3 found 1 table on the bilingual invoice INV_2026_1123.png,
+  matching the prototype reference (`output/ocr/INV_2026_1123.json` also
+  carries 1 table). If future fixtures diverge, note that PP-StructureV3 and
+  the older prototype pipeline differ in table detection thresholds; P1-13's
+  corpus work will reconcile.
 - opencv-contrib-python pinned to 4.10.0.84 by paddlex, overriding the
   previous 4.11.0.86 — verify ultralytics still imports (checked in P1-03,
   see F.4 result in the P1-03 report).

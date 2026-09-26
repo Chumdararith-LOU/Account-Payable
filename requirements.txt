@@ -4,6 +4,10 @@
 # Runtime
 paddlepaddle==3.3.1
 paddleocr==3.7.0
+# PP-StructureV3 (P1-05) requires the paddlex "ocr" extra (beautifulsoup4,
+# einops, ftfy, latex2mathml, openpyxl, premailer, sentencepiece, tiktoken,
+# ...). Pinned to the installed paddlex version.
+paddlex[ocr]==3.7.2
 opencv-python>=4.10,<5
 numpy>=1.26,<2
 pandas>=2.0
