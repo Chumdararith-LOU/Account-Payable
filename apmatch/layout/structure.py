@@ -59,7 +59,15 @@ class LayoutEngine:
         from paddleocr import PPStructureV3
 
         kwargs = {kwarg: str(root / subdir) for kwarg, subdir in _MODEL_DIRS.items()}
-        self._pipeline = PPStructureV3(**kwargs)
+        # AP invoices contain no formulas, machine-readable seals, or charts.
+        # Disabling these sub-pipelines skips their model construction (and
+        # the 702 MB PP-FormulaNet_plus-L weights) entirely.
+        self._pipeline = PPStructureV3(
+            use_formula_recognition=False,
+            use_seal_recognition=False,
+            use_chart_recognition=False,
+            **kwargs,
+        )
 
     def extract(self, image_path: Path | str) -> tuple[Table, ...]:
         """Run table extraction on one image, returning tables in source order."""

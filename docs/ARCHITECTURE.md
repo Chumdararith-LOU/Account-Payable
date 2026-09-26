@@ -25,7 +25,7 @@ dashboard + FastAPI service.
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
-15 model dirs, ~1.9 GB) and pointed at via the constructors' `*_model_dir`
+14 model dirs, ~1.2 GB) and pointed at via the constructors' `*_model_dir`
 kwargs; offline env vars (`PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True`,
 `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`) are set inside `__init__` before
 the paddleocr import. One-time provisioning of the vendored cache:
@@ -97,6 +97,12 @@ See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:
   carries 1 table). If future fixtures diverge, note that PP-StructureV3 and
   the older prototype pipeline differ in table detection thresholds; P1-13's
   corpus work will reconcile.
+- PP-StructureV3 formula/seal/chart recognition is disabled at construction
+  (`use_formula_recognition=False`, `use_seal_recognition=False`,
+  `use_chart_recognition=False` in `LayoutEngine.__init__`); AP invoices
+  contain none of these. The PP-FormulaNet_plus-L weights (~702 MB) were
+  removed from `models/paddleocr/` (P1-05b); the vendored cache is now
+  ~1.2 GB.
 - opencv-contrib-python pinned to 4.10.0.84 by paddlex, overriding the
   previous 4.11.0.86 — verify ultralytics still imports (checked in P1-03,
   see F.4 result in the P1-03 report).
