@@ -1,0 +1,42 @@
+{
+  "case_id": "INV_2026_1123",
+  "timestamp": "2026-08-26T09:28:45.256736+00:00",
+  "decision": "DISCREPANCY",
+  "confidence": 0.661,
+  "reasons": [
+    "Invoice amount 1100.0 vs PO amount 23987654.0 exceeds 1.0% tolerance"
+  ],
+  "documents": {
+    "invoice": {
+      "doc_type": "invoice",
+      "raw_confidence": 0.922,
+      "total_amount": 1100.0,
+      "date": null,
+      "doc_number": "OICE",
+      "po_reference": "2026-0451"
+    },
+    "po": {
+      "doc_type": "po",
+      "raw_confidence": 0.918,
+      "total_amount": 23987654.0,
+      "date": null,
+      "doc_number": "2026-0451"
+    },
+    "grni": {
+      "doc_type": "grni",
+      "raw_confidence": 0.886,
+      "total_amount": 987654.0,
+      "date": null,
+      "doc_number": "2026-0322",
+      "po_reference": "2026-0451"
+    },
+    "pard": {
+      "doc_type": "pard",
+      "raw_confidence": 0.918,
+      "total_amount": 1100.0,
+      "date": null,
+      "doc_number": "2026-0210",
+      "invoice_reference": "oice"
+    }
+  }
+}

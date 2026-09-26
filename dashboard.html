@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AP AI Automation Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .kpi-card { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .status-match { color: green; font-weight: bold; }
+        .status-discrepancy { color: red; font-weight: bold; }
+        .status-pending { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">AP AI Automation — Prototype Dashboard</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- KPI Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card kpi-card p-3 text-center">
+                    <h6 class="text-muted">Total Invoices</h6>
+                    <h2>{{ stats.total_invoices }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card kpi-card p-3 text-center border-success">
+                    <h6 class="text-success">Matched</h6>
+                    <h2 class="text-success">{{ stats.matched }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card kpi-card p-3 text-center border-danger">
+                    <h6 class="text-danger">Discrepancy</h6>
+                    <h2 class="text-danger">{{ stats.discrepancy }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card kpi-card p-3 text-center border-warning">
+                    <h6 class="text-warning">Pending Info</h6>
+                    <h2 class="text-warning">{{ stats.pending }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Top Discrepancy Reasons -->
+            <div class="col-md-4">
+                <div class="card kpi-card p-3">
+                    <h5>Top Discrepancy Reasons</h5>
+                    <ul class="list-group list-group-flush mt-3">
+                        {% for reason in stats.top_reasons %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ reason.reason }}
+                            <span class="badge bg-secondary rounded-pill">{{ reason.count }}</span>
+                        </li>
+                        {% endfor %}
+                        {% if not stats.top_reasons %}
+                        <li class="list-group-item text-muted">No discrepancies found yet.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Invoice List (Exceptions) -->
+            <div class="col-md-8">
+                <div class="card kpi-card p-3">
+                    <h5>Invoice Processing Log</h5>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>INV No.</th>
+                                    <th>Vendor</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Score</th>
+                                    <th>Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inv in invoices %}
+                                <tr>
+                                    <td>{{ inv.INV_ID }}</td>
+                                    <td>{{ inv.Vendor }}</td>
+                                    <td>{{ inv.Date }}</td>
+                                    <td>${{ "%.2f"|format(inv.Total) }}</td>
+                                    <td>
+                                        {% if inv.Status == 'MATCH' %}
+                                            <span class="status-match">{{ inv.Status }}</span>
+                                        {% elif inv.Status == 'DISCREPANCY' %}
+                                            <span class="status-discrepancy">{{ inv.Status }}</span>
+                                        {% else %}
+                                            <span class="status-pending">{{ inv.Status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ inv.Score }}</td>
+                                    <td><small class="text-muted">{{ inv.Remark }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,397 @@
+{
+    "source_file": "documents/grni/GRN_2026_0322.png",
+    "tables": [
+        {
+            "html": "<html><body><table><tbody><tr><td>#</td><td>Description/uww</td><td>Qty Ordered</td><td>Qty Received</td><td>Condition</td></tr><tr><td>1</td><td>Office Chair/mww</td><td>10</td><td>10</td><td>Good</td></tr><tr><td>2</td><td>Desk Lamp/ni</td><td>20</td><td>20</td><td>Good</td></tr><tr><td>3</td><td>Whiteboard/as</td><td>5</td><td>5</td><td>Good</td></tr></tbody></table></body></html>"
+        }
+    ],
+    "text_blocks": [
+        {
+            "text": "KINGDOM OF CAMBODIA— NATION RELIGION KING",
+            "bbox": [
+                114,
+                4,
+                771,
+                50
+            ]
+        },
+        {
+            "text": "GOODS RECEIVED NOTE (GRNI)",
+            "bbox": [
+                435,
+                73,
+                1254,
+                138
+            ]
+        },
+        {
+            "text": "",
+            "bbox": [
+                667,
+                148,
+                1025,
+                202
+            ]
+        },
+        {
+            "text": "No.: GRN-2026-0322",
+            "bbox": [
+                1165,
+                239,
+                1458,
+                276
+            ]
+        },
+        {
+            "text": "Date:19-Aug-2026",
+            "bbox": [
+                1148,
+                291,
+                1419,
+                327
+            ]
+        },
+        {
+            "text": "Delivered By (Vendor) / Hnüms",
+            "bbox": [
+                873,
+                374,
+                1378,
+                416
+            ]
+        },
+        {
+            "text": "Received By (Warehouse) / Hnsω",
+            "bbox": [
+                130,
+                379,
+                638,
+                423
+            ]
+        },
+        {
+            "text": "Mekong Supplies Co., Ltd.",
+            "bbox": [
+                872,
+                426,
+                1316,
+                472
+            ]
+        },
+        {
+            "text": "Golden Angkor Trading Co., Ltd.",
+            "bbox": [
+                127,
+                426,
+                675,
+                483
+            ]
+        },
+        {
+            "text": "uus  s H  g",
+            "bbox": [
+                126,
+                475,
+                614,
+                533
+            ]
+        },
+        {
+            "text": "us   ",
+            "bbox": [
+                870,
+                479,
+                1283,
+                518
+            ]
+        },
+        {
+            "text": "No. 12, Street 271, Sangkat Boeung Tumpun, Khan",
+            "bbox": [
+                126,
+                529,
+                804,
+                579
+            ]
+        },
+        {
+            "text": "No. 88, Street 214, Sangkat Veal Vong, Khan 7",
+            "bbox": [
+                871,
+                530,
+                1479,
+                569
+            ]
+        },
+        {
+            "text": "Mean Chey, Phnom Penh, Cambodia",
+            "bbox": [
+                128,
+                574,
+                615,
+                617
+            ]
+        },
+        {
+            "text": "Makara, Phnom Penh, Cambodia",
+            "bbox": [
+                871,
+                572,
+                1310,
+                608
+            ]
+        },
+        {
+            "text": "TIN:K001-987654321Tel: +855 23 555123",
+            "bbox": [
+                128,
+                618,
+                712,
+                654
+            ]
+        },
+        {
+            "text": "TIN:K002-123456789Tel: +855 23 987654",
+            "bbox": [
+                870,
+                617,
+                1453,
+                650
+            ]
+        },
+        {
+            "text": "Ref.PONo.:PO-2026-0451",
+            "bbox": [
+                1056,
+                704,
+                1431,
+                733
+            ]
+        },
+        {
+            "text": "#",
+            "bbox": [
+                152,
+                804,
+                182,
+                837
+            ]
+        },
+        {
+            "text": "Description/uww",
+            "bbox": [
+                328,
+                803,
+                611,
+                840
+            ]
+        },
+        {
+            "text": "Qty Ordered",
+            "bbox": [
+                790,
+                803,
+                972,
+                843
+            ]
+        },
+        {
+            "text": "Qty Received",
+            "bbox": [
+                1081,
+                808,
+                1269,
+                843
+            ]
+        },
+        {
+            "text": "Condition",
+            "bbox": [
+                1369,
+                804,
+                1513,
+                839
+            ]
+        },
+        {
+            "text": "1",
+            "bbox": [
+                153,
+                878,
+                180,
+                910
+            ]
+        },
+        {
+            "text": "Office Chair/mww",
+            "bbox": [
+                212,
+                879,
+                567,
+                910
+            ]
+        },
+        {
+            "text": "10",
+            "bbox": [
+                859,
+                877,
+                905,
+                916
+            ]
+        },
+        {
+            "text": "10",
+            "bbox": [
+                1154,
+                879,
+                1200,
+                918
+            ]
+        },
+        {
+            "text": "Good",
+            "bbox": [
+                1399,
+                874,
+                1483,
+                913
+            ]
+        },
+        {
+            "text": "2",
+            "bbox": [
+                150,
+                947,
+                180,
+                983
+            ]
+        },
+        {
+            "text": "Desk Lamp/ni",
+            "bbox": [
+                209,
+                947,
+                509,
+                984
+            ]
+        },
+        {
+            "text": "20",
+            "bbox": [
+                860,
+                949,
+                904,
+                984
+            ]
+        },
+        {
+            "text": "20",
+            "bbox": [
+                1154,
+                950,
+                1198,
+                985
+            ]
+        },
+        {
+            "text": "Good",
+            "bbox": [
+                1399,
+                942,
+                1484,
+                983
+            ]
+        },
+        {
+            "text": "3",
+            "bbox": [
+                148,
+                1016,
+                182,
+                1055
+            ]
+        },
+        {
+            "text": "Whiteboard/as",
+            "bbox": [
+                205,
+                1016,
+                508,
+                1056
+            ]
+        },
+        {
+            "text": "5",
+            "bbox": [
+                867,
+                1018,
+                896,
+                1054
+            ]
+        },
+        {
+            "text": "5",
+            "bbox": [
+                1163,
+                1021,
+                1189,
+                1053
+            ]
+        },
+        {
+            "text": "Good",
+            "bbox": [
+                1399,
+                1008,
+                1484,
+                1050
+            ]
+        },
+        {
+            "text": "All itemsreceived inoodconditioandmatched againstthereferenced PurchaseOrderquantities./",
+            "bbox": [
+                122,
+                1088,
+                1477,
+                1140
+            ]
+        },
+        {
+            "text": "ssi",
+            "bbox": [
+                127,
+                1138,
+                563,
+                1177
+            ]
+        },
+        {
+            "text": "7",
+            "bbox": [
+                387,
+                1170,
+                401,
+                1187
+            ]
+        },
+        {
+            "text": "Received by (Warehouse)",
+            "bbox": [
+                295,
+                1352,
+                630,
+                1391
+            ]
+        },
+        {
+            "text": "Inspected by (QA)",
+            "bbox": [
+                1105,
+                1348,
+                1348,
+                1389
+            ]
+        }
+    ]
+}

@@ -1,0 +1,436 @@
+{
+    "source_file": "documents/po/PO_2026_0451.png",
+    "tables": [
+        {
+            "html": "<html><body><table><tbody><tr><td>#</td><td>Description /uww</td><td>Qty</td><td>Unit Price (USD)</td><td>Amount (USD)</td></tr><tr><td>1</td><td>Office Chair/nmw</td><td>10</td><td>45.00</td><td>450.00</td></tr><tr><td>2</td><td>Desk Lamp/Hni</td><td>20</td><td>12.50</td><td>250.00</td></tr><tr><td>3</td><td>Whiteboard/as</td><td>5</td><td>60.00</td><td>300.00</td></tr><tr><td colspan=\"4\">Subtotal/ USD 1,000.00 VAT10%/HiUig USD 100.00</td></tr><tr><td colspan=\"6\">TOTAL / JU USD 1,100.00</td></tr></tbody></table></body></html>"
+        },
+        {
+            "html": "<html><body><table><tr><td>#</td><td>Description /uww</td><td>Qty</td><td>Unit Price (USD)</td><td>Amount (USD)</td></tr><tr><td>1</td><td>Office Chair/nmw</td><td>10</td><td>45.00</td><td>450.00</td></tr><tr><td>2</td><td>Desk Lamp/Hni</td><td>20</td><td>12.50</td><td>250.00</td></tr><tr><td>3</td><td>Whiteboard/as</td><td>5</td><td>60.00</td><td>300.00</td></tr></table></body></html>"
+        }
+    ],
+    "text_blocks": [
+        {
+            "text": "KINGDOMOF CAMBODIA— NATION RELIGION KING",
+            "bbox": [
+                119,
+                23,
+                761,
+                66
+            ]
+        },
+        {
+            "text": "PURCHASE ORDER",
+            "bbox": [
+                593,
+                97,
+                1079,
+                150
+            ]
+        },
+        {
+            "text": "numsm",
+            "bbox": [
+                722,
+                165,
+                949,
+                222
+            ]
+        },
+        {
+            "text": "No.:PO-2026-0451",
+            "bbox": [
+                1150,
+                255,
+                1422,
+                295
+            ]
+        },
+        {
+            "text": "Date:15-Aug-2026",
+            "bbox": [
+                1133,
+                306,
+                1404,
+                346
+            ]
+        },
+        {
+            "text": "Buyer/",
+            "bbox": [
+                128,
+                396,
+                336,
+                441
+            ]
+        },
+        {
+            "text": "Vendor /H",
+            "bbox": [
+                859,
+                391,
+                1090,
+                428
+            ]
+        },
+        {
+            "text": "Golden Angkor Trading Co., Ltd.",
+            "bbox": [
+                127,
+                444,
+                666,
+                497
+            ]
+        },
+        {
+            "text": "Mekong Supplies Co., Ltd.",
+            "bbox": [
+                860,
+                442,
+                1298,
+                488
+            ]
+        },
+        {
+            "text": "uus s H  gg",
+            "bbox": [
+                126,
+                492,
+                605,
+                546
+            ]
+        },
+        {
+            "text": "u   ",
+            "bbox": [
+                858,
+                494,
+                1265,
+                533
+            ]
+        },
+        {
+            "text": "No. 12, Street 271, Sangkat Boeung Tumpun, Khan",
+            "bbox": [
+                125,
+                546,
+                791,
+                592
+            ]
+        },
+        {
+            "text": "No. 88, Street 214, Sangkat Veal Vong, Khan 7",
+            "bbox": [
+                858,
+                545,
+                1460,
+                587
+            ]
+        },
+        {
+            "text": "Mean Chey, Phnom Penh, Cambodia",
+            "bbox": [
+                126,
+                589,
+                605,
+                630
+            ]
+        },
+        {
+            "text": "Makara, Phnom Penh, Cambodia",
+            "bbox": [
+                859,
+                588,
+                1292,
+                624
+            ]
+        },
+        {
+            "text": "TIN: K001-987654321 Tel: +855 23 555123",
+            "bbox": [
+                127,
+                632,
+                701,
+                666
+            ]
+        },
+        {
+            "text": "TIN: K002-123456789Tel: +855 23987654",
+            "bbox": [
+                858,
+                631,
+                1436,
+                665
+            ]
+        },
+        {
+            "text": "#",
+            "bbox": [
+                153,
+                725,
+                180,
+                757
+            ]
+        },
+        {
+            "text": "Description /uww",
+            "bbox": [
+                331,
+                722,
+                610,
+                763
+            ]
+        },
+        {
+            "text": "Qty",
+            "bbox": [
+                764,
+                720,
+                834,
+                770
+            ]
+        },
+        {
+            "text": "Unit Price (USD)",
+            "bbox": [
+                921,
+                724,
+                1151,
+                761
+            ]
+        },
+        {
+            "text": "Amount (USD)",
+            "bbox": [
+                1277,
+                727,
+                1477,
+                761
+            ]
+        },
+        {
+            "text": "1",
+            "bbox": [
+                152,
+                795,
+                182,
+                830
+            ]
+        },
+        {
+            "text": "Office Chair/nmw",
+            "bbox": [
+                209,
+                794,
+                563,
+                833
+            ]
+        },
+        {
+            "text": "10",
+            "bbox": [
+                776,
+                796,
+                822,
+                834
+            ]
+        },
+        {
+            "text": "45.00",
+            "bbox": [
+                997,
+                796,
+                1080,
+                833
+            ]
+        },
+        {
+            "text": "450.00",
+            "bbox": [
+                1332,
+                799,
+                1426,
+                832
+            ]
+        },
+        {
+            "text": "2",
+            "bbox": [
+                152,
+                866,
+                182,
+                903
+            ]
+        },
+        {
+            "text": "Desk Lamp/Hni",
+            "bbox": [
+                211,
+                868,
+                504,
+                906
+            ]
+        },
+        {
+            "text": "20",
+            "bbox": [
+                776,
+                868,
+                822,
+                906
+            ]
+        },
+        {
+            "text": "12.50",
+            "bbox": [
+                998,
+                869,
+                1082,
+                907
+            ]
+        },
+        {
+            "text": "250.00",
+            "bbox": [
+                1332,
+                867,
+                1429,
+                902
+            ]
+        },
+        {
+            "text": "3",
+            "bbox": [
+                152,
+                937,
+                182,
+                973
+            ]
+        },
+        {
+            "text": "Whiteboard/as",
+            "bbox": [
+                209,
+                937,
+                504,
+                977
+            ]
+        },
+        {
+            "text": "5",
+            "bbox": [
+                786,
+                939,
+                815,
+                975
+            ]
+        },
+        {
+            "text": "60.00",
+            "bbox": [
+                1000,
+                940,
+                1082,
+                976
+            ]
+        },
+        {
+            "text": "300.00",
+            "bbox": [
+                1333,
+                936,
+                1429,
+                971
+            ]
+        },
+        {
+            "text": "Subtotal/",
+            "bbox": [
+                1061,
+                1034,
+                1284,
+                1067
+            ]
+        },
+        {
+            "text": "USD 1,000.00",
+            "bbox": [
+                1344,
+                1022,
+                1535,
+                1064
+            ]
+        },
+        {
+            "text": "VAT10%/HiUig",
+            "bbox": [
+                917,
+                1094,
+                1286,
+                1134
+            ]
+        },
+        {
+            "text": "USD 100.00",
+            "bbox": [
+                1370,
+                1084,
+                1536,
+                1126
+            ]
+        },
+        {
+            "text": "TOTAL / JU",
+            "bbox": [
+                1090,
+                1161,
+                1288,
+                1196
+            ]
+        },
+        {
+            "text": "USD 1,100.00",
+            "bbox": [
+                1326,
+                1148,
+                1538,
+                1195
+            ]
+        },
+        {
+            "text": "Pleasea",
+            "bbox": [
+                121,
+                1235,
+                1401,
+                1287
+            ]
+        },
+        {
+            "text": "ns  ",
+            "bbox": [
+                124,
+                1279,
+                649,
+                1322
+            ]
+        },
+        {
+            "text": "Authorized by (Buyer)",
+            "bbox": [
+                306,
+                1497,
+                602,
+                1543
+            ]
+        },
+        {
+            "text": "Acknowledged by (Vendor)",
+            "bbox": [
+                1041,
+                1495,
+                1403,
+                1538
+            ]
+        }
+    ]
+}

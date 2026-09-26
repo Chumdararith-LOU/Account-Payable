@@ -1,0 +1,361 @@
+{
+    "source_file": "documents/pard/PARD_2026_0210.png",
+    "tables": [
+        {
+            "html": "<html><body><table><tr><td>Description</td><td>Amount (USD)</td></tr><tr><td>Payment for Invoice INV-2026-1123</td><td>1,100.00</td></tr><tr><td>TOTAL PAID / NJUSU</td><td>USD 1,100.00</td></tr></table></body></html>"
+        }
+    ],
+    "text_blocks": [
+        {
+            "text": "KINGDOMOFCAMBODIA—NATIONRELIGIONKING",
+            "bbox": [
+                132,
+                12,
+                776,
+                50
+            ]
+        },
+        {
+            "text": "PAYMENT ADVICE & RECEIPT DOC (PARD)",
+            "bbox": [
+                319,
+                80,
+                1391,
+                141
+            ]
+        },
+        {
+            "text": " ",
+            "bbox": [
+                658,
+                151,
+                1043,
+                206
+            ]
+        },
+        {
+            "text": "No.:PARD-2026-0210",
+            "bbox": [
+                1168,
+                249,
+                1469,
+                280
+            ]
+        },
+        {
+            "text": "Date:25-Aug-2026",
+            "bbox": [
+                1151,
+                300,
+                1418,
+                331
+            ]
+        },
+        {
+            "text": "Paid By /Hυ",
+            "bbox": [
+                139,
+                378,
+                416,
+                423
+            ]
+        },
+        {
+            "text": "Paid To /",
+            "bbox": [
+                874,
+                378,
+                1176,
+                421
+            ]
+        },
+        {
+            "text": "Golden Angkor Trading Co., Ltd.",
+            "bbox": [
+                135,
+                426,
+                678,
+                481
+            ]
+        },
+        {
+            "text": "Mekong Supplies Co., Ltd.",
+            "bbox": [
+                873,
+                431,
+                1315,
+                478
+            ]
+        },
+        {
+            "text": "uus s Hn gg",
+            "bbox": [
+                133,
+                474,
+                617,
+                530
+            ]
+        },
+        {
+            "text": "   ",
+            "bbox": [
+                871,
+                483,
+                1284,
+                526
+            ]
+        },
+        {
+            "text": "No. 12, Street 271, Sangkat Boeung Tumpun, Khan",
+            "bbox": [
+                134,
+                534,
+                804,
+                574
+            ]
+        },
+        {
+            "text": "No. 88, Street 214, Sangkat Veal Vong, Khan 7",
+            "bbox": [
+                870,
+                535,
+                1480,
+                577
+            ]
+        },
+        {
+            "text": "Mean Chey, Phnom Penh, Cambodia",
+            "bbox": [
+                134,
+                574,
+                615,
+                615
+            ]
+        },
+        {
+            "text": "Makara, Phnom Penh, Cambodia",
+            "bbox": [
+                871,
+                576,
+                1311,
+                614
+            ]
+        },
+        {
+            "text": "TIN: K001-987654321 Tel: +855 23 555 123",
+            "bbox": [
+                132,
+                615,
+                713,
+                654
+            ]
+        },
+        {
+            "text": "TIN:K002-123456789",
+            "bbox": [
+                869,
+                619,
+                1160,
+                656
+            ]
+        },
+        {
+            "text": "Tel: +855 23 987 654",
+            "bbox": [
+                1175,
+                626,
+                1457,
+                656
+            ]
+        },
+        {
+            "text": "Ref. Invoice",
+            "bbox": [
+                1055,
+                705,
+                1226,
+                738
+            ]
+        },
+        {
+            "text": "INV-2026-1123",
+            "bbox": [
+                1241,
+                726,
+                1446,
+                760
+            ]
+        },
+        {
+            "text": "No.:",
+            "bbox": [
+                1159,
+                744,
+                1230,
+                783
+            ]
+        },
+        {
+            "text": "Payment",
+            "bbox": [
+                1090,
+                796,
+                1229,
+                836
+            ]
+        },
+        {
+            "text": "Bank Transfer",
+            "bbox": [
+                1241,
+                821,
+                1434,
+                852
+            ]
+        },
+        {
+            "text": "Method:",
+            "bbox": [
+                1100,
+                838,
+                1227,
+                873
+            ]
+        },
+        {
+            "text": "Bank:",
+            "bbox": [
+                1139,
+                893,
+                1226,
+                921
+            ]
+        },
+        {
+            "text": "ABA Bank Cambodia",
+            "bbox": [
+                1234,
+                892,
+                1516,
+                922
+            ]
+        },
+        {
+            "text": "000-XXXXXX-01",
+            "bbox": [
+                1239,
+                942,
+                1442,
+                972
+            ]
+        },
+        {
+            "text": "Account No.:(Mekong Supplies Co.,",
+            "bbox": [
+                1037,
+                983,
+                1536,
+                1017
+            ]
+        },
+        {
+            "text": "Ltd.)",
+            "bbox": [
+                1235,
+                1023,
+                1306,
+                1061
+            ]
+        },
+        {
+            "text": "Description",
+            "bbox": [
+                527,
+                1122,
+                699,
+                1165
+            ]
+        },
+        {
+            "text": "Amount (USD)",
+            "bbox": [
+                1227,
+                1133,
+                1432,
+                1167
+            ]
+        },
+        {
+            "text": "Payment for Invoice INV-2026-1123",
+            "bbox": [
+                133,
+                1200,
+                604,
+                1234
+            ]
+        },
+        {
+            "text": "1,100.00",
+            "bbox": [
+                1268,
+                1206,
+                1391,
+                1241
+            ]
+        },
+        {
+            "text": "TOTAL PAID / NJUSU",
+            "bbox": [
+                126,
+                1266,
+                464,
+                1306
+            ]
+        },
+        {
+            "text": "USD 1,100.00",
+            "bbox": [
+                1238,
+                1279,
+                1419,
+                1310
+            ]
+        },
+        {
+            "text": "This documentconfirms receipt of payment in full settlement of the referenced invoice./",
+            "bbox": [
+                109,
+                1345,
+                1300,
+                1399
+            ]
+        },
+        {
+            "text": "eismssmm",
+            "bbox": [
+                110,
+                1384,
+                606,
+                1432
+            ]
+        },
+        {
+            "text": "Paid by (Buyer/Finance)",
+            "bbox": [
+                282,
+                1614,
+                600,
+                1660
+            ]
+        },
+        {
+            "text": "Received by (Vendor)",
+            "bbox": [
+                1075,
+                1625,
+                1360,
+                1659
+            ]
+        }
+    ]
+}

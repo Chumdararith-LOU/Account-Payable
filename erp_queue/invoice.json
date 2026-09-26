@@ -1,0 +1,24 @@
+{
+  "case_id": "invoice",
+  "timestamp": "2026-08-26T07:51:07.041669+00:00",
+  "decision": "PENDING_INFO",
+  "confidence": 0.0,
+  "reasons": [
+    "Missing linked document: PO",
+    "Missing linked document: GRNI",
+    "Missing linked document: PARD"
+  ],
+  "documents": {
+    "invoice": {
+      "doc_type": "invoice",
+      "raw_confidence": 0.97,
+      "total_amount": 12210.0,
+      "date": "11/02/2019",
+      "doc_number": "OICE",
+      "po_reference": "2312"
+    },
+    "po": null,
+    "grni": null,
+    "pard": null
+  }
+}

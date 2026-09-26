@@ -1,0 +1,13 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.db-journal
+*.db.pre-p1-01.bak
+.env
+*.log
+cloudflared-linux-amd64
+output/imgs/
+.DS_Store
