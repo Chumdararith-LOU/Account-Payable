@@ -32,6 +32,14 @@ def test_deterministic(fixture_image):
     assert [b.bbox for b in r1.text_blocks] == [b.bbox for b in r2.text_blocks]
 
 
+def test_conf_is_float_or_none(fixture_image):
+    result = _engine().recognize(fixture_image)
+    for b in result.text_blocks:
+        assert b.conf is None or (isinstance(b.conf, float) and 0.0 <= b.conf <= 1.0), (
+            f"bad conf {b.conf!r} for {b.text!r}"
+        )
+
+
 def test_prototype_json_schema(fixture_image):
     result = _engine().recognize(fixture_image)
     out = to_prototype_json(result)

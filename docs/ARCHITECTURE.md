@@ -79,6 +79,13 @@ See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:
   in P1-04b.
 - `KhmerOCREngine.recognize()` operates on cropped regions only (tror-yong-ocr
   has no text detection); routing by region is P1-04b's responsibility.
+- Third-party bug in tror-yong-ocr 0.2.7: MultiheadAttention.forward
+  passes dropout_p=0.1 into F.scaled_dot_product_attention even in
+  eval mode, making recognition non-deterministic across calls and
+  processes. Worked around in apmatch/ocr/khmer.py by model.eval()
+  plus zeroing every dropout module's `p`. Regression-guarded by
+  tests/ocr/test_khmer_dropout_fix.py. If upstream releases a fix,
+  revisit and remove the workaround.
 - Table/layout extraction not yet implemented (P1-05).
 - opencv-contrib-python pinned to 4.10.0.84 by paddlex, overriding the
   previous 4.11.0.86 — verify ultralytics still imports (checked in P1-03,

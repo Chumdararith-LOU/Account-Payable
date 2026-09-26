@@ -12,7 +12,7 @@ P1-05.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -30,10 +30,15 @@ _MODEL_DIRS = {
 
 @dataclass(frozen=True)
 class TextBlock:
-    """One recognized text line. bbox = (x0, y0, x1, y1) with x0<x1, y0<y1."""
+    """One recognized text line. bbox = (x0, y0, x1, y1) with x0<x1, y0<y1.
+
+    conf is the engine's per-line recognition confidence in [0, 1] when
+    the engine provides one (PaddleOCR rec_scores), else None.
+    """
 
     text: str
     bbox: tuple[float, float, float, float]
+    conf: float | None = field(default=None)
 
 
 @dataclass(frozen=True)
@@ -67,12 +72,14 @@ class LatinOCREngine:
         """Run OCR on one image and return text blocks in engine order."""
         result = self._ocr.predict(str(image_path))
         r0 = result[0]
+        scores = r0.get("rec_scores")
         blocks = []
-        for text, poly in zip(r0["rec_texts"], r0["rec_polys"]):
+        for i, (text, poly) in enumerate(zip(r0["rec_texts"], r0["rec_polys"])):
             xs = [pt[0] for pt in poly]
             ys = [pt[1] for pt in poly]
             bbox = (float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys)))
-            blocks.append(TextBlock(text=text, bbox=bbox))
+            conf = float(scores[i]) if scores is not None and i < len(scores) else None
+            blocks.append(TextBlock(text=text, bbox=bbox, conf=conf))
         return OCRResult(source_file=str(image_path), text_blocks=tuple(blocks))
 
     def close(self) -> None:

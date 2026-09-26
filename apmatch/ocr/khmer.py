@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import IO
 
 from apmatch.ocr.engine import OCRResult, TextBlock
 
@@ -60,11 +61,13 @@ class KhmerOCREngine:
         self._tokenizer = tyo.get_tokenizer()
         print(f"KhmerOCREngine: charset size = {len(self._tokenizer)}")
 
-    def recognize(self, image_path: Path | str) -> OCRResult:
+    def recognize(self, image_path: Path | str | "IO[bytes]") -> OCRResult:
         """Recognize Khmer text in a CROPPED single-line image.
 
         The input must already be a crop of one text line/region
-        (tror-yong-ocr does no detection). Returns a single TextBlock
+        (tror-yong-ocr does no detection). Accepts a path or a
+        file-like object (e.g. BytesIO) so callers can pass in-memory
+        crops without a disk round-trip. Returns a single TextBlock
         with bbox = (0, 0, width, height) of the input image.
         """
         from PIL import Image

@@ -28,6 +28,12 @@
 ## Task workflow
 - Read `docs/TASKS.md` at the start of every session.
 - Each task ends with exactly one commit (unless the task says otherwise).
+- `docs/TASKS.md` records commit references as grep tags of the form
+  `(P1-NN)`, not hashes. Hashes become stale when a task's own commit is
+  later amended. The commit subject already contains `(P1-NN)`; find a
+  task's commit with:
+      git log --oneline --grep="(P1-NN)"
+  Do NOT write hashes into TASKS.md going forward.
 - Report back in EXACTLY this format:
     1. Files created/modified (full paths)
     2. Commands run + RAW output (do not summarize or paraphrase)
