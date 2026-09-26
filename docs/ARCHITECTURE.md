@@ -18,8 +18,18 @@ dashboard + FastAPI service.
 | `pp.py` | Document-processing dispatcher: doc_type routing, invoice duplicate check, `save_match_result` (queue routing commented out) |
 | `api.py` | FastAPI service v1.1: `/health`, `/samples`, `/stats`, `/process`, `/process-direct`, `/process-file`; API-key auth; embedded demo HTML page |
 | `dashboard.py` | Streamlit KPI dashboard: metric cards, top-discrepancy bar chart (Plotly), processing log table |
-| `remark_generator.py` | Optional Claude (Haiku 4.5) one-line remark generator with raw-text fallback; not wired into the engine |
 | `generate_test_docs.py` | Generates bilingual EN/Khmer test docs (PO/GRNI/INV/PARD) as PDF+PNG via WeasyPrint + pdftoppm |
+| `apmatch/ocr/engine.py` | `LatinOCREngine` — deterministic, offline, CPU-only wrapper around PaddleOCR 3.7.0 (PP-OCRv6_medium det/rec) for Latin/numeric text; returns `OCRResult` (frozen dataclasses) and `to_prototype_json()` matching the `output/ocr/*.json` schema (text_blocks only; tables arrive in P1-05) |
+
+`LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium. Model weights are
+vendored at `models/paddleocr/` (gitignored, ~170 MB) and pointed at via the
+constructor's `*_model_dir` kwargs; offline env vars
+(`PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True`, `HF_HUB_OFFLINE=1`,
+`TRANSFORMERS_OFFLINE=1`) are set inside `__init__` before the paddleocr
+import. One-time provisioning of the vendored cache:
+`cp -R ~/.paddlex/official_models/. models/paddleocr/`. Zero-network runtime
+is proven by `scripts/verify_offline.py` (socket.connect blocked) and
+`tests/ocr/test_offline.py`.
 
 Supporting: `migrate_to_db.py` (one-shot JSON→SQLite), `generate_report.py`
 (static HTML completion report), `set_api_key_visible.py` (writes `.env`),
@@ -58,8 +68,14 @@ See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:
   proposal (Plan.md §5) says ±5% — code/comment drift.
 - LLM/generative code fully removed (P1-02, D-005). Template remark module
   lands in P1-07.
-- No OCR invocation code exists in the repo; the OCR JSONs in `output/ocr/`
-  were produced externally.
+- The legacy root-level prototype files contain no OCR invocation code; the
+  OCR JSONs in `output/ocr/` were produced externally. In-repo OCR now lives
+  in `apmatch/ocr/engine.py` (P1-03).
 - `cloudflared-linux-amd64` is a Linux binary, unusable on this macOS host.
 - `tror-yong-ocr` is installed in `anpr` but unaudited (audit performed in
   P1-01 step 11; see report).
+- Khmer script not yet supported (P1-04).
+- Table/layout extraction not yet implemented (P1-05).
+- opencv-contrib-python pinned to 4.10.0.84 by paddlex, overriding the
+  previous 4.11.0.86 — verify ultralytics still imports (checked in P1-03,
+  see F.4 result in the P1-03 report).

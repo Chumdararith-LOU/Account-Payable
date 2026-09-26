@@ -11,3 +11,6 @@ __pycache__/
 cloudflared-linux-amd64
 output/imgs/
 .DS_Store
+models/
+*.pdmodel
+*.pdiparams

@@ -4,8 +4,8 @@
 |---|---|---|---|
 | P1-00 | Recon & dependency audit | done | |
 | P1-01 | Repo baseline, env manifest, docs | done | d379ee7 |
-| P1-02 | Upgrade Paddle stack (3.7.0 / 3.3.1) | done | |
-| P1-03 | OCR engine wrapper (Latin/numeric) | pending | |
+| P1-02 | Upgrade Paddle stack (3.7.0 / 3.3.1) | done | 17506a5 |
+| P1-03 | OCR engine wrapper (Latin/numeric) | done | 90e6664 |
 | P1-04 | Script router + Khmer module | pending | |
 | P1-05 | Layout/table structuring | pending | |
 | P1-06 | Arithmetic validation layer | pending | |
