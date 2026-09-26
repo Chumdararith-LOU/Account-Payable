@@ -131,7 +131,7 @@ html_content = """
         <li><strong>Frontend:</strong> Streamlit, Pandas</li>
     </ul>
     <h3>8.2 Data Privacy & Security</h3>
-    <p>As per the proposal's data flow design, <strong>100% of sensitive financial data stays local</strong>. Document images, OCR text, and matching logic never leave the machine. The optional LLM (Claude API) only receives the final decision text to generate human-readable remarks, ensuring no invoice-level financial details are sent to the cloud.</p>
+    <p>As per the proposal's data flow design, <strong>100% of sensitive financial data stays local</strong>. Document images, OCR text, and matching logic never leave the machine. Reviewer remarks are produced by a deterministic template module, so no document content is ever sent to any external service.</p>
 
     <!-- CONCLUSION -->
     <h1>9. Conclusion & Next Steps</h1>
