@@ -26,6 +26,8 @@ dashboard + FastAPI service.
 | `apmatch/schema/coercion.py` | `to_money` / `to_unit_price` / `to_qty` — the single boundary that turns external numeric input into quantized `Decimal`; rejects `float` with `TypeError` |
 | `apmatch/validation/result.py` | `Severity`, `CheckCode` (enum), `CheckFailure`, `ValidationResult` — the structured validation outcome (code + severity, never free text) |
 | `apmatch/validation/arithmetic.py` | Pure functions `validate_invoice` / `validate_po` / `validate_grni` / `validate_pard` — internal arithmetic-consistency checks; no I/O, no exceptions for business failures; plus a CLI |
+| `apmatch/matching/config.py` | Tolerance + matching constants (all money as `Decimal`), `MATCHABLE_FIELDS`; constants not config files |
+| `apmatch/matching/normalize.py` | Pure `normalize_text` / `normalize_number_text` / `normalize_currency` — OCR-noise stripping tuned to keep meaning |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
@@ -74,6 +76,10 @@ downstream module (validation, matching, remarks, audit) consumes:
     Every `CheckCode` maps to exactly one template; coverage is enforced by
     `tests/remarks/test_templates.py::test_all_checkcodes_have_template` and
     `tests/remarks/test_no_llm.py`.
+  - Matching primitives (config constants, text normalization) live under
+    `apmatch/matching/`. Tolerances are Python constants, not config files;
+    changes require a task and updated tests. OCR-noise stripping is heuristic
+    and errs toward keeping content.
 
 ## Target state (Phase 1) — workstreams
 
