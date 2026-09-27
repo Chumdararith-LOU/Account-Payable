@@ -36,3 +36,4 @@
 | D-032 | Repository API is dataclass-in / dataclass-out; ORM instances never cross the boundary | 2026-09-27 | Keeps business logic independent of SQLAlchemy and makes round-trip tests trivial. |
 | D-033 | UPSERT is delete-then-insert for lines, update-or-replace for headers | 2026-09-27 | Simpler to reason about than merge(); avoids SQLAlchemy identity-map surprises and produces predictable line ordering. |
 | D-034 | load() raises DocumentNotFound with kind + identifier | 2026-09-27 | A bare KeyError loses context; reviewers and audit logs need to know which document kind was missing and by what identifier. |
+| D-035 | SQLite → Postgres migration is dev-only, one-shot, Decimal(str(value)) conversion | 2026-09-27 | The legacy DB is fixture data. Production uses Alembic migrations against an empty schema. The float→Decimal conversion at the boundary is explicitly documented because it's the only place float is touched. |

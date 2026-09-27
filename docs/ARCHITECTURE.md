@@ -159,6 +159,11 @@ Postgres 16, SQLAlchemy 2.x, Alembic.
   Decimal-precision-exact. Enforced by `tests/store/test_repositories.py`.
 - **The caller manages transactions;** repositories never commit (they flush so
   a same-transaction `load` can see saved rows).
+- **Legacy SQLite migration** is one-shot via `scripts/migrate_sqlite_to_pg.py`.
+  This is DEV-ONLY fixture data; it is not a production upgrade path. Production
+  schema changes go through Alembic.
+- **Money crosses the SQLite→Postgres boundary via `Decimal(str(value))`** — the
+  one place in the codebase where that pattern is expected.
 
 ## Target state (Phase 1) — workstreams
 

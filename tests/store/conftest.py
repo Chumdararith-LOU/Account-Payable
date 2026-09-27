@@ -7,6 +7,7 @@ rolls back its transaction so tests are isolated.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -60,3 +61,14 @@ def pg_session(pg_engine):
     session.close()
     transaction.rollback()
     connection.close()
+
+
+@pytest.fixture
+def sqlite_copy(tmp_path):
+    """A tmp copy of ap_automation.db so migration tests never touch the real file."""
+    src = REPO_ROOT / "ap_automation.db"
+    if not src.exists():
+        pytest.skip("ap_automation.db not found at repo root")
+    dst = tmp_path / "ap_automation_copy.db"
+    shutil.copy2(src, dst)
+    return dst
