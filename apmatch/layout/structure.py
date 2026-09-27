@@ -38,7 +38,6 @@ _MODEL_DIRS = {
     "wireless_table_structure_recognition_model_dir": "SLANet_plus",
     "wired_table_cells_detection_model_dir": "RT-DETR-L_wired_table_cell_det",
     "wireless_table_cells_detection_model_dir": "RT-DETR-L_wireless_table_cell_det",
-    "formula_recognition_model_dir": "PP-FormulaNet_plus-L",
 }
 
 

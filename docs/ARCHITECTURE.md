@@ -22,6 +22,10 @@ dashboard + FastAPI service.
 | `apmatch/ocr/engine.py` | `LatinOCREngine` — deterministic, offline, CPU-only wrapper around PaddleOCR 3.7.0 (PP-OCRv6_medium det/rec) for Latin/numeric text; returns `OCRResult` (frozen dataclasses, incl. optional `tables: tuple[Table, ...]`) and `to_prototype_json()` matching the `output/ocr/*.json` schema |
 | `apmatch/ocr/khmer.py` | `KhmerOCREngine` — deterministic, offline, CPU-only wrapper around TrorYongOCR (tror-yong-ocr 0.2.7) for Khmer-script text; recognition-only (no detection), operates on cropped single-line regions, returns the same `OCRResult` schema with bbox = (0, 0, w, h) of the crop |
 | `apmatch/layout/structure.py` | `LayoutEngine` — deterministic, offline, CPU-only wrapper around PaddleOCR 3.7.0 PP-StructureV3 for table extraction; returns `tuple[Table, ...]` (`Table` dataclass: html + bbox + page_index) and `to_prototype_json()` matching the prototype's `tables` schema (single `html` key). Called independently of the OCR router |
+| `apmatch/schema/documents.py` | Frozen dataclasses `Invoice`, `PurchaseOrder`, `GRNI`, `PaymentAdvice`, `LineItem` — the canonical in-memory AP document contract; every monetary field is `Decimal` |
+| `apmatch/schema/coercion.py` | `to_money` / `to_unit_price` / `to_qty` — the single boundary that turns external numeric input into quantized `Decimal`; rejects `float` with `TypeError` |
+| `apmatch/validation/result.py` | `Severity`, `CheckCode` (enum), `CheckFailure`, `ValidationResult` — the structured validation outcome (code + severity, never free text) |
+| `apmatch/validation/arithmetic.py` | Pure functions `validate_invoice` / `validate_po` / `validate_grni` / `validate_pard` — internal arithmetic-consistency checks; no I/O, no exceptions for business failures; plus a CLI |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
@@ -38,6 +42,27 @@ blocked.
 Supporting: `migrate_to_db.py` (one-shot JSON→SQLite), `generate_report.py`
 (static HTML completion report), `set_api_key_visible.py` (writes `.env`),
 `Plan.md` (proposal), `report.md` (P1-00 recon).
+
+## Document schema contract
+
+The in-memory AP document model (`apmatch/schema/`) is the contract every
+downstream module (validation, matching, remarks, audit) consumes:
+
+- **Frozen dataclasses, Decimal-only money.** `Invoice`, `PurchaseOrder`,
+  `GRNI`, `PaymentAdvice`, `LineItem` are `@dataclass(frozen=True)`. Every
+  monetary field is a `decimal.Decimal` (never `float`). The field sets mirror
+  the legacy SQLite schema in `database.py`, extended with the richer contract
+  fields the matching engine needs.
+- **Float rejection at the coercion boundary.** `apmatch/schema/coercion.py`
+  (`to_money` / `to_unit_price` / `to_qty`) is the single place external
+  numeric input becomes a quantized `Decimal`. It raises `TypeError` on any
+  `float`, so a float can never silently enter the money path.
+- **ValidationResult carries code + severity, never free text.** Failures are
+  `CheckFailure(code: CheckCode, severity: Severity, ...)`. Downstream modules
+  switch on `CheckCode`; they must never string-match a message. New failure
+  modes are added by extending `CheckCode`, not by inventing message strings.
+- **Failure ordering is part of the contract.** `checks_failed` is sorted by
+  (severity desc, then code asc, then location asc). Tests assert this order.
 
 ## Target state (Phase 1) — workstreams
 

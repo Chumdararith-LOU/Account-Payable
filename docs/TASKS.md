@@ -10,7 +10,7 @@
 | P1-04b | Khmer dropout guard, script router, AGENTS fix | done | (P1-04b) |
 | P1-05 | Layout/table structuring | done | (P1-05) |
 | P1-05b | Slim vendored cache, disable formula recognition | done | (P1-05b) |
-| P1-06 | Arithmetic validation layer | pending | |
+| P1-06 | Arithmetic validation layer | done | (P1-06) |
 | P1-07 | Template remark module (replaces removed LLM code) | pending | |
 | P1-08 | Matching engine hardening | pending | |
 | P1-09 | Confidence scoring & routing | pending | |
