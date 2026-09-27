@@ -7,6 +7,8 @@ task, a rationale, and updated tests. Money quantities are Decimal, not float.
 
 from decimal import Decimal
 
+from apmatch.matching.result import MatchCode
+
 __all__ = [
     "QTY_TOLERANCE_ABS",
     "UNIT_PRICE_TOLERANCE",
@@ -16,6 +18,7 @@ __all__ = [
     "AMOUNT_TOLERANCE_REL",
     "VENDOR_NAME_FUZZY_MIN",
     "MATCHABLE_FIELDS",
+    "MATCH_CODE_WEIGHTS",
 ]
 
 # Absolute tolerances — differences strictly greater than these are treated as
@@ -44,3 +47,21 @@ VENDOR_NAME_FUZZY_MIN = Decimal("0.90")
 # Documents with these fields populated are candidates for the numeric checks.
 # Naming the tuple here keeps the engine from hardcoding field lists.
 MATCHABLE_FIELDS = ("vendor_name", "currency", "total")
+
+# Score weights: each MatchFailure contributes -weight to the score, which
+# starts at 1.0 and is clamped to [0.0, 1.0]. Decimal, not float. A future
+# change is one edit here, one task, one test.
+MATCH_CODE_WEIGHTS: dict[MatchCode, Decimal] = {
+    MatchCode.PO_MISSING: Decimal("0.5"),
+    MatchCode.GRNI_MISSING: Decimal("0.5"),
+    MatchCode.PARD_MISSING: Decimal("0.5"),
+    MatchCode.VENDOR_MISMATCH: Decimal("0.3"),
+    MatchCode.CURRENCY_MISMATCH: Decimal("0.3"),
+    MatchCode.NO_MATCHING_PO_LINE: Decimal("0.2"),
+    MatchCode.NO_MATCHING_GRNI_LINE: Decimal("0.2"),
+    MatchCode.QTY_MISMATCH: Decimal("0.3"),
+    MatchCode.UNIT_PRICE_MISMATCH: Decimal("0.3"),
+    MatchCode.LINE_AMOUNT_MISMATCH: Decimal("0.3"),
+    MatchCode.PARD_AMOUNT_MISMATCH: Decimal("0.2"),
+    MatchCode.DATE_OUT_OF_ORDER: Decimal("0.1"),
+}

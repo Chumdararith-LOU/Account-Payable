@@ -28,6 +28,8 @@ dashboard + FastAPI service.
 | `apmatch/validation/arithmetic.py` | Pure functions `validate_invoice` / `validate_po` / `validate_grni` / `validate_pard` — internal arithmetic-consistency checks; no I/O, no exceptions for business failures; plus a CLI |
 | `apmatch/matching/config.py` | Tolerance + matching constants (all money as `Decimal`), `MATCHABLE_FIELDS`; constants not config files |
 | `apmatch/matching/normalize.py` | Pure `normalize_text` / `normalize_number_text` / `normalize_currency` — OCR-noise stripping tuned to keep meaning |
+| `apmatch/matching/result.py` | `Outcome`, `MatchCode` (12 codes), `MatchFailure`, `MatchResult` — the structured match outcome (code + severity, never free text); `failures` ordered by (severity desc, code asc, location asc) |
+| `apmatch/matching/engine.py` | `MatchingEngine.match(invoice, po, grni, pard) -> MatchResult` — deterministic 4-way match (vendor/currency/line/PARD/date); pure, no I/O, no LLM; plus a CLI that reads four JSON files and prints the result |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
@@ -77,9 +79,36 @@ downstream module (validation, matching, remarks, audit) consumes:
     `tests/remarks/test_templates.py::test_all_checkcodes_have_template` and
     `tests/remarks/test_no_llm.py`.
   - Matching primitives (config constants, text normalization) live under
-    `apmatch/matching/`. Tolerances are Python constants, not config files;
-    changes require a task and updated tests. OCR-noise stripping is heuristic
-    and errs toward keeping content.
+   `apmatch/matching/`. Tolerances are Python constants, not config files;
+   changes require a task and updated tests. OCR-noise stripping is heuristic
+   and errs toward keeping content.
+
+## Matching engine contract
+
+`apmatch/matching/engine.py` is pure: no I/O, no LLM, no network. It consumes
+the schema dataclasses and returns a `MatchResult`.
+
+- **Three-valued outcome.** `MATCH` (zero failures), `DISCREPANCY` (any
+  failure, blocker or not), `PENDING_INFO` (a required document is missing).
+  The blocker distinction is carried by `MatchResult.has_blocker`, not the
+  outcome.
+- **Missing documents short-circuit.** A missing PO / GRNI / PARD returns
+  `PENDING_INFO` with score `0.0` and a single `*_MISSING` failure before any
+  other check runs.
+- **Score model.** Starts at `1.0`; each `MatchFailure` subtracts
+  `config.MATCH_CODE_WEIGHTS[code]`; the result is clamped to `[0.0, 1.0]`.
+  Weights are `Decimal` constants, not config files.
+- **Line join.** Invoice lines are matched to PO / GRNI lines on
+  `normalize_text(description)`, first match in source order. Quantity must
+  match exactly; unit price and line amount use the absolute-OR-relative
+  tolerance (pass if `abs diff <= ABS` or `abs diff / max <= REL`).
+- **Schema gap: PO has no currency.** `PurchaseOrder` (P1-06) carries no
+  `currency` field, so the cross-document currency check reads it via
+  `getattr` and is skipped when absent — forward-compatible, never a false
+  positive (D-022).
+- **Failure ordering is part of the contract.** `failures` is sorted by
+  (severity desc, then code asc, then location asc), mirroring
+  `apmatch.validation.result`.
 
 ## Target state (Phase 1) — workstreams
 

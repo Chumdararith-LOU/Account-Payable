@@ -14,7 +14,7 @@ _DECIMAL_CONSTANTS = [
 ]
 
 # Names imported into the module (not constants defined here).
-_IMPORTED = {"Decimal"}
+_IMPORTED = {"Decimal", "MatchCode"}
 
 
 def test_all_tolerances_are_decimal():

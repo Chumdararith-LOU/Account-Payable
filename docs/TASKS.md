@@ -14,7 +14,8 @@
 | P1-06b | Optional tax/discount rates, drop created_at | done | (P1-06b) |
 | P1-07 | Template remark module (replaces removed LLM code) | done | (P1-07) |
 | P1-08a | Matching primitives: normalization + tolerance config | done | (P1-08a) |
-| P1-08b | Matching engine + MatchResult | pending | |
+| P1-08b | Matching engine + MatchResult | done | (P1-08b) |
+| P1-08c | End-to-end: OCR/layout output → matching engine | pending | |
 | P1-09 | Confidence scoring & routing | pending | |
 | P1-10 | Storage: SQLite → PostgreSQL | pending | |
 | P1-11 | Audit log + dashboard hooks | pending | |
