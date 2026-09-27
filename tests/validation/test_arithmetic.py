@@ -113,6 +113,73 @@ def test_negative_amount_warning():
     assert failures and failures[0].severity is Severity.WARNING
 
 
+# --- Invoice: tax/discount rate modes --------------------------------------
+
+
+def test_tax_rate_present_correct():
+    inv = replace(_valid_invoice(), tax_rate=Decimal("0.10"))  # 35.00 * 0.10 == 3.50
+    assert CheckCode.TAX_MISMATCH not in _codes(validate_invoice(inv))
+
+
+def test_tax_rate_present_incorrect():
+    inv = replace(_valid_invoice(), tax_rate=Decimal("0.10"), tax_amount=Decimal("4.00"))
+    result = validate_invoice(inv)
+    failures = [f for f in result.checks_failed if f.code is CheckCode.TAX_MISMATCH]
+    assert failures
+    assert failures[0].severity is Severity.BLOCKER
+    assert failures[0].location == "header"
+
+
+def test_tax_rate_absent_sanity_ok():
+    inv = _valid_invoice()  # tax 3.50 < total 38.50, no tax_rate
+    assert CheckCode.TAX_MISMATCH not in _codes(validate_invoice(inv))
+
+
+def test_tax_rate_absent_sanity_fail():
+    inv = replace(_valid_invoice(), tax_amount=Decimal("40.00"))  # tax > total
+    result = validate_invoice(inv)
+    failures = [f for f in result.checks_failed if f.code is CheckCode.TAX_MISMATCH]
+    assert failures
+    assert failures[0].severity is Severity.WARNING
+    assert "sanity-only" in failures[0].location
+
+
+def test_discount_rate_present_correct():
+    inv = replace(
+        _valid_invoice(),
+        discount_amount=Decimal("3.50"),
+        discount_rate=Decimal("0.10"),  # 35.00 * 0.10 == 3.50
+        total=Decimal("35.00"),  # 35 - 3.50 + 3.50
+    )
+    result = validate_invoice(inv)
+    assert CheckCode.DISCOUNT_MISMATCH not in _codes(result)
+    assert result.ok is True
+
+
+def test_discount_rate_present_incorrect():
+    inv = replace(_valid_invoice(), discount_rate=Decimal("0.10"), discount_amount=Decimal("5.00"))
+    result = validate_invoice(inv)
+    failures = [f for f in result.checks_failed if f.code is CheckCode.DISCOUNT_MISMATCH]
+    assert failures
+    assert failures[0].severity is Severity.BLOCKER
+    assert failures[0].location == "header"
+
+
+def test_discount_rate_absent_sanity_fail():
+    inv = replace(_valid_invoice(), discount_amount=Decimal("40.00"))  # discount > subtotal
+    result = validate_invoice(inv)
+    failures = [f for f in result.checks_failed if f.code is CheckCode.DISCOUNT_MISMATCH]
+    assert failures
+    assert failures[0].severity is Severity.WARNING
+    assert "sanity-only" in failures[0].location
+
+
+def test_rate_fields_default_none():
+    inv = _valid_invoice()
+    assert inv.tax_rate is None
+    assert inv.discount_rate is None
+
+
 # --- Result structure ------------------------------------------------------
 
 

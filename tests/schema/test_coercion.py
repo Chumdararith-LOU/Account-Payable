@@ -2,6 +2,7 @@ import pytest
 from decimal import Decimal
 
 from apmatch.schema.coercion import to_money, to_qty, to_unit_price
+from apmatch.schema.documents import GRNI, Invoice, PaymentAdvice, PurchaseOrder
 
 
 def test_to_money_accepts_str_and_decimal():
@@ -30,3 +31,10 @@ def test_to_qty_quantum_is_4dp():
     result = to_qty(Decimal("3.00005"))
     assert result == Decimal("3.0001")
     assert result.as_tuple().exponent == -4
+
+
+def test_invoice_no_longer_has_created_at():
+    assert not hasattr(Invoice, "created_at")
+    assert not hasattr(PurchaseOrder, "created_at")
+    assert not hasattr(GRNI, "created_at")
+    assert not hasattr(PaymentAdvice, "created_at")

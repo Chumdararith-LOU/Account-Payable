@@ -6,13 +6,17 @@ is a ``decimal.Decimal``; all dataclasses are frozen.
 
 The field sets mirror the legacy SQLite schema in ``database.py`` (the
 ground truth from P1-06 Checkpoint A) extended with the richer contract
-fields the matching engine needs. Columns present in the DB but not in the
-original design are carried as optional fields (default ``None``):
+fields the matching engine needs.
 
-- ``created_at`` — audit timestamp on PO/GRNI/INVOICE headers (DB TIMESTAMP).
 - ``LineItem.unit_price`` / ``LineItem.amount`` are optional because the DB's
   ``GRNI_LINE`` stores only ``Item`` and ``Qty`` (no price, no amount); the
   shared ``LineItem`` must fit Invoice/PO (price+amount) and GRNI (qty only).
+- ``Invoice.tax_rate`` / ``Invoice.discount_rate`` are optional fractions
+  (``0.10`` = 10%, not a percentage). When present they let the validator
+  check tax/discount exactly; when absent those checks are sanity-only.
+
+DB-only metadata (e.g. row insert timestamps) is NOT part of the document
+schema. If a caller needs it, it should be read from the database separately.
 
 DB storage notes (ambiguities the Decimal contract fixes):
 - Money is stored as ``REAL`` (float) in the DB; here it is always Decimal.
@@ -26,7 +30,7 @@ DB storage notes (ambiguities the Decimal contract fixes):
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
 # Quantization constants.
@@ -74,7 +78,8 @@ class Invoice:
     vendor_tax_id: str | None = None
     discount_amount: Money | None = None
     source_file: str | None = None
-    created_at: datetime | None = None  # DB INVOICE_HEADER.created_at
+    tax_rate: Decimal | None = None  # fraction, e.g. Decimal("0.10") for 10%
+    discount_rate: Decimal | None = None  # fraction, e.g. Decimal("0.05") for 5%
 
 
 @dataclass(frozen=True)
@@ -86,7 +91,6 @@ class PurchaseOrder:
     po_date: date
     total: Money
     line_items: tuple[LineItem, ...]
-    created_at: datetime | None = None  # DB PO_HEADER.created_at
 
 
 @dataclass(frozen=True)
@@ -97,7 +101,6 @@ class GRNI:
     vendor_name: str
     grni_date: date
     line_items: tuple[LineItem, ...]
-    created_at: datetime | None = None  # DB GRNI_HEADER.created_at
 
 
 @dataclass(frozen=True)

@@ -14,3 +14,5 @@
 | D-010 | Disable formula/seal/chart recognition in PP-StructureV3, drop PP-FormulaNet weights | 2026-09-27 | AP invoices contain none of these. Disabling saves 702 MB of vendored cache and simplifies the offline footprint. No functional impact on table extraction. |
 | D-011 | Frozen dataclasses in apmatch/schema/, Decimal-only money, float rejection | 2026-09-27 | Prevents silent monetary drift; schema is the contract every downstream module consumes. |
 | D-012 | ValidationResult uses enum codes + severity, not message strings | 2026-09-27 | Keeps remarks, matching, and audit log decoupled from each other. New failure modes are added by extending CheckCode, never by string-matching messages. |
+| D-013 | tax_rate/discount_rate optional; two-mode tax/discount checks | 2026-09-27 | When a rate is provided, TAX_MISMATCH is a real arithmetic check (BLOCKER). When absent, it degrades to a sanity check (WARNING) with an explicit "sanity-only" location tag so audit logs are unambiguous. |
+| D-014 | Drop created_at from document dataclasses | 2026-09-27 | DB metadata, not document content. Keeps validation results reproducible across runs. |

@@ -8,6 +8,15 @@ asc, then location asc). That ordering is part of the contract.
 Given a well-formed document object, these answer one question: is the
 document's own arithmetic internally consistent? They do NOT match documents
 against each other, extract from OCR, or generate remarks.
+
+Two-mode tax/discount checks (part of the contract): when ``Invoice.tax_rate``
+/ ``Invoice.discount_rate`` is present, ``TAX_MISMATCH`` / ``DISCOUNT_MISMATCH``
+is a real arithmetic check (expected = (subtotal - discount) * tax_rate, or
+subtotal * discount_rate) and a failure is a BLOCKER at location ``"header"``.
+When the rate is absent, the check degrades to a sanity check (tax > total, or
+discount > subtotal) that is a WARNING at location
+``"header (sanity-only: no tax_rate)"`` / ``"header (sanity-only: no
+discount_rate)"`` — the tag keeps audit logs unambiguous about which mode ran.
 """
 
 from __future__ import annotations
@@ -138,33 +147,66 @@ def validate_invoice(inv: Invoice) -> ValidationResult:
         else:
             passed.add(CheckCode.TOTAL_MISMATCH)
 
-        if inv.discount_amount is not None and inv.discount_amount > inv.subtotal:
-            failures.append(
-                CheckFailure(
-                    CheckCode.DISCOUNT_MISMATCH,
-                    Severity.BLOCKER,
-                    "header",
-                    "<= subtotal",
-                    str(inv.discount_amount),
-                    str(inv.discount_amount - inv.subtotal),
+        if inv.discount_rate is not None:
+            expected_discount = _q2(inv.subtotal * inv.discount_rate)
+            actual_discount = inv.discount_amount if inv.discount_amount is not None else Decimal("0")
+            if abs(actual_discount - expected_discount) > TOTAL_TOLERANCE:
+                failures.append(
+                    CheckFailure(
+                        CheckCode.DISCOUNT_MISMATCH,
+                        Severity.BLOCKER,
+                        "header",
+                        str(expected_discount),
+                        str(actual_discount),
+                        str(actual_discount - expected_discount),
+                    )
                 )
-            )
+            else:
+                passed.add(CheckCode.DISCOUNT_MISMATCH)
         else:
-            passed.add(CheckCode.DISCOUNT_MISMATCH)
+            if inv.discount_amount is not None and inv.discount_amount > inv.subtotal:
+                failures.append(
+                    CheckFailure(
+                        CheckCode.DISCOUNT_MISMATCH,
+                        Severity.WARNING,
+                        "header (sanity-only: no discount_rate)",
+                        "<= subtotal",
+                        str(inv.discount_amount),
+                        str(inv.discount_amount - inv.subtotal),
+                    )
+                )
+            else:
+                passed.add(CheckCode.DISCOUNT_MISMATCH)
 
-        if inv.tax_amount > inv.total:
-            failures.append(
-                CheckFailure(
-                    CheckCode.TAX_MISMATCH,
-                    Severity.BLOCKER,
-                    "header",
-                    "<= total",
-                    str(inv.tax_amount),
-                    str(inv.tax_amount - inv.total),
+        if inv.tax_rate is not None:
+            expected_tax = _q2((inv.subtotal - discount) * inv.tax_rate)
+            if abs(inv.tax_amount - expected_tax) > TOTAL_TOLERANCE:
+                failures.append(
+                    CheckFailure(
+                        CheckCode.TAX_MISMATCH,
+                        Severity.BLOCKER,
+                        "header",
+                        str(expected_tax),
+                        str(inv.tax_amount),
+                        str(inv.tax_amount - expected_tax),
+                    )
                 )
-            )
+            else:
+                passed.add(CheckCode.TAX_MISMATCH)
         else:
-            passed.add(CheckCode.TAX_MISMATCH)
+            if inv.tax_amount > inv.total:
+                failures.append(
+                    CheckFailure(
+                        CheckCode.TAX_MISMATCH,
+                        Severity.WARNING,
+                        "header (sanity-only: no tax_rate)",
+                        "<= total",
+                        str(inv.tax_amount),
+                        str(inv.tax_amount - inv.total),
+                    )
+                )
+            else:
+                passed.add(CheckCode.TAX_MISMATCH)
 
     neg = []
     if inv.subtotal < 0:

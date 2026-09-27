@@ -63,6 +63,12 @@ downstream module (validation, matching, remarks, audit) consumes:
   modes are added by extending `CheckCode`, not by inventing message strings.
 - **Failure ordering is part of the contract.** `checks_failed` is sorted by
   (severity desc, then code asc, then location asc). Tests assert this order.
+- **`tax_rate` / `discount_rate` are OPTIONAL fractions** (`0.10` = 10%, not a
+  percentage). When present, `TAX_MISMATCH` / `DISCOUNT_MISMATCH` is a real
+  arithmetic check (BLOCKER). When absent, those checks are sanity-only and
+  emit WARNING severity with a `"sanity-only"` location tag.
+- **DB-only metadata (`created_at`) is not part of the schema.** Row insert
+  timestamps live in the database; read them from there if needed.
 
 ## Target state (Phase 1) — workstreams
 
