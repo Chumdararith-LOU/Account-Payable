@@ -18,7 +18,9 @@
 | P1-08b-fix | Wire currency check via optional currency fields | done | (P1-08b-fix) |
 | P1-08c | Match remarks + pipeline integration | done | (P1-08c) |
 | P1-09 | Confidence scoring & routing | done | (P1-09) |
-| P1-10 | Storage: SQLite → PostgreSQL | pending | |
+| P1-10a | Postgres schema, SQLAlchemy models, Alembic migration | done | (P1-10a) |
+| P1-10b | Repository layer + round-trip tests | pending | |
+| P1-10c | SQLite → Postgres dev migration | pending | |
 | P1-11 | Audit log + dashboard hooks | pending | |
 | P1-12 | Docker + REST API | pending | |
 | P1-13 | Bilingual test corpus + goldens | pending | |

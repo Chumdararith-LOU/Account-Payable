@@ -33,6 +33,8 @@ dashboard + FastAPI service.
 | `apmatch/remarks/matching.py` | `MATCH_TEMPLATES` (one per `MatchCode`), `remark_for_match`, `summarize_match` — deterministic match remarks, parallel to `templates.py`; no LLM; import-time coverage assertion; plus a CLI |
 | `tests/integration/` | First end-to-end proof: `test_pipeline.py` runs dataclass → validation → matching → remark on committed JSON fixtures (`fixtures/happy_path`, `fixtures/discrepancy_path`) with no OCR, no DB, no network; a guard test asserts no ML imports leak in |
 | `apmatch/scoring/` | `result.py` (`Route`, `RouteReason`, `ConfidenceScore`, `RoutingDecision`), `config.py` (thresholds + weights), `confidence.py` (`validation_component` / `match_component` / `combined_score`), `router.py` (`decide` + CLI) — deterministic confidence score + three-valued routing; no LLM, no I/O, no network |
+| `apmatch/store/models.py` | SQLAlchemy 2.x ORM models mirroring the P1-06 dataclasses (7 tables); money/quantity are `Numeric(18,4)`, never Float |
+| `docker-compose.yml` | Local dev Postgres 16 on port 5433 (dev-only credentials); `alembic/` + `alembic.ini` hold the migrations |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
@@ -137,8 +139,19 @@ produces a `ConfidenceScore` and a `RoutingDecision`.
   overall score) → AUTO_APPROVE.
 - **`RouteReason` is enum-coded.** Reviewers read the underlying
   `ValidationResult` / `MatchResult` for detail, not free text.
-- **No LLM, no network in `apmatch/scoring/`;** enforced by
-  `tests/scoring/test_no_llm.py`.
+ - **No LLM, no network in `apmatch/scoring/`;** enforced by
+   `tests/scoring/test_no_llm.py`.
+
+## Storage
+
+Postgres 16, SQLAlchemy 2.x, Alembic.
+
+- **Money columns are `NUMERIC(18,4)`.** Float is forbidden by schema test
+  (`tests/store/test_schema.py::test_no_float_or_real_columns`).
+- **Local dev Postgres** runs via `docker compose up -d postgres` (port 5433).
+  Dev credentials are in `docker-compose.yml` and are NOT production
+  credentials.
+- **Production credentials** come from env vars at runtime (P1-12).
 
 ## Target state (Phase 1) — workstreams
 
@@ -207,3 +220,7 @@ See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:
 - opencv-contrib-python pinned to 4.10.0.84 by paddlex, overriding the
   previous 4.11.0.86 — verify ultralytics still imports (checked in P1-03,
   see F.4 result in the P1-03 report).
+- Legacy SQLite `ap_automation.db` is not yet migrated; this is P1-10c and
+  dev-only.
+- The prototype's REAL-typed money columns have been replaced by NUMERIC —
+  this is a hard cutover, not a compatible upgrade.

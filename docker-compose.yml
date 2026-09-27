@@ -1,0 +1,26 @@
+# Local dev Postgres for the apmatch store. NOT production.
+#
+# The credentials below (apmatch / apmatch_dev_only) are LOCAL DEV only.
+# Do NOT reuse them in production; production credentials come from env vars
+# at runtime (P1-12). Port 5433 (not 5432) avoids clashing with any system
+# Postgres. The named volume `apmatch_pgdata` lives under Docker's own storage.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: apmatch-postgres
+    environment:
+      POSTGRES_USER: apmatch
+      POSTGRES_PASSWORD: apmatch_dev_only
+      POSTGRES_DB: apmatch
+    ports:
+      - "5433:5432"
+    volumes:
+      - apmatch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apmatch -d apmatch"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+volumes:
+  apmatch_pgdata:

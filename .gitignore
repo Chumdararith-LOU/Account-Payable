@@ -7,6 +7,9 @@ __pycache__/
 *.db-journal
 *.db.pre-p1-01.bak
 .env
+.env.local
+pgdata/
+*.pgdump
 *.log
 cloudflared-linux-amd64
 output/imgs/

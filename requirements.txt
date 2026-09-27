@@ -21,6 +21,7 @@ pillow>=10
 # See D-007.
 tror-yong-ocr==0.2.7
 # Storage (Phase 1 target)
+sqlalchemy>=2.0,<3
 psycopg[binary]>=3.1
 alembic>=1.13
 # Test
