@@ -1,0 +1,17 @@
+{
+  "invoice_number": "INV-2026-2201",
+  "vendor_name": "Mekong Supplies Co., Ltd.",
+  "invoice_date": "2026-08-22",
+  "currency": "USD",
+  "subtotal": "1300.00",
+  "tax_amount": "130.00",
+  "total": "1430.00",
+  "po_number": "PO-2026-0452",
+  "grn_number": "GRN-2026-0452",
+  "line_items": [
+    {"line_no": 1, "description": "Office Chair", "quantity": "10.0", "unit_price": "45.00", "amount": "450.00"},
+    {"line_no": 2, "description": "Desk Lamp", "quantity": "20.0", "unit_price": "12.50", "amount": "250.00"},
+    {"line_no": 3, "description": "Whiteboard", "quantity": "5.0", "unit_price": "60.00", "amount": "300.00"},
+    {"line_no": 4, "description": "Standing Desk", "quantity": "2.0", "unit_price": "150.00", "amount": "300.00"}
+  ]
+}

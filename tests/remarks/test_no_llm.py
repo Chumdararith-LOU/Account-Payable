@@ -28,7 +28,7 @@ def _imported_names(path: Path) -> set[str]:
 
 
 def test_no_llm_or_network_imports():
-    py_files = sorted(REMARKS_DIR.glob("*.py"))
+    py_files = sorted(REMARKS_DIR.rglob("*.py"))
     assert py_files, f"no python files found under {REMARKS_DIR}"
     for path in py_files:
         for name in _imported_names(path):

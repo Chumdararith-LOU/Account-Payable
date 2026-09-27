@@ -1,0 +1,12 @@
+{
+  "po_number": "PO-2026-0452",
+  "vendor_name": "Mekong Supplies Co., Ltd.",
+  "po_date": "2026-08-15",
+  "total": "1000.00",
+  "currency": "USD",
+  "line_items": [
+    {"line_no": 1, "description": "Office Chair", "quantity": "10.0", "unit_price": "45.00"},
+    {"line_no": 2, "description": "Desk Lamp", "quantity": "15.0", "unit_price": "12.50"},
+    {"line_no": 3, "description": "Whiteboard", "quantity": "5.0", "unit_price": "60.00"}
+  ]
+}
