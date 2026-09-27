@@ -29,14 +29,14 @@ def _invoice(lines=None, vendor="Mekong Supplies Co., Ltd.", currency="USD", tot
     return Invoice("INV-1", vendor, inv_date, currency, Decimal("1000.00"), Decimal("100.00"), Decimal(total), lines)
 
 
-def _po(lines=None, vendor="Mekong Supplies Co., Ltd."):
+def _po(lines=None, vendor="Mekong Supplies Co., Ltd.", currency=None):
     if lines is None:
         lines = (
             _line(1, "Office Chair", "10", "45.00"),
             _line(2, "Desk Lamp", "20", "12.50"),
             _line(3, "Whiteboard", "5", "60.00"),
         )
-    return PurchaseOrder("PO-1", vendor, date(2026, 8, 15), Decimal("1000.00"), lines)
+    return PurchaseOrder("PO-1", vendor, date(2026, 8, 15), Decimal("1000.00"), lines, currency)
 
 
 def _grni(lines=None, vendor="Mekong Supplies Co., Ltd."):
@@ -45,8 +45,8 @@ def _grni(lines=None, vendor="Mekong Supplies Co., Ltd."):
     return GRNI("GRN-1", vendor, date(2026, 8, 19), lines)
 
 
-def _pard(amount="1100.00", pard_date=date(2026, 8, 25)):
-    return PaymentAdvice("PARD-1", "INV-1", Decimal(amount), pard_date, "REF")
+def _pard(amount="1100.00", pard_date=date(2026, 8, 25), currency=None):
+    return PaymentAdvice("PARD-1", "INV-1", Decimal(amount), pard_date, "REF", currency)
 
 
 def _codes(result):
@@ -97,15 +97,41 @@ def test_vendor_match_after_normalization():
     assert MatchCode.VENDOR_MISMATCH not in _codes(r)
 
 
-def test_currency_mismatch():
-    # The PurchaseOrder schema has no currency field, so the cross-document
-    # currency check is a no-op today; assert it never fires a false positive.
-    r = ENGINE.match(_invoice(currency="USD"), _po(), _grni(), _pard())
+def test_currency_normalized_lowercase():
+    r = ENGINE.match(_invoice(currency="usd"), _po(), _grni(), _pard())
     assert MatchCode.CURRENCY_MISMATCH not in _codes(r)
 
 
-def test_currency_normalized_lowercase():
-    r = ENGINE.match(_invoice(currency="usd"), _po(), _grni(), _pard())
+def test_currency_mismatch_invoice_vs_po_when_po_currency_set():
+    r = ENGINE.match(_invoice(currency="USD"), _po(currency="KHR"), _grni(), _pard())
+    f = [x for x in r.failures if x.code is MatchCode.CURRENCY_MISMATCH]
+    assert f and any("vs PO" in x.location for x in f)
+
+
+def test_currency_mismatch_invoice_vs_pard_when_pard_currency_set():
+    r = ENGINE.match(_invoice(currency="USD"), _po(), _grni(), _pard(currency="KHR"))
+    f = [x for x in r.failures if x.code is MatchCode.CURRENCY_MISMATCH]
+    assert f and any("vs PARD" in x.location for x in f)
+
+
+def test_currency_mismatch_both_po_and_pard():
+    r = ENGINE.match(_invoice(currency="USD"), _po(currency="KHR"), _grni(), _pard(currency="KHR"))
+    f = [x for x in r.failures if x.code is MatchCode.CURRENCY_MISMATCH]
+    assert len(f) == 2
+
+
+def test_currency_check_skipped_when_po_currency_absent():
+    r = ENGINE.match(_invoice(currency="USD"), _po(currency=None), _grni(), _pard())
+    assert MatchCode.CURRENCY_MISMATCH not in _codes(r)
+
+
+def test_currency_check_skipped_when_pard_currency_absent():
+    r = ENGINE.match(_invoice(currency="USD"), _po(), _grni(), _pard(currency=None))
+    assert MatchCode.CURRENCY_MISMATCH not in _codes(r)
+
+
+def test_currency_check_normalizes_before_compare():
+    r = ENGINE.match(_invoice(currency="usd"), _po(currency="USD"), _grni(), _pard())
     assert MatchCode.CURRENCY_MISMATCH not in _codes(r)
 
 

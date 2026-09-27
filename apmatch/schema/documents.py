@@ -14,6 +14,11 @@ fields the matching engine needs.
 - ``Invoice.tax_rate`` / ``Invoice.discount_rate`` are optional fractions
   (``0.10`` = 10%, not a percentage). When present they let the validator
   check tax/discount exactly; when absent those checks are sanity-only.
+- ``currency`` is optional on ``PurchaseOrder`` and ``PaymentAdvice``
+  (``str | None``). When absent, the matching engine skips the currency
+  comparison for that document rather than failing it — the same "no false
+  positive on missing data" rule used elsewhere in the engine. ``GRNI`` has
+  no currency field at all (it records quantities only).
 
 DB-only metadata (e.g. row insert timestamps) is NOT part of the document
 schema. If a caller needs it, it should be read from the database separately.
@@ -91,8 +96,11 @@ class PurchaseOrder:
     po_date: date
     total: Money
     line_items: tuple[LineItem, ...]
+    currency: str | None = None  # ISO 4217; optional — see module docstring
 
 
+# GRNI records quantities only — it has no monetary values, so currency does
+# not apply. Deliberately NOT given a currency field (P1-08b-fix).
 @dataclass(frozen=True)
 class GRNI:
     """A goods-received note (GRNI_HEADER + GRNI_LINE). Quantity only."""
@@ -112,3 +120,4 @@ class PaymentAdvice:
     amount: Money
     payment_date: date
     reference: str | None = None  # DB PARD.Ref
+    currency: str | None = None  # ISO 4217; optional — see module docstring

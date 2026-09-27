@@ -8,6 +8,11 @@ Matching strategy: vendor name via ``normalize_text``; currency via
 ``normalize_currency``; line items joined on ``normalize_text(description)``
 with quantity/price/amount tolerance checks.
 
+Currency rule: CURRENCY_MISMATCH fires when invoice.currency and (po.currency
+or pard.currency) are both populated and differ after normalize_currency.
+Missing currency on either side skips the check — no false positive. PO and
+PARD are checked independently, so both can fail at once (two failures).
+
 Score model: starts at 1.0; every ``MatchFailure`` subtracts its weight from
 ``config.MATCH_CODE_WEIGHTS``; the result is clamped to [0.0, 1.0]. A missing
 PO/GRNI/PARD short-circuits to PENDING_INFO with score 0.0 before any further
@@ -104,18 +109,31 @@ class MatchingEngine:
                     "",
                 )
             )
-        # The PurchaseOrder schema (P1-06) has no currency field; compare only
-        # when one is present so the check is forward-compatible and never a
-        # false positive. See P1-08b report.
-        po_currency = getattr(po, "currency", None)
-        if po_currency is not None and normalize_currency(invoice.currency) != normalize_currency(po_currency):
+        # Currency: compare invoice against PO and PARD, but only when both
+        # sides are populated. Missing currency on either side skips the check
+        # (no false positive). See module docstring.
+        inv_cur = normalize_currency(invoice.currency or "")
+        po_cur = normalize_currency(po.currency or "")
+        if inv_cur and po_cur and inv_cur != po_cur:
             failures.append(
                 MatchFailure(
                     MatchCode.CURRENCY_MISMATCH,
-                    Severity.WARNING,
-                    "header",
-                    normalize_currency(po_currency),
-                    normalize_currency(invoice.currency),
+                    Severity.BLOCKER,
+                    "header (invoice vs PO)",
+                    inv_cur,
+                    po_cur,
+                    "",
+                )
+            )
+        pard_cur = normalize_currency(pard.currency or "")
+        if inv_cur and pard_cur and inv_cur != pard_cur:
+            failures.append(
+                MatchFailure(
+                    MatchCode.CURRENCY_MISMATCH,
+                    Severity.BLOCKER,
+                    "header (invoice vs PARD)",
+                    inv_cur,
+                    pard_cur,
                     "",
                 )
             )

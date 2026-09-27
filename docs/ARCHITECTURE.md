@@ -102,10 +102,11 @@ the schema dataclasses and returns a `MatchResult`.
   `normalize_text(description)`, first match in source order. Quantity must
   match exactly; unit price and line amount use the absolute-OR-relative
   tolerance (pass if `abs diff <= ABS` or `abs diff / max <= REL`).
-- **Schema gap: PO has no currency.** `PurchaseOrder` (P1-06) carries no
-  `currency` field, so the cross-document currency check reads it via
-  `getattr` and is skipped when absent — forward-compatible, never a false
-  positive (D-022).
+- **Currency check.** `CURRENCY_MISMATCH` fires only when both
+  `invoice.currency` and the counterpart document's currency (PO and/or PARD)
+  are populated and differ after `normalize_currency`. Missing currency on
+  either side skips the check (no false positive). PO and PARD are checked
+  independently, so both can fail at once (D-024).
 - **Failure ordering is part of the contract.** `failures` is sorted by
   (severity desc, then code asc, then location asc), mirroring
   `apmatch.validation.result`.
