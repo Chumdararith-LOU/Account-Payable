@@ -152,6 +152,13 @@ Postgres 16, SQLAlchemy 2.x, Alembic.
   Dev credentials are in `docker-compose.yml` and are NOT production
   credentials.
 - **Production credentials** come from env vars at runtime (P1-12).
+- **Repositories** in `apmatch/store/repositories.py` expose
+  `save`/`load`/`exists`/`delete` per document kind. The public API takes and
+  returns P1-06 dataclasses; ORM instances never cross the boundary.
+- **Round-trip guarantee:** `load(save(x)) == x` for every document kind,
+  Decimal-precision-exact. Enforced by `tests/store/test_repositories.py`.
+- **The caller manages transactions;** repositories never commit (they flush so
+  a same-transaction `load` can see saved rows).
 
 ## Target state (Phase 1) — workstreams
 

@@ -33,3 +33,6 @@
 | D-029 | Confidence scoring and routing have their own no-LLM AST test | 2026-09-27 | The route is the final exit decision; proving it contains no generative path is a precondition for the bank pitch. |
 | D-030 | Postgres 16 + SQLAlchemy 2.x + Alembic for persistence | 2026-09-27 | NUMERIC(18,4) for all money; Float is forbidden by schema test. SQLite prototype used REAL (float) which silently drifts on large totals. Cutover is not backward-compatible; the legacy DB is dev-only data. |
 | D-031 | docker-compose provides the local dev Postgres | 2026-09-27 | Dev credentials in docker-compose.yml are local-only; production uses env-var URL injection (P1-12). Port 5433 (not 5432) to avoid clashing with any system Postgres. |
+| D-032 | Repository API is dataclass-in / dataclass-out; ORM instances never cross the boundary | 2026-09-27 | Keeps business logic independent of SQLAlchemy and makes round-trip tests trivial. |
+| D-033 | UPSERT is delete-then-insert for lines, update-or-replace for headers | 2026-09-27 | Simpler to reason about than merge(); avoids SQLAlchemy identity-map surprises and produces predictable line ordering. |
+| D-034 | load() raises DocumentNotFound with kind + identifier | 2026-09-27 | A bare KeyError loses context; reviewers and audit logs need to know which document kind was missing and by what identifier. |
