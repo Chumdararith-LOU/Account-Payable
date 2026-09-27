@@ -12,7 +12,7 @@
 | P1-05b | Slim vendored cache, disable formula recognition | done | (P1-05b) |
 | P1-06 | Arithmetic validation layer | done | (P1-06) |
 | P1-06b | Optional tax/discount rates, drop created_at | done | (P1-06b) |
-| P1-07 | Template remark module (replaces removed LLM code) | pending | |
+| P1-07 | Template remark module (replaces removed LLM code) | done | (P1-07) |
 | P1-08 | Matching engine hardening | pending | |
 | P1-09 | Confidence scoring & routing | pending | |
 | P1-10 | Storage: SQLite → PostgreSQL | pending | |
