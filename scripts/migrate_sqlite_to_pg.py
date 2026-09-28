@@ -11,13 +11,31 @@ NOT a production upgrade path. Production schema changes go through Alembic.
 - Idempotent: running twice produces the same result (repositories UPSERT).
 
 Legacy -> P1-06 adaptations (the legacy schema is a subset of the dataclass):
-- INVOICE_HEADER has no ``currency`` or ``subtotal`` column: currency defaults
-  to "USD"; subtotal is derived as ``total - tax``.
-- INVOICE_LINE / PO_LINE have no ``amount`` column: ``LineItem.amount`` is None.
+- INVOICE_HEADER has no ``currency`` column: currency defaults to "USD".
 - PARD.INV_ID in the legacy DB is a data-entry error (it equals PARD_ID); when
   it does not match any invoice and exactly one invoice exists, the PARD is
   remapped to that invoice so the FK holds.
 - Line ``line_no`` is taken from the legacy AUTOINCREMENT id (unique per doc).
+
+Derivation policy
+-----------------
+The legacy schema stores only the inputs of the money calculation (quantity,
+unit_price) and a header total that is frequently unset. The P1-06 schema
+requires the outputs explicitly (line.amount, header.subtotal, header.total).
+The migrator therefore:
+
+- PRESERVES any explicit source value that is non-zero.
+- DERIVES from source when the target field has no source column or the source
+  value is zero and lines exist:
+    * line.amount      = quantity * unit_price
+    * header.subtotal  = sum(line.amount)
+    * header.total     = subtotal + tax - discount
+
+This is not "fixing" the data; it is translating implied semantics into
+explicit ones. It is documented here because it is the only place in the
+codebase where source data is augmented during migration. Quantization reuses
+``MONEY_QUANTUM`` / ``ROUND_HALF_UP`` from the dataclass layer (no second
+rounding constant).
 """
 
 from __future__ import annotations
@@ -37,7 +55,15 @@ from dotenv import load_dotenv  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
-from apmatch.schema.documents import GRNI, Invoice, LineItem, PaymentAdvice, PurchaseOrder  # noqa: E402
+from apmatch.schema.documents import (  # noqa: E402
+    GRNI,
+    Invoice,
+    LineItem,
+    MONEY_QUANTUM,
+    PaymentAdvice,
+    PurchaseOrder,
+    ROUND_HALF_UP,
+)
 from apmatch.store.repositories import (
     GRNIRepository,
     InvoiceRepository,
@@ -75,6 +101,18 @@ def _parse_date(value: str) -> date:
     return datetime.strptime(value, "%d-%b-%Y").date()
 
 
+def _derive_line_amount(qty, price, legacy_amount) -> Decimal | None:
+    """line.amount: preserve a non-zero source value, else derive qty * price.
+
+    Reuses the dataclass layer's ``MONEY_QUANTUM`` / ``ROUND_HALF_UP``.
+    """
+    if legacy_amount is not None and legacy_amount != 0:
+        return Decimal(str(legacy_amount))
+    if qty is None or price is None:
+        return None
+    return (qty * price).quantize(MONEY_QUANTUM, ROUND_HALF_UP)
+
+
 def _load_sqlite(db_path: Path) -> dict[str, list[dict]]:
     """Read every user table into a dict keyed by table name (stdlib sqlite3).
 
@@ -98,18 +136,24 @@ def _load_sqlite(db_path: Path) -> dict[str, list[dict]]:
 def _sqlite_to_invoice(row: dict, line_rows: list[dict]) -> Invoice:
     total = _dec(row["Total"])
     tax = _dec(row["Tax"])
-    subtotal = (total - tax) if (total is not None and tax is not None) else Decimal("0")
     lines = tuple(
         LineItem(
             line_no=r["INV_LINE_ID"],
             description=r["Item"],
             quantity=_dec(r["Qty"]),
             unit_price=_dec(r["Price"]),
-            amount=None,  # legacy INVOICE_LINE has no Amount column
+            # legacy INVOICE_LINE has no Amount column -> derive qty * price
+            amount=_derive_line_amount(_dec(r["Qty"]), _dec(r["Price"]), None),
             unit_of_measure=None,
         )
         for r in line_rows
     )
+    if total is None or total == 0:
+        # Derive: subtotal = sum(line.amount); total = subtotal + tax (no discount column).
+        subtotal = sum((li.amount for li in lines if li.amount is not None), Decimal("0"))
+        total = (subtotal + (tax or Decimal("0"))).quantize(MONEY_QUANTUM, ROUND_HALF_UP)
+    else:
+        subtotal = (total - (tax or Decimal("0"))).quantize(MONEY_QUANTUM, ROUND_HALF_UP)
     return Invoice(
         invoice_number=row["INV_ID"],
         vendor_name=row["Vendor"],
@@ -117,7 +161,7 @@ def _sqlite_to_invoice(row: dict, line_rows: list[dict]) -> Invoice:
         currency="USD",  # legacy INVOICE_HEADER has no currency column
         subtotal=subtotal,
         tax_amount=tax if tax is not None else Decimal("0"),
-        total=total if total is not None else Decimal("0"),
+        total=total,
         line_items=lines,
     )
 
@@ -130,16 +174,22 @@ def _sqlite_to_po(row: dict, line_rows: list[dict]) -> PurchaseOrder:
             description=r["Item"],
             quantity=_dec(r["Qty"]),
             unit_price=_dec(r["Price"]),
-            amount=None,  # legacy PO_LINE has no Amount column
+            # legacy PO_LINE has no Amount column -> derive qty * price
+            amount=_derive_line_amount(_dec(r["Qty"]), _dec(r["Price"]), None),
             unit_of_measure=None,
         )
         for r in line_rows
     )
+    if total is None or total == 0:
+        # Derive: total = sum(line.amount).
+        total = sum((li.amount for li in lines if li.amount is not None), Decimal("0")).quantize(
+            MONEY_QUANTUM, ROUND_HALF_UP
+        )
     return PurchaseOrder(
         po_number=row["PO_ID"],
         vendor_name=row["Vendor"],
         po_date=_parse_date(row["Date"]),
-        total=total if total is not None else Decimal("0"),
+        total=total,
         line_items=lines,
         currency="USD",  # legacy PO_HEADER has no currency column
     )
@@ -165,7 +215,9 @@ def _sqlite_to_grni(row: dict, line_rows: list[dict]) -> GRNI:
     )
 
 
-def _sqlite_to_pard(row: dict, invoice_numbers: set[str]) -> PaymentAdvice:
+def _sqlite_to_pard(
+    row: dict, invoice_numbers: set[str], invoice_totals: dict[str, Decimal]
+) -> PaymentAdvice:
     inv_id = row["INV_ID"]
     if inv_id not in invoice_numbers:
         if len(invoice_numbers) == 1:
@@ -175,10 +227,14 @@ def _sqlite_to_pard(row: dict, invoice_numbers: set[str]) -> PaymentAdvice:
                 f"PARD {row['PARD_ID']!r} references unknown invoice {inv_id!r}; "
                 f"cannot remap (invoices present: {sorted(invoice_numbers)})"
             )
+    amount = _dec(row["Amount"])
+    if amount is None or amount == 0:
+        # Derive from the referenced invoice's total when the PARD amount is unset.
+        amount = invoice_totals.get(inv_id, Decimal("0"))
     return PaymentAdvice(
         pard_number=row["PARD_ID"],
         invoice_number=inv_id,
-        amount=_dec(row["Amount"]),  # legacy PARD.Amount is NOT NULL
+        amount=amount,
         payment_date=_parse_date(row["Date"]),
         reference=row["Ref"],
         currency=None,  # legacy PARD has no currency column
@@ -204,11 +260,13 @@ def migrate(db_path: Path, session: Session) -> dict[str, int]:
     invoice_rows = data.get("INVOICE_HEADER", [])
     invoice_lines = data.get("INVOICE_LINE", [])
     invoice_numbers: set[str] = set()
+    invoice_totals: dict[str, Decimal] = {}
     for row in invoice_rows:
         lines = [l for l in invoice_lines if l["INV_ID"] == row["INV_ID"]]
         inv = _sqlite_to_invoice(row, lines)
         InvoiceRepository.save(session, inv)
         invoice_numbers.add(inv.invoice_number)
+        invoice_totals[inv.invoice_number] = inv.total
     counts["invoice_headers"] = len(invoice_rows)
     counts["invoice_lines"] = len(invoice_lines)
 
@@ -229,7 +287,7 @@ def migrate(db_path: Path, session: Session) -> dict[str, int]:
     counts["grni_lines"] = len(grni_lines)
 
     for row in pard_rows:
-        PaymentAdviceRepository.save(session, _sqlite_to_pard(row, invoice_numbers))
+        PaymentAdviceRepository.save(session, _sqlite_to_pard(row, invoice_numbers, invoice_totals))
     counts["pard"] = len(pard_rows)
 
     return counts

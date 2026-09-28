@@ -164,6 +164,9 @@ Postgres 16, SQLAlchemy 2.x, Alembic.
   schema changes go through Alembic.
 - **Money crosses the SQLite→Postgres boundary via `Decimal(str(value))`** — the
   one place in the codebase where that pattern is expected.
+- `scripts/migrate_sqlite_to_pg.py` **derives implicit money values**
+  (`line.amount`, `header.subtotal`, `header.total`) from source inputs when the
+  legacy schema didn't store them explicitly. See D-036.
 
 ## Target state (Phase 1) — workstreams
 

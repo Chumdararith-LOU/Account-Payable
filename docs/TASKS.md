@@ -21,6 +21,7 @@
 | P1-10a | Postgres schema, SQLAlchemy models, Alembic migration | done | (P1-10a) |
 | P1-10b | Repository layer + round-trip tests | done | (P1-10b) |
 | P1-10c | SQLite → Postgres dev migration | done | (P1-10c) |
+| P1-10c-fix | Derive implicit line amounts + header totals in dev migration | done | (P1-10c-fix) |
 | P1-11 | Audit log + dashboard hooks | pending | |
 | P1-12 | Docker + REST API | pending | |
 | P1-13 | Bilingual test corpus + goldens | pending | |
