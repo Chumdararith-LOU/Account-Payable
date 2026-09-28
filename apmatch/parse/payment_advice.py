@@ -59,4 +59,5 @@ def extract_payment_advice(ocr: OCRResult) -> PaymentAdvice:
 if __name__ == "__main__":
     from apmatch.parse.dispatch import dump_document, ocr_result_from_dict
 
-    print(dump_document(extract_payment_advice(ocr_result_from_dict(json.load(open(sys.argv[1]))))))
+    with open(sys.argv[1]) as f:
+        print(dump_document(extract_payment_advice(ocr_result_from_dict(json.load(f)))))

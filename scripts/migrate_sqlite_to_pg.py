@@ -64,7 +64,7 @@ from apmatch.schema.documents import (  # noqa: E402
     PaymentAdvice,
     PurchaseOrder,
 )
-from apmatch.store.repositories import (
+from apmatch.store.repositories import (  # noqa: E402 — required after the sys.path bootstrap above
     GRNIRepository,
     InvoiceRepository,
     PaymentAdviceRepository,
@@ -128,7 +128,7 @@ def _load_sqlite(db_path: Path) -> dict[str, list[dict]]:
                 "WHERE type='table' AND name NOT LIKE 'sqlite_%'"
             )
         ]
-        return {t: [dict(r) for r in conn.execute(f"SELECT * FROM {t}")] for t in tables}
+        return {t: [dict(r) for r in conn.execute(f"SELECT * FROM {t}")] for t in tables}  # noqa: S608 — table names come from the source DB's own sqlite_master, not user input
     finally:
         conn.close()
 
@@ -262,7 +262,7 @@ def migrate(db_path: Path, session: Session) -> dict[str, int]:
     invoice_numbers: set[str] = set()
     invoice_totals: dict[str, Decimal] = {}
     for row in invoice_rows:
-        lines = [l for l in invoice_lines if l["INV_ID"] == row["INV_ID"]]
+        lines = [line for line in invoice_lines if line["INV_ID"] == row["INV_ID"]]
         inv = _sqlite_to_invoice(row, lines)
         InvoiceRepository.save(session, inv)
         invoice_numbers.add(inv.invoice_number)
@@ -273,7 +273,7 @@ def migrate(db_path: Path, session: Session) -> dict[str, int]:
     po_rows = data.get("PO_HEADER", [])
     po_lines = data.get("PO_LINE", [])
     for row in po_rows:
-        lines = [l for l in po_lines if l["PO_ID"] == row["PO_ID"]]
+        lines = [line for line in po_lines if line["PO_ID"] == row["PO_ID"]]
         PurchaseOrderRepository.save(session, _sqlite_to_po(row, lines))
     counts["po_headers"] = len(po_rows)
     counts["po_lines"] = len(po_lines)
@@ -281,7 +281,7 @@ def migrate(db_path: Path, session: Session) -> dict[str, int]:
     grni_rows = data.get("GRNI_HEADER", [])
     grni_lines = data.get("GRNI_LINE", [])
     for row in grni_rows:
-        lines = [l for l in grni_lines if l["GRNI_ID"] == row["GRNI_ID"]]
+        lines = [line for line in grni_lines if line["GRNI_ID"] == row["GRNI_ID"]]
         GRNIRepository.save(session, _sqlite_to_grni(row, lines))
     counts["grni_headers"] = len(grni_rows)
     counts["grni_lines"] = len(grni_lines)

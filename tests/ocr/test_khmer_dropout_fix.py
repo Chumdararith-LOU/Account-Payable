@@ -38,7 +38,7 @@ def test_no_module_has_nonzero_dropout():
 def test_output_is_stable_across_processes(fixture_image_khmer):
     outs = []
     for _ in range(2):
-        proc = subprocess.run(
+        proc = subprocess.run(  # noqa: S603 — args hardcoded (sys.executable + fixed probe code)
             [sys.executable, "-c", _PROBE],
             capture_output=True,
             text=True,

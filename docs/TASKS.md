@@ -26,6 +26,8 @@
 | P1-11b | Dashboard queries + KPI hooks | done | (P1-11b) |
 | P1-12a | Deterministic OCR-to-dataclass extraction layer (apmatch/parse/) | done | (P1-12a) |
 | P1-12b | Ruff lint baseline + .dockerignore + dev requirements | done | (P1-12b) |
+| P1-12b-fix | Resolve mechanical lint violations, annotate intentional ones | done | (P1-12b-fix) |
+| P1-12b-enum | StrEnum migration for Route/CheckCode/etc | pending | |
 | P1-12c | Dockerfile + compose app service | pending | |
 | P1-12d | FastAPI endpoints | pending | |
 | P1-12e | Full-stack smoke test | pending | |

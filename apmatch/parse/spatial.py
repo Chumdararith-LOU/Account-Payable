@@ -40,10 +40,10 @@ def bbox_right_of(
 
     Sorted by horizontal x-distance ascending (nearest first).
     """
-    lx1, ly0, ly1 = label_bbox[2], label_bbox[1], label_bbox[3]
+    lx1 = label_bbox[2]
     out = []
     for b in blocks:
-        bx0, by0, by1 = b.bbox[0], b.bbox[1], b.bbox[3]
+        bx0 = b.bbox[0]
         if bx0 < lx1:
             continue
         if bx0 - lx1 > max_gap_px:
@@ -64,10 +64,10 @@ def bbox_below(
 
     Within ``max_gap_px`` vertically. Sorted by y-distance ascending (nearest first).
     """
-    lx0, lx1, ly1 = label_bbox[0], label_bbox[2], label_bbox[3]
+    ly1 = label_bbox[3]
     out = []
     for b in blocks:
-        bx0, bx1, by0 = b.bbox[0], b.bbox[2], b.bbox[1]
+        by0 = b.bbox[1]
         if by0 < ly1:
             continue
         if by0 - ly1 > max_gap_px:

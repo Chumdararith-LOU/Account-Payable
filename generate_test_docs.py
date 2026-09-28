@@ -164,7 +164,7 @@ def render(filename, html):
     pdf_path = os.path.join(OUT_DIR, filename + ".pdf")
     HTML(string=html).write_pdf(pdf_path)
     png_base = os.path.join(OUT_DIR, filename)
-    subprocess.run(["pdftoppm", "-png", "-r", "200", "-singlefile", pdf_path, png_base], check=True)
+    subprocess.run(["pdftoppm", "-png", "-r", "200", "-singlefile", pdf_path, png_base], check=True)  # noqa: S603, S607 — fixed binary, local dev paths
     print(f"✅ {png_base}.png")
 
 

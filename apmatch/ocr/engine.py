@@ -87,7 +87,7 @@ class LatinOCREngine:
         r0 = result[0]
         scores = r0.get("rec_scores")
         blocks = []
-        for i, (text, poly) in enumerate(zip(r0["rec_texts"], r0["rec_polys"])):
+        for i, (text, poly) in enumerate(zip(r0["rec_texts"], r0["rec_polys"], strict=True)):
             xs = [pt[0] for pt in poly]
             ys = [pt[1] for pt in poly]
             bbox = (float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys)))

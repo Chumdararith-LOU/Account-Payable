@@ -6,6 +6,7 @@ stay in the extractor modules (diffable); only the mechanics live here.
 
 from __future__ import annotations
 
+import contextlib
 import re
 from decimal import Decimal
 
@@ -117,17 +118,15 @@ def line_items_from_table(ocr: OCRResult) -> tuple:
     for i, row in enumerate(rows, start=1):
 
         def cell(idx: int | None) -> str | None:
-            if idx is None or idx >= len(row):
+            if idx is None or idx >= len(row):  # noqa: B023 — cell() is invoked within the same iteration
                 return None
-            return row[idx]
+            return row[idx]  # noqa: B023 — row is the current iteration's row
 
         line_no = i
         raw_no = cell(col_line)
         if raw_no:
-            try:
+            with contextlib.suppress(ValueError):
                 line_no = int(raw_no)
-            except ValueError:
-                pass
         qty = parse_qty(cell(col_qty))
         price = parse_money(cell(col_price))
         amount = parse_money(cell(col_amount))

@@ -38,7 +38,7 @@ def test_hash_is_stable_across_processes():
         "inv = mk_invoice(invoice_number='INV-HASH-PROC')\n"
         "print(compute_input_hash(inv, None, None, None))\n"
     )
-    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)  # noqa: S603 — args hardcoded
     assert result.stdout.strip() == expected
 
 

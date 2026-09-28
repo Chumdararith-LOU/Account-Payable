@@ -31,7 +31,7 @@ def _pg_reachable(url: str) -> bool:
     except (IndexError, ValueError):
         host, port = "localhost", "5433"
     port = port or "5433"
-    result = subprocess.run(["pg_isready", "-h", host, "-p", port], capture_output=True, text=True)
+    result = subprocess.run(["pg_isready", "-h", host, "-p", port], capture_output=True, text=True)  # noqa: S603, S607 — fixed binary, host/port from local dev config
     return result.returncode == 0
 
 

@@ -67,7 +67,7 @@ def test_invoice_round_trip(pg_session):
     assert loaded.discount_rate == inv.discount_rate
     assert isinstance(loaded.line_items, tuple)
     assert len(loaded.line_items) == 2
-    for orig, got in zip(inv.line_items, loaded.line_items):
+    for orig, got in zip(inv.line_items, loaded.line_items, strict=True):
         assert got.line_no == orig.line_no
         assert got.description == orig.description
         assert got.quantity == orig.quantity

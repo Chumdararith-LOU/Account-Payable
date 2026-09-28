@@ -21,9 +21,8 @@ def _imported_names(path: Path) -> set[str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 names.add(alias.name.split(".")[0])
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                names.add(node.module.split(".")[0])
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            names.add(node.module.split(".")[0])
     return names
 
 

@@ -116,7 +116,7 @@ def validate_invoice(inv: Invoice) -> ValidationResult:
         if line_ok:
             passed.add(CheckCode.LINE_AMOUNT_MISMATCH)
 
-        lines_sum = _q2(sum((l.amount for l in inv.line_items if l.amount is not None), Decimal("0")))
+        lines_sum = _q2(sum((li.amount for li in inv.line_items if li.amount is not None), Decimal("0")))
         if abs(lines_sum - inv.subtotal) > TOTAL_TOLERANCE:
             failures.append(
                 CheckFailure(

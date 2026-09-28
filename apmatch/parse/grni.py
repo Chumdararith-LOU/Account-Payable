@@ -6,6 +6,7 @@ Undetermined fields are None; the validator (P1-06) decides what is a blocker.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sys
 
@@ -39,17 +40,15 @@ def _line_items(ocr: OCRResult) -> tuple[LineItem, ...]:
     for i, row in enumerate(rows, start=1):
 
         def cell(idx: int | None) -> str | None:
-            if idx is None or idx >= len(row):
+            if idx is None or idx >= len(row):  # noqa: B023 — cell() is invoked within the same iteration
                 return None
-            return row[idx]
+            return row[idx]  # noqa: B023 — row is the current iteration's row
 
         line_no = i
         raw_no = cell(col_line)
         if raw_no:
-            try:
+            with contextlib.suppress(ValueError):
                 line_no = int(raw_no)
-            except ValueError:
-                pass
         qty = parse_qty(cell(col_qty))
         items.append(
             LineItem(
@@ -83,4 +82,5 @@ def extract_grni(ocr: OCRResult) -> GRNI:
 if __name__ == "__main__":
     from apmatch.parse.dispatch import dump_document, ocr_result_from_dict
 
-    print(dump_document(extract_grni(ocr_result_from_dict(json.load(open(sys.argv[1]))))))
+    with open(sys.argv[1]) as f:
+        print(dump_document(extract_grni(ocr_result_from_dict(json.load(f)))))

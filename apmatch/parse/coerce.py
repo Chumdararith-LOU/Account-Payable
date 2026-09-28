@@ -49,7 +49,7 @@ def parse_money(s: str | None) -> Decimal | None:
         text = text.replace(",", "")
     elif "," in text:
         # commas only: treat as thousands separators if groups of 3, else reject.
-        head, _, tail = text.partition(",")
+        _, _, tail = text.partition(",")
         if tail and all(len(g) == 3 for g in re.findall(r"\d+", tail.replace(",", ""))) and re.fullmatch(r"\d{1,3}(,\d{3})*", text):
             text = text.replace(",", "")
         else:
