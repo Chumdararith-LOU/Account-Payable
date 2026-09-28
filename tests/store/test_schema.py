@@ -33,7 +33,7 @@ MONEY_COLUMNS = {
 
 def test_all_tables_exist(pg_engine):
     tables = set(inspect(pg_engine).get_table_names())
-    assert EXPECTED_TABLES <= tables, f"missing tables: {EXPECTED_TABLES - tables}"
+    assert tables >= EXPECTED_TABLES, f"missing tables: {EXPECTED_TABLES - tables}"
 
 
 def test_money_columns_are_numeric_18_4(pg_engine):

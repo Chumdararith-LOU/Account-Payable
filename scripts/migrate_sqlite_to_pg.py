@@ -57,12 +57,12 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from apmatch.schema.documents import (  # noqa: E402
     GRNI,
+    MONEY_QUANTUM,
+    ROUND_HALF_UP,
     Invoice,
     LineItem,
-    MONEY_QUANTUM,
     PaymentAdvice,
     PurchaseOrder,
-    ROUND_HALF_UP,
 )
 from apmatch.store.repositories import (
     GRNIRepository,
@@ -302,7 +302,7 @@ def main() -> int:
         with Session(engine) as session:
             counts = migrate(db_path, session)
             session.commit()
-    except Exception as exc:  # noqa: BLE001 - report any per-document failure
+    except Exception as exc:
         print(f"migration failed: {exc}", file=sys.stderr)
         return 1
     for key in SUMMARY_KEYS:

@@ -1,5 +1,6 @@
-import pytest
 from decimal import Decimal
+
+import pytest
 
 from apmatch.schema.coercion import to_money, to_qty, to_unit_price
 from apmatch.schema.documents import GRNI, Invoice, PaymentAdvice, PurchaseOrder

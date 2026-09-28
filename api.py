@@ -1,21 +1,22 @@
 """DPAI API - bridge between Power Platform and your existing engine"""
-import os
 import json
+import os
 import traceback
-from fastapi import FastAPI, HTTPException, Depends, Security
-from fastapi.security import APIKeyHeader
+
+from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.responses import HTMLResponse
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 
-from pp import process_document
 from ai_engine import run_matching_engine
 from database import (
-    extract_po_from_json,
     extract_grni_from_json,
     extract_invoice_from_json,
     extract_pard_from_json,
+    extract_po_from_json,
     get_dashboard_stats,
 )
+from pp import process_document
 
 app = FastAPI(title="DPAI Service", version="1.1")
 

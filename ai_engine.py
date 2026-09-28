@@ -1,12 +1,12 @@
-import sqlite3
-from database import get_connection, insert_match_result, get_invoice_by_id
 import re
+
+from database import get_connection, get_invoice_by_id, insert_match_result
 
 PRICE_TOLERANCE = 0.01  # 1%
 
 def normalize_text(text):
     """Robustly clean up OCR noise from item descriptions"""
-    if not text: 
+    if not text:
         return ""
     # 1. Remove slash followed by any letters (case-insensitive) e.g., /nmw, /Hni, /as
     text = re.sub(r'/[a-zA-Z]+', '', text)
@@ -19,7 +19,7 @@ def normalize_text(text):
 def run_matching_engine(inv_id: str):
     conn = get_connection()
     cursor = conn.cursor()
-    
+
     invoice = get_invoice_by_id(inv_id)
     if not invoice:
         print(f"Invoice {inv_id} not found in database.")
@@ -31,11 +31,11 @@ def run_matching_engine(inv_id: str):
     cursor.execute("SELECT * FROM PO_HEADER WHERE LOWER(TRIM(Vendor)) LIKE ? ORDER BY Date DESC LIMIT 1", (f"%{inv_vendor}%",))
     row = cursor.fetchone()
     po = dict(row) if row else None
-    
+
     cursor.execute("SELECT * FROM GRNI_HEADER WHERE LOWER(TRIM(Vendor)) LIKE ? ORDER BY Date DESC LIMIT 1", (f"%{inv_vendor}%",))
     row = cursor.fetchone()
     grni = dict(row) if row else None
-    
+
     cursor.execute("SELECT * FROM PARD WHERE INV_ID = ?", (inv_id,))
     row = cursor.fetchone()
     pard = dict(row) if row else None
@@ -66,10 +66,10 @@ def run_matching_engine(inv_id: str):
 
     cursor.execute("SELECT * FROM PO_LINE WHERE PO_ID = ?", (po['PO_ID'],))
     po_lines = {normalize_text(row['Item']): row for row in cursor.fetchall()}
-    
+
     cursor.execute("SELECT * FROM GRNI_LINE WHERE GRNI_ID = ?", (grni['GRNI_ID'],))
     grni_lines = {normalize_text(row['Item']): row for row in cursor.fetchall()}
-    
+
     cursor.execute("SELECT * FROM INVOICE_LINE WHERE INV_ID = ?", (inv_id,))
     inv_lines = {normalize_text(row['Item']): row for row in cursor.fetchall()}
 

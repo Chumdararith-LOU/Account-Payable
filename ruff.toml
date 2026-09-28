@@ -1,0 +1,35 @@
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific, includes Decimal-from-float
+    "S",    # bandit (security)
+]
+ignore = [
+    "E501",   # line length — enforced by formatter, not linter
+    "S101",   # assert — we use asserts in tests and guards
+    "S311",   # random — we don't use random
+    "B008",   # function call in default arg — needed for some SQLAlchemy idioms
+]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",   # asserts are the point of tests
+    "SLF001", # private member access in tests is fine
+]
+"scripts/**/*.py" = [
+    "S101",   # scripts use asserts for preconditions
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

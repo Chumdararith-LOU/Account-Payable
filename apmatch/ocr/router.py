@@ -28,7 +28,7 @@ import io
 from pathlib import Path
 
 from apmatch.ocr._script import is_mostly_khmer
-from apmatch.ocr.engine import OCRResult, TextBlock, LatinOCREngine, to_prototype_json
+from apmatch.ocr.engine import LatinOCREngine, OCRResult, TextBlock, to_prototype_json
 from apmatch.ocr.khmer import KhmerOCREngine
 
 # Explicit, named, deterministic thresholds. Change by editing this file.
@@ -104,9 +104,9 @@ class OCRRouter:
 
 
 if __name__ == "__main__":
-    import sys
-    import json
     import contextlib
+    import json
+    import sys
 
     # Engine construction prints (HF weight loading, charset log) go to
     # stderr so stdout carries only the JSON document.

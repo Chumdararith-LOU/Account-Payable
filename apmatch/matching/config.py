@@ -10,15 +10,15 @@ from decimal import Decimal
 from apmatch.matching.result import MatchCode
 
 __all__ = [
-    "QTY_TOLERANCE_ABS",
-    "UNIT_PRICE_TOLERANCE",
     "AMOUNT_TOLERANCE",
-    "TOTAL_TOLERANCE",
-    "UNIT_PRICE_TOLERANCE_REL",
     "AMOUNT_TOLERANCE_REL",
-    "VENDOR_NAME_FUZZY_MIN",
     "MATCHABLE_FIELDS",
     "MATCH_CODE_WEIGHTS",
+    "QTY_TOLERANCE_ABS",
+    "TOTAL_TOLERANCE",
+    "UNIT_PRICE_TOLERANCE",
+    "UNIT_PRICE_TOLERANCE_REL",
+    "VENDOR_NAME_FUZZY_MIN",
 ]
 
 # Absolute tolerances — differences strictly greater than these are treated as

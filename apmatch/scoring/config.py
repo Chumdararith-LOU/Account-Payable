@@ -20,9 +20,9 @@ WEIGHT_OCR = 0.20  # only applied when OCR confidence present
 
 __all__ = [
     "AUTO_APPROVE_SCORE_MIN",
-    "REJECT_REQUIRES_BLOCKER",
     "OCR_CONFIDENCE_LOW",
-    "WEIGHT_VALIDATION",
+    "REJECT_REQUIRES_BLOCKER",
     "WEIGHT_MATCH",
     "WEIGHT_OCR",
+    "WEIGHT_VALIDATION",
 ]

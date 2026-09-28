@@ -1,4 +1,5 @@
 import pytest
+
 from apmatch.matching.result import MatchResult, Outcome
 from apmatch.scoring.confidence import combined_score, match_component, validation_component
 from apmatch.validation.result import CheckCode, CheckFailure, Severity, ValidationResult

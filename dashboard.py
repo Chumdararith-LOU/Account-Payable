@@ -1,9 +1,10 @@
-import streamlit as st
+from datetime import datetime
+
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
+import streamlit as st
+
 from database import get_connection, get_dashboard_stats
-from datetime import datetime
 
 # Page configuration with custom theme
 st.set_page_config(page_title="AP AI Automation Dashboard", page_icon="🧾", layout="wide", initial_sidebar_state="expanded")
@@ -144,21 +145,21 @@ with col_left:
         <h3 style='margin: 0; color: #2d3748;'>📊 Top Discrepancy Reasons</h3>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if stats['top_reasons']:
         df_reasons = pd.DataFrame(stats['top_reasons'])
-        
+
         # Create enhanced bar chart with Plotly
         fig = px.bar(
-            df_reasons, 
-            x='count', 
+            df_reasons,
+            x='count',
             y='reason',
             orientation='h',
             color='count',
             color_continuous_scale='Reds',
             text='count'
         )
-        
+
         fig.update_layout(
             plot_bgcolor='white',
             paper_bgcolor='white',
@@ -170,13 +171,13 @@ with col_left:
             xaxis=dict(showgrid=True, gridcolor='#f0f0f0'),
             yaxis=dict(showgrid=False)
         )
-        
+
         fig.update_traces(
             textposition='outside',
             textfont=dict(color='#2d3748', size=11, weight='bold'),
             hovertemplate='<b>%{y}</b><br>Count: %{x}<extra></extra>'
         )
-        
+
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.success("🎉 No discrepancies found! All invoices matched perfectly.")
@@ -187,7 +188,7 @@ with col_right:
         <h3 style='margin: 0; color: #2d3748;'> Invoice Processing Log</h3>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Fetch all match results with invoice details
     conn = get_connection()
     query = """
@@ -210,7 +211,7 @@ with col_right:
     if not df_invoices.empty:
         # Format the dataframe for display
         df_display = df_invoices.copy()
-        
+
         # Add status badges using HTML
         def format_status(status):
             if status == 'MATCH':
@@ -219,9 +220,9 @@ with col_right:
                 return f'<span class="status-discrepancy">✗ {status}</span>'
             else:
                 return f'<span class="status-pending">⏳ {status}</span>'
-        
+
         df_display['Status'] = df_display['Status'].apply(format_status)
-        
+
         # Color code confidence
         def format_confidence(conf):
             if conf >= 90:
@@ -230,9 +231,9 @@ with col_right:
                 return f'<span style="color: #f59e0b; font-weight: bold;">{conf}%</span>'
             else:
                 return f'<span style="color: #ef4444; font-weight: bold;">{conf}%</span>'
-        
+
         df_display['Confidence (%)'] = df_display['Confidence (%)'].apply(format_confidence)
-        
+
         # Display the table with HTML rendering
         st.markdown(
             df_display.to_html(escape=False, index=False),
@@ -264,7 +265,7 @@ with st.sidebar:
     - **Review Needed**: {stats['discrepancy'] + stats['pending']} invoices
     - **Efficiency Gain**: ~85% time saved
     """)
-    
+
     st.markdown("###  Actions")
     st.markdown("""
     - Process New Invoice

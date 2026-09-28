@@ -112,8 +112,8 @@ def to_prototype_json(result: OCRResult) -> dict:
 
 
 if __name__ == "__main__":
-    import sys
     import json
+    import sys
 
     eng = LatinOCREngine()
     r = eng.recognize(sys.argv[1])

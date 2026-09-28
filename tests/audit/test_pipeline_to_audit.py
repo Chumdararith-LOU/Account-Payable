@@ -7,7 +7,7 @@ dashboard and P1-12's API will rely on.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid4
 
@@ -18,7 +18,6 @@ from apmatch.matching.engine import MatchingEngine
 from apmatch.remarks.matching import summarize_match
 from apmatch.scoring.router import decide
 from apmatch.validation.arithmetic import validate_invoice
-
 from tests.integration.test_pipeline import _load
 
 SCORE_QUANTUM = Decimal("0.0001")
@@ -36,7 +35,7 @@ def _run_pipeline():
 def _build_entry(run_id: str, invoice, po, grni, pard, validation, match, decision, remark) -> AuditEntry:
     return AuditEntry(
         run_id=run_id,
-        run_timestamp=datetime.now(timezone.utc),
+        run_timestamp=datetime.now(UTC),
         invoice_number=invoice.invoice_number,
         po_number=po.po_number,
         grn_number=grni.grn_number,

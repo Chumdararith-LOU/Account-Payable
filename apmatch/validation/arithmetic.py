@@ -32,12 +32,12 @@ from pathlib import Path
 from apmatch.schema.coercion import to_money, to_qty, to_unit_price
 from apmatch.schema.documents import (
     GRNI,
+    MONEY_QUANTUM,
+    ROUNDING,
     Invoice,
     LineItem,
-    MONEY_QUANTUM,
     PaymentAdvice,
     PurchaseOrder,
-    ROUNDING,
 )
 from apmatch.validation.result import (
     CheckCode,

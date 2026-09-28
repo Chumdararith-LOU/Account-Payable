@@ -1,9 +1,9 @@
-import apmatch.remarks.matching as m
 import pytest
+
+import apmatch.remarks.matching as m
 from apmatch.matching.result import MatchCode, MatchFailure, MatchResult, Outcome
 from apmatch.remarks.matching import MATCH_TEMPLATES, remark_for_match, summarize_match
 from apmatch.validation.result import Severity
-
 
 # --- Coverage --------------------------------------------------------------
 

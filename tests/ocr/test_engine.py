@@ -1,6 +1,6 @@
 import json
 
-from apmatch.ocr.engine import OCRResult, TextBlock, LatinOCREngine, to_prototype_json
+from apmatch.ocr.engine import LatinOCREngine, OCRResult, TextBlock, to_prototype_json
 from tests.conftest import REPO_ROOT
 
 

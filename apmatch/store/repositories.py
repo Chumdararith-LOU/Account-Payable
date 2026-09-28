@@ -23,11 +23,9 @@ dataclasses, never ORM instances. ORM instances never cross the boundary.
 
 from __future__ import annotations
 
-from datetime import date
-from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apmatch.schema.documents import (

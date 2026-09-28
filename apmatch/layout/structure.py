@@ -107,9 +107,9 @@ def to_prototype_json(tables: tuple[Table, ...]) -> dict:
 
 
 if __name__ == "__main__":
-    import sys
-    import json
     import contextlib
+    import json
+    import sys
 
     # Engine construction prints (model creation, weight loading) go to
     # stderr so stdout carries only the JSON document.

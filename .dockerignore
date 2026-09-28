@@ -1,0 +1,50 @@
+# Version control
+.git/
+.gitignore
+.github/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Envs
+.venv/
+venv/
+env/
+
+# Secrets and local config
+.env
+.env.local
+
+# Local databases and logs
+*.db
+*.db-journal
+ap_automation.db*
+*.log
+tunnel.log
+uvicorn.log
+
+# Local dev artifacts
+output/imgs/
+erp_queue/
+pending_queue/
+review_queue/
+pgdata/
+
+# Documentation and reports
+docs/
+*.md
+AP_AI_Automation_Report.html
+dashboard.html
+
+# Models are baked into the image separately (P1-12c);
+# do not copy them via the build context.
+models/
+
+# Test fixtures are small; keep them out of the image unless
+# we later add an in-image smoke test.
+tests/

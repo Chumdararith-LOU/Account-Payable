@@ -6,17 +6,14 @@ same schema, same per-test rollback). Adds an ``AuditEntry`` builder.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid4
 
 import pytest
 
 from apmatch.audit.entry import AuditEntry
-from apmatch.matching.result import MatchFailure
 from apmatch.scoring.result import Route, RouteReason
-from apmatch.validation.result import CheckFailure
-
 from tests.store.conftest import pg_engine, pg_session  # noqa: F401  (re-exported)
 
 
@@ -27,7 +24,7 @@ def _mk_audit_entry():
     def _build(**kwargs) -> AuditEntry:
         return AuditEntry(
             run_id=kwargs.get("run_id") or uuid4().hex,
-            run_timestamp=kwargs.get("run_timestamp") or datetime.now(timezone.utc),
+            run_timestamp=kwargs.get("run_timestamp") or datetime.now(UTC),
             invoice_number=kwargs.get("invoice_number", "INV-AUDIT-1"),
             po_number=kwargs.get("po_number", "PO-AUDIT-1"),
             grn_number=kwargs.get("grn_number", "GRN-AUDIT-1"),

@@ -1,6 +1,6 @@
 import pytest
 
-from apmatch.ocr.engine import OCRResult, TextBlock, LatinOCREngine
+from apmatch.ocr.engine import LatinOCREngine, OCRResult, TextBlock
 from apmatch.ocr.khmer import KhmerOCREngine
 from apmatch.ocr.router import OCRRouter
 

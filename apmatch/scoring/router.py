@@ -25,7 +25,11 @@ from pathlib import Path
 
 from apmatch.matching.result import MatchCode, MatchFailure, MatchResult, Outcome
 from apmatch.scoring.confidence import combined_score
-from apmatch.scoring.config import AUTO_APPROVE_SCORE_MIN, OCR_CONFIDENCE_LOW, REJECT_REQUIRES_BLOCKER
+from apmatch.scoring.config import (
+    AUTO_APPROVE_SCORE_MIN,
+    OCR_CONFIDENCE_LOW,
+    REJECT_REQUIRES_BLOCKER,
+)
 from apmatch.scoring.result import Route, RouteReason, RoutingDecision
 from apmatch.validation.result import CheckCode, CheckFailure, Severity, ValidationResult
 

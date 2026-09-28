@@ -215,6 +215,18 @@ Append-only. Exactly one row per pipeline run.
   computed by Postgres; functions return bounded dataclasses, never iterators
   or ORM instances. No caching today; correctness over throughput.
 
+## Linting and dev tooling
+
+- **ruff**, configured via `ruff.toml` at the repo root. `ruff check .` is
+  the lint gate; `ruff format` is NOT run as part of linting (formatting is
+  a separate, deliberate decision — see D-048).
+- Runtime deps in `requirements.txt`; dev-only tools in
+  `requirements-dev.txt`, which extends it (`-r requirements.txt`). A fresh
+  dev env is `pip install -r requirements-dev.txt`.
+- Line length 100, enforced by the formatter, not the linter (E501 ignored).
+- The `RUF032` rule (Decimal-from-float) is enabled deliberately: money
+  arithmetic must never originate from a float literal. See D-011 and D-048.
+
 ## Target state (Phase 1) — workstreams
 
 See `docs/TASKS.md` for status. The 13 Phase 1 workstreams:

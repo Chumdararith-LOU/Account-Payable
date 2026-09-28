@@ -6,17 +6,17 @@ Run against a real Postgres (skipped if unreachable, via the re-exported
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
+from apmatch.audit.entry import AuditEntry
 from apmatch.audit.repository import (
     AuditConflict,
     AuditEntryNotFound,
     AuditRepository,
 )
-from apmatch.audit.entry import AuditEntry
 from apmatch.matching.result import MatchCode, MatchFailure
 from apmatch.validation.result import CheckCode, CheckFailure, Severity
 
@@ -80,7 +80,7 @@ def test_get_missing_raises_not_found(pg_session):
 
 
 def test_list_recent_orders_by_timestamp_desc(pg_session, _mk_audit_entry):
-    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    base = datetime(2026, 1, 1, tzinfo=UTC)
     # Insert out of order: oldest, newest, middle.
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="1" * 32, run_timestamp=base))
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="3" * 32, run_timestamp=base + timedelta(hours=2)))
@@ -90,7 +90,7 @@ def test_list_recent_orders_by_timestamp_desc(pg_session, _mk_audit_entry):
 
 
 def test_list_recent_limit(pg_session, _mk_audit_entry):
-    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    base = datetime(2026, 1, 1, tzinfo=UTC)
     for i in range(5):
         AuditRepository.append(
             pg_session,

@@ -1,6 +1,5 @@
 from apmatch.matching.normalize import normalize_currency, normalize_number_text, normalize_text
 
-
 # --- normalize_text --------------------------------------------------------
 
 

@@ -7,7 +7,7 @@ dataclass results.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -23,7 +23,6 @@ from apmatch.audit.kpis import (
 )
 from apmatch.audit.repository import AuditRepository
 from apmatch.scoring.result import Route, RouteReason
-
 
 # --- Route counts -----------------------------------------------------------
 
@@ -41,9 +40,9 @@ def test_count_by_route_all(pg_session, _mk_audit_entry):
 
 
 def test_count_by_route_since_filter(pg_session, _mk_audit_entry):
-    old = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    recent = datetime(2026, 6, 1, tzinfo=timezone.utc)
-    cutoff = datetime(2026, 3, 1, tzinfo=timezone.utc)
+    old = datetime(2026, 1, 1, tzinfo=UTC)
+    recent = datetime(2026, 6, 1, tzinfo=UTC)
+    cutoff = datetime(2026, 3, 1, tzinfo=UTC)
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="1" * 32, route=Route.AUTO_APPROVE, run_timestamp=old))
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="2" * 32, route=Route.AUTO_APPROVE, run_timestamp=old))
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="3" * 32, route=Route.HUMAN_REVIEW, run_timestamp=recent))
@@ -99,7 +98,7 @@ def test_recent_runs_empty(pg_session):
 
 
 def test_recent_runs_most_recent_first(pg_session, _mk_audit_entry):
-    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    base = datetime(2026, 1, 1, tzinfo=UTC)
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="1" * 32, run_timestamp=base))
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="3" * 32, run_timestamp=base + timedelta(hours=2)))
     AuditRepository.append(pg_session, _mk_audit_entry(run_id="2" * 32, run_timestamp=base + timedelta(hours=1)))
@@ -107,7 +106,7 @@ def test_recent_runs_most_recent_first(pg_session, _mk_audit_entry):
 
 
 def test_recent_runs_limit(pg_session, _mk_audit_entry):
-    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    base = datetime(2026, 1, 1, tzinfo=UTC)
     for i in range(5):
         AuditRepository.append(pg_session, _mk_audit_entry(run_id=f"{i:032d}", run_timestamp=base + timedelta(hours=i)))
     assert len(recent_runs(pg_session, limit=3)) == 3

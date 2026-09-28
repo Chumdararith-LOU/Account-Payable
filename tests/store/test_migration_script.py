@@ -77,7 +77,7 @@ def test_migrated_po_has_nonzero_total_if_lines_present(pg_session, sqlite_copy)
     migrate(sqlite_copy, pg_session)
     po = PurchaseOrderRepository.load(pg_session, "PO-2026-0451")
     if po.line_items:
-        assert po.total == sum((l.amount for l in po.line_items if l.amount is not None))
+        assert po.total == sum(l.amount for l in po.line_items if l.amount is not None)
 
 
 @pytest.mark.migration

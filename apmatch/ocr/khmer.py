@@ -61,7 +61,7 @@ class KhmerOCREngine:
         self._tokenizer = tyo.get_tokenizer()
         print(f"KhmerOCREngine: charset size = {len(self._tokenizer)}")
 
-    def recognize(self, image_path: Path | str | "IO[bytes]") -> OCRResult:
+    def recognize(self, image_path: Path | str | IO[bytes]) -> OCRResult:
         """Recognize Khmer text in a CROPPED single-line image.
 
         The input must already be a crop of one text line/region
@@ -104,8 +104,8 @@ def to_prototype_json(result: OCRResult) -> dict:
 
 
 if __name__ == "__main__":
-    import sys
     import json
+    import sys
 
     eng = KhmerOCREngine()
     r = eng.recognize(sys.argv[1])

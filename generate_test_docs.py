@@ -14,6 +14,7 @@ Output: PDF + PNG (200dpi) for each doc, ready to drop into:
 
 import os
 import subprocess
+
 from weasyprint import HTML
 
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_docs")

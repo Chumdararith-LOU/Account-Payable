@@ -23,7 +23,6 @@ from apmatch.store.repositories import (
 )
 from tests.store._builders import mk_grni, mk_invoice, mk_line, mk_pard, mk_po
 
-
 # --- Round-trip: the core guarantee -----------------------------------------
 
 
