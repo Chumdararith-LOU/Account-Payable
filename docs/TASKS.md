@@ -30,5 +30,6 @@
 | P1-12b-enum | StrEnum migration for Route/CheckCode/etc | pending | |
 | P1-12c | Dockerfile + compose app service | pending | |
 | P1-12d | FastAPI endpoints | done | (P1-12d) |
+| P1-12d-fix | Validators handle None fields gracefully, no crashes | done | (P1-12d-fix) |
 | P1-12e | Full-stack smoke test | pending | |
 | P1-13 | Bilingual test corpus + goldens | pending | |

@@ -2,8 +2,8 @@ from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
-from apmatch.schema.documents import Invoice, LineItem
-from apmatch.validation.arithmetic import validate_invoice
+from apmatch.schema.documents import GRNI, Invoice, LineItem, PaymentAdvice, PurchaseOrder
+from apmatch.validation.arithmetic import validate_grni, validate_invoice, validate_pard, validate_po
 from apmatch.validation.result import CheckCode, Severity
 
 
@@ -214,3 +214,116 @@ def test_failure_codes_are_stable():
     for f in result.checks_failed:
         assert isinstance(f.code, CheckCode)
         assert f.code.name in CheckCode.__members__
+
+
+# --- None-handling: missing fields emit MISSING_REQUIRED_FIELD, never crash ---
+
+
+def _missing_fields(result):
+    return [f for f in result.checks_failed if f.code is CheckCode.MISSING_REQUIRED_FIELD]
+
+
+def test_invoice_tax_amount_none_emits_missing_not_crash():
+    inv = replace(_valid_invoice(), tax_amount=None)
+    result = validate_invoice(inv)  # must not raise
+    assert result.has_blocker is True
+    assert any(f.actual == "tax_amount" for f in _missing_fields(result))
+
+
+def test_invoice_subtotal_none_emits_missing_not_crash():
+    inv = replace(_valid_invoice(), subtotal=None)
+    result = validate_invoice(inv)
+    assert result.has_blocker is True
+    assert any(f.actual == "subtotal" for f in _missing_fields(result))
+
+
+def test_invoice_total_none_emits_missing_not_crash():
+    inv = replace(_valid_invoice(), total=None)
+    result = validate_invoice(inv)
+    assert result.has_blocker is True
+    assert any(f.actual == "total" for f in _missing_fields(result))
+
+
+def test_invoice_line_amount_none_emits_missing_not_crash():
+    base = _valid_invoice()
+    bad = replace(base.line_items[0], amount=None)
+    inv = replace(base, line_items=(bad, base.line_items[1]))
+    result = validate_invoice(inv)
+    assert result.has_blocker is True
+    assert any(f.location == "line 1" and f.actual == "amount" for f in _missing_fields(result))
+
+
+def test_invoice_line_unit_price_none_emits_missing_not_crash():
+    base = _valid_invoice()
+    bad = replace(base.line_items[0], unit_price=None)
+    inv = replace(base, line_items=(bad, base.line_items[1]))
+    result = validate_invoice(inv)
+    assert result.has_blocker is True
+    assert any(f.location == "line 1" and f.actual == "unit_price" for f in _missing_fields(result))
+
+
+def test_invoice_multiple_missing_fields():
+    inv = replace(_valid_invoice(), subtotal=None, tax_amount=None)
+    missing = _missing_fields(validate_invoice(inv))
+    assert len(missing) == 2
+    assert {f.actual for f in missing} == {"subtotal", "tax_amount"}
+
+
+def test_invoice_missing_field_does_not_emit_arithmetic_failure():
+    inv = replace(_valid_invoice(), tax_amount=None)
+    codes = [f.code for f in validate_invoice(inv).checks_failed]
+    assert CheckCode.TAX_MISMATCH not in codes
+    assert CheckCode.TOTAL_MISMATCH not in codes
+
+
+def test_invoice_empty_string_currency_emits_missing():
+    inv = replace(_valid_invoice(), currency="")
+    result = validate_invoice(inv)
+    assert result.has_blocker is True
+    assert any(f.actual == "currency" for f in _missing_fields(result))
+
+
+def test_po_none_fields_emit_missing_not_crash():
+    po = PurchaseOrder(
+        po_number="PO-1",
+        vendor_name="Vendor",
+        po_date=date(2026, 8, 15),
+        total=None,
+        line_items=(LineItem(line_no=1, description="X", quantity=Decimal("1"), unit_price=Decimal("10.00")),),
+    )
+    result = validate_po(po)
+    assert result.has_blocker is True
+    assert any(f.actual == "total" for f in _missing_fields(result))
+
+
+def test_grni_none_qty_emits_missing_not_crash():
+    g = GRNI(
+        grn_number="GRN-1",
+        vendor_name="Vendor",
+        grni_date=date(2026, 8, 19),
+        line_items=(LineItem(line_no=1, description="X", quantity=None),),
+    )
+    result = validate_grni(g)
+    assert result.has_blocker is True
+    assert any(f.location == "line 1" and f.actual == "quantity" for f in _missing_fields(result))
+
+
+def test_pard_none_amount_emits_missing_not_crash():
+    p = PaymentAdvice(
+        pard_number="PARD-1",
+        invoice_number="INV-1",
+        amount=None,
+        payment_date=date(2026, 8, 25),
+    )
+    result = validate_pard(p)
+    assert result.has_blocker is True
+    assert any(f.actual == "amount" for f in _missing_fields(result))
+
+
+def test_missing_required_field_sorts_before_arithmetic():
+    inv = replace(_valid_invoice(), subtotal=Decimal("36.00"), tax_amount=None)
+    result = validate_invoice(inv)
+    codes = [f.code for f in result.checks_failed]
+    assert CheckCode.MISSING_REQUIRED_FIELD in codes
+    assert CheckCode.SUBTOTAL_MISMATCH in codes
+    assert codes.index(CheckCode.MISSING_REQUIRED_FIELD) < codes.index(CheckCode.SUBTOTAL_MISMATCH)

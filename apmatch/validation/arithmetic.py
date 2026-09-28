@@ -17,6 +17,18 @@ When the rate is absent, the check degrades to a sanity check (tax > total, or
 discount > subtotal) that is a WARNING at location
 ``"header (sanity-only: no tax_rate)"`` / ``"header (sanity-only: no
 discount_rate)"`` — the tag keeps audit logs unambiguous about which mode ran.
+
+None-handling policy (part of the contract): the extraction layer (P1-12a,
+D-042) is total — it returns ``None`` for any field it could not read, even
+one that is nominally required in the schema. These validators therefore never
+raise for a missing value. For each field that can be ``None``:
+  - if it is required (nominally non-Optional in the dataclass), emit
+    ``MISSING_REQUIRED_FIELD`` (BLOCKER) — one failure per missing field, each
+    with its own location — and skip the arithmetic checks that depend on it;
+  - if it is optional, skip the dependent checks with no failure.
+A document with two missing fields emits exactly two ``MISSING_REQUIRED_FIELD``
+failures; it never emits a misleading arithmetic failure for a value it could
+not compute.
 """
 
 from __future__ import annotations
@@ -74,9 +86,33 @@ def _q2(value: Decimal) -> Decimal:
     return value.quantize(MONEY_QUANTUM, rounding=ROUNDING)
 
 
+def _missing(location: str, field_name: str) -> CheckFailure:
+    """One MISSING_REQUIRED_FIELD (BLOCKER) for a single absent field."""
+    return CheckFailure(CheckCode.MISSING_REQUIRED_FIELD, Severity.BLOCKER, location, "non-empty", field_name, "")
+
+
 def validate_invoice(inv: Invoice) -> ValidationResult:
     passed: set[CheckCode] = set()
     failures: list[CheckFailure] = []
+    missing: list[tuple[str, str]] = []  # (location, field_name)
+
+    # Pass 1: required header fields. str fields: None and "" are the same
+    # failure; money/date fields: None only. source_file is optional (skipped).
+    for name, value in (
+        ("invoice_number", inv.invoice_number),
+        ("vendor_name", inv.vendor_name),
+        ("currency", inv.currency),
+    ):
+        if not value:
+            missing.append(("header", name))
+    for name, value in (
+        ("invoice_date", inv.invoice_date),
+        ("subtotal", inv.subtotal),
+        ("tax_amount", inv.tax_amount),
+        ("total", inv.total),
+    ):
+        if value is None:
+            missing.append(("header", name))
 
     if not inv.line_items:
         failures.append(
@@ -85,20 +121,21 @@ def validate_invoice(inv: Invoice) -> ValidationResult:
     else:
         passed.add(CheckCode.NO_LINE_ITEMS)
 
+        # Pass 2: required line fields (invoice lines need qty, price, amount).
+        for line in inv.line_items:
+            for name, value in (
+                ("quantity", line.quantity),
+                ("unit_price", line.unit_price),
+                ("amount", line.amount),
+            ):
+                if value is None:
+                    missing.append((f"line {line.line_no}", name))
+
+        # Pass 3: arithmetic checks, each guarded by the presence of its inputs.
         line_ok = True
         for line in inv.line_items:
-            if line.amount is None or line.unit_price is None:
+            if line.quantity is None or line.unit_price is None or line.amount is None:
                 line_ok = False
-                failures.append(
-                    CheckFailure(
-                        CheckCode.MISSING_REQUIRED_FIELD,
-                        Severity.BLOCKER,
-                        f"line {line.line_no}",
-                        "amount+unit_price",
-                        "missing",
-                        "",
-                    )
-                )
                 continue
             expected = _q2(line.quantity * line.unit_price)
             if abs(expected - line.amount) > LINE_AMOUNT_TOLERANCE:
@@ -116,109 +153,119 @@ def validate_invoice(inv: Invoice) -> ValidationResult:
         if line_ok:
             passed.add(CheckCode.LINE_AMOUNT_MISMATCH)
 
-        lines_sum = _q2(sum((li.amount for li in inv.line_items if li.amount is not None), Decimal("0")))
-        if abs(lines_sum - inv.subtotal) > TOTAL_TOLERANCE:
-            failures.append(
-                CheckFailure(
-                    CheckCode.SUBTOTAL_MISMATCH,
-                    Severity.BLOCKER,
-                    "header",
-                    str(inv.subtotal),
-                    str(lines_sum),
-                    str(abs(lines_sum - inv.subtotal)),
-                )
-            )
-        else:
-            passed.add(CheckCode.SUBTOTAL_MISMATCH)
-
-        discount = inv.discount_amount if inv.discount_amount is not None else Decimal("0")
-        expected_total = _q2(inv.subtotal - discount + inv.tax_amount)
-        if abs(expected_total - inv.total) > TOTAL_TOLERANCE:
-            failures.append(
-                CheckFailure(
-                    CheckCode.TOTAL_MISMATCH,
-                    Severity.BLOCKER,
-                    "header",
-                    str(inv.total),
-                    str(expected_total),
-                    str(abs(expected_total - inv.total)),
-                )
-            )
-        else:
-            passed.add(CheckCode.TOTAL_MISMATCH)
-
-        if inv.discount_rate is not None:
-            expected_discount = _q2(inv.subtotal * inv.discount_rate)
-            actual_discount = inv.discount_amount if inv.discount_amount is not None else Decimal("0")
-            if abs(actual_discount - expected_discount) > TOTAL_TOLERANCE:
+        if inv.subtotal is not None:
+            lines_sum = _q2(sum((li.amount for li in inv.line_items if li.amount is not None), Decimal("0")))
+            if abs(lines_sum - inv.subtotal) > TOTAL_TOLERANCE:
                 failures.append(
                     CheckFailure(
-                        CheckCode.DISCOUNT_MISMATCH,
+                        CheckCode.SUBTOTAL_MISMATCH,
                         Severity.BLOCKER,
                         "header",
-                        str(expected_discount),
-                        str(actual_discount),
-                        str(actual_discount - expected_discount),
+                        str(inv.subtotal),
+                        str(lines_sum),
+                        str(abs(lines_sum - inv.subtotal)),
                     )
                 )
             else:
-                passed.add(CheckCode.DISCOUNT_MISMATCH)
-        else:
-            if inv.discount_amount is not None and inv.discount_amount > inv.subtotal:
-                failures.append(
-                    CheckFailure(
-                        CheckCode.DISCOUNT_MISMATCH,
-                        Severity.WARNING,
-                        "header (sanity-only: no discount_rate)",
-                        "<= subtotal",
-                        str(inv.discount_amount),
-                        str(inv.discount_amount - inv.subtotal),
-                    )
-                )
-            else:
-                passed.add(CheckCode.DISCOUNT_MISMATCH)
+                passed.add(CheckCode.SUBTOTAL_MISMATCH)
 
-        if inv.tax_rate is not None:
-            expected_tax = _q2((inv.subtotal - discount) * inv.tax_rate)
-            if abs(inv.tax_amount - expected_tax) > TOTAL_TOLERANCE:
+        if inv.subtotal is not None and inv.tax_amount is not None and inv.total is not None:
+            discount = inv.discount_amount if inv.discount_amount is not None else Decimal("0")
+            expected_total = _q2(inv.subtotal - discount + inv.tax_amount)
+            if abs(expected_total - inv.total) > TOTAL_TOLERANCE:
                 failures.append(
                     CheckFailure(
-                        CheckCode.TAX_MISMATCH,
+                        CheckCode.TOTAL_MISMATCH,
                         Severity.BLOCKER,
                         "header",
-                        str(expected_tax),
-                        str(inv.tax_amount),
-                        str(inv.tax_amount - expected_tax),
+                        str(inv.total),
+                        str(expected_total),
+                        str(abs(expected_total - inv.total)),
                     )
                 )
             else:
-                passed.add(CheckCode.TAX_MISMATCH)
-        else:
-            if inv.tax_amount > inv.total:
-                failures.append(
-                    CheckFailure(
-                        CheckCode.TAX_MISMATCH,
-                        Severity.WARNING,
-                        "header (sanity-only: no tax_rate)",
-                        "<= total",
-                        str(inv.tax_amount),
-                        str(inv.tax_amount - inv.total),
+                passed.add(CheckCode.TOTAL_MISMATCH)
+
+        if inv.subtotal is not None:
+            if inv.discount_rate is not None:
+                expected_discount = _q2(inv.subtotal * inv.discount_rate)
+                actual_discount = inv.discount_amount if inv.discount_amount is not None else Decimal("0")
+                if abs(actual_discount - expected_discount) > TOTAL_TOLERANCE:
+                    failures.append(
+                        CheckFailure(
+                            CheckCode.DISCOUNT_MISMATCH,
+                            Severity.BLOCKER,
+                            "header",
+                            str(expected_discount),
+                            str(actual_discount),
+                            str(actual_discount - expected_discount),
+                        )
                     )
-                )
+                else:
+                    passed.add(CheckCode.DISCOUNT_MISMATCH)
             else:
-                passed.add(CheckCode.TAX_MISMATCH)
+                if inv.discount_amount is not None and inv.discount_amount > inv.subtotal:
+                    failures.append(
+                        CheckFailure(
+                            CheckCode.DISCOUNT_MISMATCH,
+                            Severity.WARNING,
+                            "header (sanity-only: no discount_rate)",
+                            "<= subtotal",
+                            str(inv.discount_amount),
+                            str(inv.discount_amount - inv.subtotal),
+                        )
+                    )
+                else:
+                    passed.add(CheckCode.DISCOUNT_MISMATCH)
+
+        if inv.subtotal is not None and inv.tax_amount is not None and inv.total is not None:
+            if inv.tax_rate is not None:
+                discount = inv.discount_amount if inv.discount_amount is not None else Decimal("0")
+                expected_tax = _q2((inv.subtotal - discount) * inv.tax_rate)
+                if abs(inv.tax_amount - expected_tax) > TOTAL_TOLERANCE:
+                    failures.append(
+                        CheckFailure(
+                            CheckCode.TAX_MISMATCH,
+                            Severity.BLOCKER,
+                            "header",
+                            str(expected_tax),
+                            str(inv.tax_amount),
+                            str(inv.tax_amount - expected_tax),
+                        )
+                    )
+                else:
+                    passed.add(CheckCode.TAX_MISMATCH)
+            else:
+                if inv.tax_amount > inv.total:
+                    failures.append(
+                        CheckFailure(
+                            CheckCode.TAX_MISMATCH,
+                            Severity.WARNING,
+                            "header (sanity-only: no tax_rate)",
+                            "<= total",
+                            str(inv.tax_amount),
+                            str(inv.tax_amount - inv.total),
+                        )
+                    )
+                else:
+                    passed.add(CheckCode.TAX_MISMATCH)
+
+    for location, field_name in missing:
+        failures.append(_missing(location, field_name))
+    if not missing:
+        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
 
     neg = []
-    if inv.subtotal < 0:
+    if inv.subtotal is not None and inv.subtotal < 0:
         neg.append("subtotal")
-    if inv.tax_amount < 0:
+    if inv.tax_amount is not None and inv.tax_amount < 0:
         neg.append("tax_amount")
-    if inv.total < 0:
+    if inv.total is not None and inv.total < 0:
         neg.append("total")
     if inv.discount_amount is not None and inv.discount_amount < 0:
         neg.append("discount_amount")
     for line in inv.line_items:
-        if line.quantity < 0:
+        if line.quantity is not None and line.quantity < 0:
             neg.append(f"line {line.line_no} quantity")
         if line.amount is not None and line.amount < 0:
             neg.append(f"line {line.line_no} amount")
@@ -229,28 +276,12 @@ def validate_invoice(inv: Invoice) -> ValidationResult:
     else:
         passed.add(CheckCode.NEGATIVE_AMOUNT)
 
-    if inv.invoice_date > date.today():
+    if inv.invoice_date is not None and inv.invoice_date > date.today():
         failures.append(
             CheckFailure(CheckCode.DATE_IN_FUTURE, Severity.WARNING, "header", "<= today", str(inv.invoice_date), "")
         )
     else:
         passed.add(CheckCode.DATE_IN_FUTURE)
-
-    missing = [
-        name
-        for name, value in (
-            ("invoice_number", inv.invoice_number),
-            ("vendor_name", inv.vendor_name),
-            ("currency", inv.currency),
-        )
-        if not value
-    ]
-    if missing:
-        failures.append(
-            CheckFailure(CheckCode.MISSING_REQUIRED_FIELD, Severity.BLOCKER, "header", "non-empty", ",".join(missing), "")
-        )
-    else:
-        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
 
     return _finish("invoice", passed, failures)
 
@@ -258,6 +289,21 @@ def validate_invoice(inv: Invoice) -> ValidationResult:
 def validate_po(po: PurchaseOrder) -> ValidationResult:
     passed: set[CheckCode] = set()
     failures: list[CheckFailure] = []
+    missing: list[tuple[str, str]] = []
+
+    # Pass 1: required header fields. currency is optional (skipped).
+    for name, value in (
+        ("po_number", po.po_number),
+        ("vendor_name", po.vendor_name),
+    ):
+        if not value:
+            missing.append(("header", name))
+    for name, value in (
+        ("po_date", po.po_date),
+        ("total", po.total),
+    ):
+        if value is None:
+            missing.append(("header", name))
 
     if not po.line_items:
         failures.append(
@@ -265,34 +311,50 @@ def validate_po(po: PurchaseOrder) -> ValidationResult:
         )
     else:
         passed.add(CheckCode.NO_LINE_ITEMS)
-        lines_sum = _q2(
-            sum(
-                (
-                    line.quantity * (line.unit_price if line.unit_price is not None else Decimal("0"))
-                    for line in po.line_items
-                ),
-                Decimal("0"),
-            )
-        )
-        if abs(lines_sum - po.total) > TOTAL_TOLERANCE:
-            failures.append(
-                CheckFailure(
-                    CheckCode.TOTAL_MISMATCH,
-                    Severity.BLOCKER,
-                    "header",
-                    str(po.total),
-                    str(lines_sum),
-                    str(abs(lines_sum - po.total)),
+
+        # Pass 2: required line fields. PO lines need quantity; unit_price and
+        # amount are optional here (the total check uses quantity * unit_price
+        # with a 0 fallback, and line.amount is not read).
+        for line in po.line_items:
+            if line.quantity is None:
+                missing.append((f"line {line.line_no}", "quantity"))
+
+        # Pass 3: total check, guarded by the presence of its inputs.
+        if po.total is not None:
+            lines_sum = _q2(
+                sum(
+                    (
+                        line.quantity * (line.unit_price if line.unit_price is not None else Decimal("0"))
+                        for line in po.line_items
+                        if line.quantity is not None
+                    ),
+                    Decimal("0"),
                 )
             )
-        else:
-            passed.add(CheckCode.TOTAL_MISMATCH)
+            if abs(lines_sum - po.total) > TOTAL_TOLERANCE:
+                failures.append(
+                    CheckFailure(
+                        CheckCode.TOTAL_MISMATCH,
+                        Severity.BLOCKER,
+                        "header",
+                        str(po.total),
+                        str(lines_sum),
+                        str(abs(lines_sum - po.total)),
+                    )
+                )
+            else:
+                passed.add(CheckCode.TOTAL_MISMATCH)
+
+    for location, field_name in missing:
+        failures.append(_missing(location, field_name))
+    if not missing:
+        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
 
     neg = []
-    if po.total < 0:
+    if po.total is not None and po.total < 0:
         neg.append("total")
     for line in po.line_items:
-        if line.quantity < 0:
+        if line.quantity is not None and line.quantity < 0:
             neg.append(f"line {line.line_no} quantity")
         if line.unit_price is not None and line.unit_price < 0:
             neg.append(f"line {line.line_no} unit_price")
@@ -303,27 +365,12 @@ def validate_po(po: PurchaseOrder) -> ValidationResult:
     else:
         passed.add(CheckCode.NEGATIVE_AMOUNT)
 
-    if po.po_date > date.today():
+    if po.po_date is not None and po.po_date > date.today():
         failures.append(
             CheckFailure(CheckCode.DATE_IN_FUTURE, Severity.WARNING, "header", "<= today", str(po.po_date), "")
         )
     else:
         passed.add(CheckCode.DATE_IN_FUTURE)
-
-    missing = [
-        name
-        for name, value in (
-            ("po_number", po.po_number),
-            ("vendor_name", po.vendor_name),
-        )
-        if not value
-    ]
-    if missing:
-        failures.append(
-            CheckFailure(CheckCode.MISSING_REQUIRED_FIELD, Severity.BLOCKER, "header", "non-empty", ",".join(missing), "")
-        )
-    else:
-        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
 
     return _finish("po", passed, failures)
 
@@ -331,6 +378,17 @@ def validate_po(po: PurchaseOrder) -> ValidationResult:
 def validate_grni(g: GRNI) -> ValidationResult:
     passed: set[CheckCode] = set()
     failures: list[CheckFailure] = []
+    missing: list[tuple[str, str]] = []
+
+    # Pass 1: required header fields.
+    for name, value in (
+        ("grn_number", g.grn_number),
+        ("vendor_name", g.vendor_name),
+    ):
+        if not value:
+            missing.append(("header", name))
+    if g.grni_date is None:
+        missing.append(("header", "grni_date"))
 
     if not g.line_items:
         failures.append(
@@ -338,8 +396,21 @@ def validate_grni(g: GRNI) -> ValidationResult:
         )
     else:
         passed.add(CheckCode.NO_LINE_ITEMS)
+        # Pass 2: GRNI lines need quantity only (unit_price/amount optional).
+        for line in g.line_items:
+            if line.quantity is None:
+                missing.append((f"line {line.line_no}", "quantity"))
 
-    neg = [f"line {line.line_no} quantity" for line in g.line_items if line.quantity < 0]
+    for location, field_name in missing:
+        failures.append(_missing(location, field_name))
+    if not missing:
+        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
+
+    neg = [
+        f"line {line.line_no} quantity"
+        for line in g.line_items
+        if line.quantity is not None and line.quantity < 0
+    ]
     if neg:
         failures.append(
             CheckFailure(CheckCode.NEGATIVE_AMOUNT, Severity.WARNING, "header", ">= 0", ",".join(neg), "")
@@ -347,27 +418,12 @@ def validate_grni(g: GRNI) -> ValidationResult:
     else:
         passed.add(CheckCode.NEGATIVE_AMOUNT)
 
-    if g.grni_date > date.today():
+    if g.grni_date is not None and g.grni_date > date.today():
         failures.append(
             CheckFailure(CheckCode.DATE_IN_FUTURE, Severity.WARNING, "header", "<= today", str(g.grni_date), "")
         )
     else:
         passed.add(CheckCode.DATE_IN_FUTURE)
-
-    missing = [
-        name
-        for name, value in (
-            ("grn_number", g.grn_number),
-            ("vendor_name", g.vendor_name),
-        )
-        if not value
-    ]
-    if missing:
-        failures.append(
-            CheckFailure(CheckCode.MISSING_REQUIRED_FIELD, Severity.BLOCKER, "header", "non-empty", ",".join(missing), "")
-        )
-    else:
-        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
 
     return _finish("grni", passed, failures)
 
@@ -375,35 +431,40 @@ def validate_grni(g: GRNI) -> ValidationResult:
 def validate_pard(p: PaymentAdvice) -> ValidationResult:
     passed: set[CheckCode] = set()
     failures: list[CheckFailure] = []
+    missing: list[tuple[str, str]] = []
 
-    if p.amount < 0:
+    # Pass 1: required header fields. reference/currency are optional (skipped).
+    for name, value in (
+        ("pard_number", p.pard_number),
+        ("invoice_number", p.invoice_number),
+    ):
+        if not value:
+            missing.append(("header", name))
+    for name, value in (
+        ("amount", p.amount),
+        ("payment_date", p.payment_date),
+    ):
+        if value is None:
+            missing.append(("header", name))
+
+    for location, field_name in missing:
+        failures.append(_missing(location, field_name))
+    if not missing:
+        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
+
+    if p.amount is not None and p.amount < 0:
         failures.append(
             CheckFailure(CheckCode.NEGATIVE_AMOUNT, Severity.WARNING, "header", ">= 0", str(p.amount), "")
         )
     else:
         passed.add(CheckCode.NEGATIVE_AMOUNT)
 
-    if p.payment_date > date.today():
+    if p.payment_date is not None and p.payment_date > date.today():
         failures.append(
             CheckFailure(CheckCode.DATE_IN_FUTURE, Severity.WARNING, "header", "<= today", str(p.payment_date), "")
         )
     else:
         passed.add(CheckCode.DATE_IN_FUTURE)
-
-    missing = [
-        name
-        for name, value in (
-            ("pard_number", p.pard_number),
-            ("invoice_number", p.invoice_number),
-        )
-        if not value
-    ]
-    if missing:
-        failures.append(
-            CheckFailure(CheckCode.MISSING_REQUIRED_FIELD, Severity.BLOCKER, "header", "non-empty", ",".join(missing), "")
-        )
-    else:
-        passed.add(CheckCode.MISSING_REQUIRED_FIELD)
 
     return _finish("pard", passed, failures)
 
