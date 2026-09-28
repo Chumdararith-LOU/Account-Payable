@@ -121,3 +121,23 @@ def test_invoice_derives_totals_when_absent():
     inv = extract_invoice(ocr)
     assert inv.subtotal == Decimal("250.00")
     assert inv.total == Decimal("250.00")  # no tax found -> total = subtotal
+
+
+def test_invoice_derives_tax_when_label_missing():
+    # Subtotal and Total are explicit but the VAT label is garbled/absent
+    # (live OCR misread it as Khmer on INV_2026_1123): tax is derived as
+    # total - subtotal (P1-10c-fix policy extension).
+    ocr = OCRResult(
+        source_file="synthetic",
+        text_blocks=(
+            TextBlock(text="Subtotal", bbox=(100, 100, 200, 130)),
+            TextBlock(text="USD 1,000.00", bbox=(250, 100, 400, 130)),
+            TextBlock(text="TOTAL", bbox=(100, 140, 200, 170)),
+            TextBlock(text="USD 1,100.00", bbox=(250, 140, 400, 170)),
+        ),
+        tables=(),
+    )
+    inv = extract_invoice(ocr)
+    assert inv.subtotal == Decimal("1000.00")
+    assert inv.total == Decimal("1100.00")
+    assert inv.tax_amount == Decimal("100.00")  # derived: 1100 - 1000

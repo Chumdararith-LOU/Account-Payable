@@ -71,6 +71,11 @@ def extract_invoice(ocr: OCRResult) -> Invoice:
     if total is None and line_amounts:
         base = subtotal if subtotal is not None else to_money(sum(line_amounts))
         total = to_money(base + (tax_amount if tax_amount is not None else Decimal("0")))
+    if tax_amount is None and total is not None and subtotal is not None:
+        # total = subtotal - discount + tax; this parser does not extract
+        # discount_amount (discount is 0), so tax = total - subtotal. Recovers
+        # the tax value when OCR garbles its label but reads the amount.
+        tax_amount = to_money(total - subtotal)
 
     return Invoice(
         invoice_number=invoice_number,

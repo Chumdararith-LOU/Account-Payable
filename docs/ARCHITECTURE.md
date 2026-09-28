@@ -37,6 +37,7 @@ dashboard + FastAPI service.
 | `docker-compose.yml` | Local dev Postgres 16 on port 5433 (dev-only credentials); `alembic/` + `alembic.ini` hold the migrations |
 | `apmatch/audit/` | `entry.py` (`AuditEntry`), `hashing.py` (`compute_input_hash`), `models.py` (`audit_log`), `repository.py` (`AuditRepository`) — append-only audit log with SHA-256 input hashing; no FKs, no update/delete/upsert |
 | `apmatch/parse/` | Deterministic OCR-to-dataclass extraction layer: `spatial.py` (bbox primitives), `coerce.py` (noisy-string parsers), `_table.py` (table-HTML rows), `_common.py` (shared label/vendor/total heuristics), `invoice.py` / `purchase_order.py` / `grni.py` / `payment_advice.py` (extractors + CLIs), `dispatch.py` (`DocumentKind` + `extract`) |
+| `apmatch/api/` | FastAPI HTTP API: `config.py` (env-driven, fail-fast), `schemas.py` (Pydantic response models), `pipeline.py` (`run_pipeline` — OCR→parse→validate→match→score→audit entry, no DB write), `app.py` (lifespan, `X-API-Key` auth, `/healthz` `/match` `/audit/{run_id}` `/kpis/routes` `/kpis/recent`, enum-coded errors) |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
@@ -214,6 +215,32 @@ Append-only. Exactly one row per pipeline run.
 - Read-only KPI queries live in `apmatch/audit/kpis.py`. Aggregates are
   computed by Postgres; functions return bounded dataclasses, never iterators
   or ORM instances. No caching today; correctness over throughput.
+
+## HTTP API
+
+`apmatch/api/` is the first surface a bank integrates against. It wires the
+full deterministic pipeline behind a small FastAPI app:
+
+- **`POST /match`** — up to four image uploads (invoice required; po/grni/pard
+  optional) → OCR → parse → validate → match → score → one `audit_log` row →
+  the routing decision. Sync on purpose: the OCR pipeline is blocking, so
+  FastAPI runs it in its threadpool.
+- **`GET /audit/{run_id}`** — the stored decision for a run.
+- **`GET /kpis/routes`** / **`GET /kpis/recent`** — read-only KPI queries over
+  the audit log.
+- **`GET /healthz`** — no auth; liveness for the load balancer.
+
+Design notes (see D-051/D-052):
+
+- **Config** is plain module vars in `config.py`, read at import and fail-fast
+  (no default API key). No pydantic-settings dependency.
+- **Auth** is an `X-API-Key` header on every endpoint except `/healthz`.
+- **Errors** are enum-coded (`ErrorResponse.error_code`); no stack traces, no
+  document content, no file names leak into responses or logs.
+- **Remark rule** (D-052): a MATCH surfaces the validation summary; a
+  non-MATCH surfaces the match summary.
+- **No LLM, no network** in `apmatch/api/`; enforced by
+  `tests/api/test_no_llm.py`.
 
 ## Linting and dev tooling
 
