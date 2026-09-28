@@ -7,6 +7,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 from apmatch.store import models
+import apmatch.audit.models  # noqa: F401  (registers audit_log in the shared metadata)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -35,6 +35,7 @@ dashboard + FastAPI service.
 | `apmatch/scoring/` | `result.py` (`Route`, `RouteReason`, `ConfidenceScore`, `RoutingDecision`), `config.py` (thresholds + weights), `confidence.py` (`validation_component` / `match_component` / `combined_score`), `router.py` (`decide` + CLI) — deterministic confidence score + three-valued routing; no LLM, no I/O, no network |
 | `apmatch/store/models.py` | SQLAlchemy 2.x ORM models mirroring the P1-06 dataclasses (7 tables); money/quantity are `Numeric(18,4)`, never Float |
 | `docker-compose.yml` | Local dev Postgres 16 on port 5433 (dev-only credentials); `alembic/` + `alembic.ini` hold the migrations |
+| `apmatch/audit/` | `entry.py` (`AuditEntry`), `hashing.py` (`compute_input_hash`), `models.py` (`audit_log`), `repository.py` (`AuditRepository`) — append-only audit log with SHA-256 input hashing; no FKs, no update/delete/upsert |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
@@ -167,6 +168,19 @@ Postgres 16, SQLAlchemy 2.x, Alembic.
 - `scripts/migrate_sqlite_to_pg.py` **derives implicit money values**
   (`line.amount`, `header.subtotal`, `header.total`) from source inputs when the
   legacy schema didn't store them explicitly. See D-036.
+
+## Audit log
+
+Append-only. Exactly one row per pipeline run.
+
+- **No foreign keys** to document tables — the audit record must survive
+  document deletion.
+- **`input_hash`** is SHA-256 over canonical JSON of the four documents; same
+  inputs → same hash, byte-for-byte, across processes.
+- **Failure tuples** stored as JSONB arrays of structured fields; never
+  pre-rendered strings.
+- The repository provides `append`/`get`/`list_recent` only. `update`/`delete`/
+  `upsert` are absent by design.
 
 ## Target state (Phase 1) — workstreams
 
