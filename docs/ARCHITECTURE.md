@@ -181,6 +181,9 @@ Append-only. Exactly one row per pipeline run.
   pre-rendered strings.
 - The repository provides `append`/`get`/`list_recent` only. `update`/`delete`/
   `upsert` are absent by design.
+- Read-only KPI queries live in `apmatch/audit/kpis.py`. Aggregates are
+  computed by Postgres; functions return bounded dataclasses, never iterators
+  or ORM instances. No caching today; correctness over throughput.
 
 ## Target state (Phase 1) — workstreams
 
