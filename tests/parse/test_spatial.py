@@ -1,6 +1,7 @@
 """Spatial primitives: bbox_right_of, bbox_below, find_label, value_after_label."""
 
 from apmatch.ocr.engine import TextBlock
+from apmatch.parse._common import find_total_label
 from apmatch.parse.spatial import (
     bbox_below,
     bbox_right_of,
@@ -49,6 +50,17 @@ def test_find_label_case_insensitive():
 def test_find_label_returns_none_when_missing():
     blocks = (_b("Total", 0, 0, 50, 20),)
     assert find_label(blocks, ("Invoice No",)) is None
+
+
+def test_find_total_label_skips_subtotal():
+    # "Subtotal" contains "total" as a substring, so a plain find_label for
+    # ("Total",) collides with the subtotal row. The total lookup must use
+    # find_total_label, which excludes blocks containing "subtotal".
+    subtotal = _b("Subtotal/ ", 100, 100, 200, 140)
+    total = _b("TOTAL / NJU", 100, 200, 200, 240)
+    blocks = (subtotal, total)  # Subtotal BEFORE Total in source order
+    assert find_label(blocks, ("Total",)).text == "Subtotal/ "  # the collision
+    assert find_total_label(blocks).text == "TOTAL / NJU"  # the disambiguation
 
 
 def test_value_after_label_right_first():
