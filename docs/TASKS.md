@@ -24,5 +24,8 @@
 | P1-10c-fix | Derive implicit line amounts + header totals in dev migration | done | (P1-10c-fix) |
 | P1-11a | Audit log (append-only, input hashing) | done | (P1-11a) |
 | P1-11b | Dashboard queries + KPI hooks | done | (P1-11b) |
-| P1-12 | Docker + REST API | pending | |
+| P1-12a | Deterministic OCR-to-dataclass extraction layer (apmatch/parse/) | done | (P1-12a) |
+| P1-12b | Dockerfile + compose + ruff | pending | |
+| P1-12c | FastAPI endpoints | pending | |
+| P1-12d | Full-stack smoke test | pending | |
 | P1-13 | Bilingual test corpus + goldens | pending | |

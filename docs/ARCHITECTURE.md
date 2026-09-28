@@ -36,6 +36,7 @@ dashboard + FastAPI service.
 | `apmatch/store/models.py` | SQLAlchemy 2.x ORM models mirroring the P1-06 dataclasses (7 tables); money/quantity are `Numeric(18,4)`, never Float |
 | `docker-compose.yml` | Local dev Postgres 16 on port 5433 (dev-only credentials); `alembic/` + `alembic.ini` hold the migrations |
 | `apmatch/audit/` | `entry.py` (`AuditEntry`), `hashing.py` (`compute_input_hash`), `models.py` (`audit_log`), `repository.py` (`AuditRepository`) — append-only audit log with SHA-256 input hashing; no FKs, no update/delete/upsert |
+| `apmatch/parse/` | Deterministic OCR-to-dataclass extraction layer: `spatial.py` (bbox primitives), `coerce.py` (noisy-string parsers), `_table.py` (table-HTML rows), `_common.py` (shared label/vendor/total heuristics), `invoice.py` / `purchase_order.py` / `grni.py` / `payment_advice.py` (extractors + CLIs), `dispatch.py` (`DocumentKind` + `extract`) |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
 PP-StructureV3. Model weights are vendored at `models/paddleocr/` (gitignored,
@@ -88,6 +89,35 @@ downstream module (validation, matching, remarks, audit) consumes:
    `apmatch/matching/`. Tolerances are Python constants, not config files;
    changes require a task and updated tests. OCR-noise stripping is heuristic
    and errs toward keeping content.
+
+## Extraction layer
+
+`apmatch/parse/` consumes an `OCRResult` (`text_blocks` + `tables`, from
+P1-03/04/05) plus a document-kind hint and produces the corresponding P1-06
+schema dataclass. It replaces the legacy `database.py` extractors (kept
+read-only as reference; not imported).
+
+- **Deterministic.** Same `OCRResult` → same dataclass, always. No ML, no
+  randomness, no wall-clock dependence.
+- **Total functions.** Given ANY `OCRResult` (including empty), an extractor
+  returns a dataclass. It never raises for a missing field — undetermined
+  fields are `None` (or a documented default, e.g. currency `"USD"`). The
+  validator (P1-06) is the sole authority on what counts as a blocker.
+- **Derivation policy matches P1-10c-fix.** Preserve explicit source values;
+  derive implicit ones when absent (subtotal from line amounts, total from
+  subtotal + tax).
+- **Table columns are located by header text** (case-insensitive substring),
+  robust to column reordering, with a positional fallback when no header row
+  is present. Footer rows (`colspan`) are skipped.
+- **Label lookup is spatial + same-block.** `find_label` matches label
+  variants (casefolded substring, first match in source order); the value is
+  then read from the label block's own text (PP-OCRv6 merges label and value,
+  e.g. `No.:INV-2026-1123`), then from blocks to the right, then below.
+  Same-block remainders must contain a digit, so OCR noise tails (`/H`,
+  `/NJU`) fall through to the spatial lookup.
+- **No-LLM guard.** `tests/parse/test_no_llm.py` AST-walks the package and
+  fails on any LLM/network import, with a /tmp sanity check proving the
+  walker catches a synthetic bad import.
 
 ## Matching engine contract
 
