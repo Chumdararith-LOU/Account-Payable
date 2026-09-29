@@ -250,6 +250,33 @@ Design notes (see D-051/D-052):
 - **No LLM, no network** in `apmatch/api/`; enforced by
   `tests/api/test_no_llm.py`.
 
+## Container image
+
+The API ships as a self-contained Docker image (`Dockerfile`, multi-stage):
+
+- **Builder stage** installs the Python runtime deps from `requirements.txt`
+  into a venv. **Runtime stage** is `python:3.12-slim` with the system libs
+  cv2/paddle need (`libgl1`, `libglib2.0-0`, `libgomp1`, `libsm6`, `libxext6`,
+  `libxrender1`) plus `curl` for the healthcheck.
+- **Models are baked into the image** (`models/` → `/app/models`, owned by the
+  app user). Image size ~2–3 GB. Model updates ship as new image versions, not
+  out-of-band file drops (D-055).
+- **Non-root** user `apmatch`.
+- **Offline env vars** are set at build time (`ENV` in the Dockerfile):
+  `HF_HUB_OFFLINE`, `TRANSFORMERS_OFFLINE`,
+  `PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK` — before any app code imports OCR.
+- **Healthcheck** hits `/healthz` (no auth required).
+- **`DATABASE_URL` and `APMATCH_API_KEY` are injected at runtime by compose** —
+  never baked in. The API key is required at compose start
+  (`${APMATCH_API_KEY:?...}`, D-056).
+- **Uvicorn runs single-worker** (D-057): startup loads ~1.2 GB of models;
+  horizontal scaling is via container replicas, not uvicorn workers.
+- **Architecture:** the image is built for `linux/amd64` (the bank's servers).
+  `paddlepaddle==3.3.1` has no `linux/arm64` wheel, so an arm64 host must build
+  with `--platform linux/amd64` (QEMU emulation). Production tags come from CI.
+- **Dev override:** to iterate on model files without rebuilding, mount a
+  volume at `/app/models` — it shadows the baked-in copy.
+
 ## Linting and dev tooling
 
 - **ruff**, configured via `ruff.toml` at the repo root. `ruff check .` is

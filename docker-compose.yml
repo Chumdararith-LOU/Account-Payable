@@ -22,5 +22,32 @@ services:
       timeout: 2s
       retries: 15
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: apmatch:dev
+    container_name: apmatch-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+psycopg://apmatch:apmatch_dev_only@postgres:5432/apmatch"
+      # DATABASE_URL host is `postgres` (the service name), port
+      # 5432 (the container's internal port, not the host-mapped 5433).
+      APMATCH_API_KEY: "${APMATCH_API_KEY:?APMATCH_API_KEY must be set}"
+      APMATCH_LOG_LEVEL: "${APMATCH_LOG_LEVEL:-INFO}"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    # Named volumes are NOT needed — models are baked into the
+    # image. If a dev wants to iterate on model files, they mount
+    # a volume over /app/models (documented in ARCHITECTURE.md).
+
 volumes:
   apmatch_pgdata:

@@ -41,9 +41,10 @@ docs/
 AP_AI_Automation_Report.html
 dashboard.html
 
-# Models are baked into the image separately (P1-12c);
-# do not copy them via the build context.
-models/
+# Models are baked into the production image (P1-12c) so the
+# container is self-contained. This adds ~1.2 GB to the build
+# context; a --build-arg SKIP_MODELS=1 dev-mode is a future
+# optimization, not implemented yet.
 
 # Test fixtures are small; keep them out of the image unless
 # we later add an in-image smoke test.

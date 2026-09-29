@@ -28,7 +28,7 @@
 | P1-12b | Ruff lint baseline + .dockerignore + dev requirements | done | (P1-12b) |
 | P1-12b-fix | Resolve mechanical lint violations, annotate intentional ones | done | (P1-12b-fix) |
 | P1-12b-enum | StrEnum migration for Route/CheckCode/etc | pending | |
-| P1-12c | Dockerfile + compose app service | pending | |
+| P1-12c | Dockerfile + compose app service | done | (P1-12c) |
 | P1-12d | FastAPI endpoints | done | (P1-12d) |
 | P1-12d-fix | Validators handle None fields gracefully, no crashes | done | (P1-12d-fix) |
 | P1-12e | Full-stack smoke test | pending | |

@@ -22,6 +22,13 @@ pillow>=10
 # Khmer OCR. Weights vendored in models/khmer/ (gitignored).
 # See D-007.
 tror-yong-ocr==0.2.7
+# NOTE: tror-yong-ocr imports torch, torchvision, and transformers at runtime
+# but declares NONE of them as dependencies, so they must be pinned here.
+# - transformers: normal PyPI package, pinned below.
+# - torch + torchvision: installed CPU-only in the Dockerfile from the PyTorch
+#   CPU index (the standard PyPI wheels for Linux bundle CUDA, which this
+#   CPU-only image must not include). Versions: torch 2.5.1 / torchvision 0.20.1.
+transformers==4.47.1
 # Storage (Phase 1 target)
 sqlalchemy>=2.0,<3
 psycopg[binary]>=3.1
