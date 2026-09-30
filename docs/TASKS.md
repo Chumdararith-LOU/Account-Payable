@@ -29,6 +29,7 @@
 | P1-12b-fix | Resolve mechanical lint violations, annotate intentional ones | done | (P1-12b-fix) |
 | P1-12b-enum | StrEnum migration for Route/CheckCode/etc | pending | |
 | P1-12c | Dockerfile + compose app service | done | (P1-12c) |
+| P1-12c-fix | Verify non-root + resolve 400-vs-422 (test-harness bug, see D-058) | done | (P1-12c-fix) |
 | P1-12d | FastAPI endpoints | done | (P1-12d) |
 | P1-12d-fix | Validators handle None fields gracefully, no crashes | done | (P1-12d-fix) |
 | P1-12e | Full-stack smoke test | pending | |
