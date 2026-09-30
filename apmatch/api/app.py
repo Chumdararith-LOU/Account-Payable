@@ -23,6 +23,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
+from PIL import Image
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -129,6 +130,22 @@ def _failure_out(failure) -> FailureOut:
     )
 
 
+def _validate_images(paths: dict[str, Path]) -> None:
+    """Reject uploads PIL cannot decode (400 INVALID_IMAGE, not 500).
+
+    PaddleOCR raises a generic Exception on a bad image, so a malformed
+    upload is indistinguishable from a real pipeline fault by exception type.
+    Validate with PIL at the boundary instead: if it cannot decode the bytes,
+    the upload is user error, not a server fault.
+    """
+    for path in paths.values():
+        try:
+            with Image.open(path) as img:
+                img.load()
+        except Exception as e:
+            raise ApiError(400, "INVALID_IMAGE", "One or more uploaded files is not a valid image") from e
+
+
 @app.get("/healthz", response_model=HealthResponse)
 async def healthz() -> HealthResponse:
     # No auth — health checks must work without credentials.
@@ -164,6 +181,7 @@ def match(
             path = Path(tmp) / (uuid4().hex + suffix)  # uuid-named; tempdir cleaned on exit
             path.write_bytes(data)
             paths[name] = path
+        _validate_images(paths)  # malformed upload -> 400 INVALID_IMAGE, not 500
         try:
             _, _, decision, entry = run_pipeline(
                 paths["invoice"],

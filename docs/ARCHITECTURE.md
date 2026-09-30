@@ -277,6 +277,10 @@ The API ships as a self-contained Docker image (`Dockerfile`, multi-stage):
   run it. Production tags come from CI.
 - **Dev override:** to iterate on model files without rebuilding, mount a
   volume at `/app/models` — it shadows the baked-in copy.
+- **Full-stack smoke test** lives in `scripts/smoke_test.sh`. It brings up
+  compose, POSTs the four fixture images, verifies the audit trail, and tears
+  down. Run it manually or via `APMATCH_RUN_SMOKE=1 pytest tests/smoke/`
+  (opt-in; D-061).
 
 ## Linting and dev tooling
 

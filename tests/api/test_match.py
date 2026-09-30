@@ -63,6 +63,15 @@ def test_match_rejects_oversize_upload(client_tx, test_api_key):
     assert resp.json()["error_code"] == "UPLOAD_TOO_LARGE"
 
 
+def test_match_rejects_malformed_image(client_tx, test_api_key):
+    # An 8-byte PNG signature with no IHDR chunk is not a decodable image.
+    bad = b"\x89PNG\r\n\x1a\n"
+    files = {name: (f"{name}.png", bad, "image/png") for name in ("invoice", "po", "grni", "pard")}
+    resp = client_tx.post("/match", files=files, headers={"X-API-Key": test_api_key})
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "INVALID_IMAGE"
+
+
 def test_match_audit_row_written(client_tx, api_session, match_body):
     from sqlalchemy import select
 

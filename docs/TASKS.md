@@ -32,5 +32,5 @@
 | P1-12c-fix | Verify non-root + resolve 400-vs-422 (test-harness bug, see D-058) | done | (P1-12c-fix) |
 | P1-12d | FastAPI endpoints | done | (P1-12d) |
 | P1-12d-fix | Validators handle None fields gracefully, no crashes | done | (P1-12d-fix) |
-| P1-12e | Full-stack smoke test | pending | |
+| P1-12e | Full-stack smoke test | done | (P1-12e) |
 | P1-13 | Bilingual test corpus + goldens | pending | |
