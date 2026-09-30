@@ -271,9 +271,10 @@ The API ships as a self-contained Docker image (`Dockerfile`, multi-stage):
   (`${APMATCH_API_KEY:?...}`, D-056).
 - **Uvicorn runs single-worker** (D-057): startup loads ~1.2 GB of models;
   horizontal scaling is via container replicas, not uvicorn workers.
-- **Architecture:** the image is built for `linux/amd64` (the bank's servers).
-  `paddlepaddle==3.3.1` has no `linux/arm64` wheel, so an arm64 host must build
-  with `--platform linux/amd64` (QEMU emulation). Production tags come from CI.
+- **Architecture:** amd64 only (`linux/amd64`). The Paddle stack has no
+  `linux/arm64` wheels at the pinned version, so the image cannot be built for
+  arm64 (D-059). An arm64 host must build the amd64 image (QEMU emulation) and
+  run it. Production tags come from CI.
 - **Dev override:** to iterate on model files without rebuilding, mount a
   volume at `/app/models` — it shadows the baked-in copy.
 
