@@ -33,4 +33,11 @@
 | P1-12d | FastAPI endpoints | done | (P1-12d) |
 | P1-12d-fix | Validators handle None fields gracefully, no crashes | done | (P1-12d-fix) |
 | P1-12e | Full-stack smoke test | done | (P1-12e) |
+| P1-12e-fix | amd64-only smoke marker + CI stub + QEMU docs | done | (P1-12e-fix) |
 | P1-13 | Bilingual test corpus + goldens | pending | |
+
+## Deferred
+
+| ID | Task | Status | Commit |
+|---|---|---|---|
+| CI-1 | Enable GitHub Actions once repo is hosted | pending | |

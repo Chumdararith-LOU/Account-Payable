@@ -1,0 +1,50 @@
+name: CI
+
+# Stub workflow: inactive until this repo is pushed to a GitHub remote and CI
+# is enabled (D-063). The `smoke` job additionally requires the
+# APMATCH_API_KEY repository secret to be set by a repo admin
+# (Settings -> Secrets and variables -> Actions) before it can run.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest # amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check apmatch/ scripts/ tests/
+
+      - name: Unit + integration tests (fast)
+        run: pytest tests/ -q --ignore=tests/smoke
+
+  smoke:
+    runs-on: ubuntu-latest # amd64, real hardware (Paddle oneDNN fails under QEMU; D-062)
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run full-stack smoke test
+        # APMATCH_API_KEY is a GitHub Actions secret reference, not a literal.
+        # A repo admin must set it in repo settings before this job can run.
+        env:
+          APMATCH_RUN_SMOKE: "1"
+          APMATCH_API_KEY: ${{ secrets.APMATCH_API_KEY }}
+        run: bash scripts/smoke_test.sh

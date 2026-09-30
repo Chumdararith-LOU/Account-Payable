@@ -1,18 +1,33 @@
-"""Full-stack docker smoke test (opt-in).
+"""Full-stack docker smoke test (opt-in, amd64-only).
 
-Runs scripts/smoke_test.sh, which brings up the compose stack, POSTs the four
-fixture images, verifies the audit trail, and tears down. Skipped by default;
-set APMATCH_RUN_SMOKE=1 to run it. Takes minutes and requires Docker.
+This is the install-and-run proof: it runs scripts/smoke_test.sh, which brings
+up the compose stack, POSTs the four fixture images, verifies the audit trail,
+and tears down.
+
+It runs on real linux/amd64 hardware, NOT under QEMU emulation: Paddle's
+oneDNN CPU backend fails under QEMU (see D-062). Local Apple Silicon dev
+machines skip it even with APMATCH_RUN_SMOKE=1; the correct home is CI on an
+amd64 runner (see .github/workflows/ci.yml).
 """
 
 import os
+import platform
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _is_amd64_linux() -> bool:
+    return (
+        sys.platform.startswith("linux")
+        and platform.machine() in ("x86_64", "amd64")
+    )
+
 
 pytestmark = [
     pytest.mark.smoke,
@@ -23,6 +38,13 @@ pytestmark = [
     pytest.mark.skipif(
         os.environ.get("APMATCH_RUN_SMOKE") != "1",
         reason="set APMATCH_RUN_SMOKE=1 to run the full-stack smoke test",
+    ),
+    pytest.mark.skipif(
+        not _is_amd64_linux(),
+        reason=(
+            "smoke test requires linux/amd64 (Paddle oneDNN backend "
+            "fails under QEMU emulation; see D-062)"
+        ),
     ),
 ]
 

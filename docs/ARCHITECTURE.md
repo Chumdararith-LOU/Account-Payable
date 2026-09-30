@@ -277,10 +277,15 @@ The API ships as a self-contained Docker image (`Dockerfile`, multi-stage):
   run it. Production tags come from CI.
 - **Dev override:** to iterate on model files without rebuilding, mount a
   volume at `/app/models` — it shadows the baked-in copy.
-- **Full-stack smoke test** lives in `scripts/smoke_test.sh`. It brings up
-  compose, POSTs the four fixture images, verifies the audit trail, and tears
-  down. Run it manually or via `APMATCH_RUN_SMOKE=1 pytest tests/smoke/`
-  (opt-in; D-061).
+- **Full-stack smoke test** (`scripts/smoke_test.sh`) is the install-and-run
+  proof. It runs on **linux/amd64** (real hardware). It is NOT runnable under
+  QEMU emulation on Apple Silicon: Paddle's oneDNN backend hits
+  `ConvertPirAttribute2RuntimeAttribute not support` under QEMU (D-062).
+- **Local Apple Silicon:** the smoke test skips cleanly (even with
+  `APMATCH_RUN_SMOKE=1` set), explaining that amd64 is required.
+- **CI:** `.github/workflows/ci.yml` includes a `smoke` job that runs on
+  `ubuntu-latest`. The workflow is a stub until the repo is pushed and CI is
+  enabled (D-063).
 
 ## Linting and dev tooling
 
