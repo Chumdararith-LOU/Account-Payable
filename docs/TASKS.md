@@ -35,6 +35,7 @@
 | P1-12e | Full-stack smoke test | done | (P1-12e) |
 | P1-12e-fix | amd64-only smoke marker + CI stub + QEMU docs | done | (P1-12e-fix) |
 | P1-13 | Bilingual test corpus + goldens | pending | |
+| P1-14 | Delete legacy prototype files + Postgres diagnostic | done | (P1-14) |
 
 ## Deferred
 

@@ -4,9 +4,9 @@ Deterministic, no I/O, no ML. This is the contract that every downstream
 module (validation, matching, remarks, audit) consumes. Every monetary field
 is a ``decimal.Decimal``; all dataclasses are frozen.
 
-The field sets mirror the legacy SQLite schema in ``database.py`` (the
-ground truth from P1-06 Checkpoint A) extended with the richer contract
-fields the matching engine needs.
+The field sets mirror the legacy SQLite schema (the ground truth from
+P1-06 Checkpoint A) extended with the richer contract fields the matching
+engine needs.
 
 - ``LineItem.unit_price`` / ``LineItem.amount`` are optional because the DB's
   ``GRNI_LINE`` stores only ``Item`` and ``Qty`` (no price, no amount); the

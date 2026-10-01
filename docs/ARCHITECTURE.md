@@ -1,5 +1,23 @@
 # ARCHITECTURE.md — factual snapshot (P1-01)
 
+## Repository layout
+
+- `apmatch/`        — the production package
+- `tests/`          — pytest suite (includes `tests/smoke/`)
+- `scripts/`        — dev tools (migration, offline verify, smoke test)
+- `docs/`           — ARCHITECTURE, DECISIONS, TASKS, OFFLINE_MODELS
+- `alembic/`        — database migrations
+- `models/`         — vendored model weights (gitignored)
+- `documents/`, `test_docs/`, `output/ocr/` — test fixtures
+- `Dockerfile`, `docker-compose.yml`, `ruff.toml`,
+  `requirements.txt`, `requirements-dev.txt`, `pytest.ini`
+
+There is no legacy code at repo root as of P1-14. The prototype files
+(ai_engine.py, database.py, api.py, dashboard.py, pp.py,
+remark_generator.py, set_api_key_visible.py, migrate_to_db.py,
+generate_report.py, generate_test_docs.py) have been removed. Every
+capability they provided lives in apmatch/ with tests.
+
 ## Pipeline summary
 
 Document image → OCR (PaddleOCR PP-Structure, currently run externally) → JSON
@@ -199,14 +217,9 @@ Postgres 16, SQLAlchemy 2.x, Alembic.
   Decimal-precision-exact. Enforced by `tests/store/test_repositories.py`.
 - **The caller manages transactions;** repositories never commit (they flush so
   a same-transaction `load` can see saved rows).
-- **Legacy SQLite migration** is one-shot via `scripts/migrate_sqlite_to_pg.py`.
-  This is DEV-ONLY fixture data; it is not a production upgrade path. Production
-  schema changes go through Alembic.
-- **Money crosses the SQLite→Postgres boundary via `Decimal(str(value))`** — the
-  one place in the codebase where that pattern is expected.
-- `scripts/migrate_sqlite_to_pg.py` **derives implicit money values**
-  (`line.amount`, `header.subtotal`, `header.total`) from source inputs when the
-  legacy schema didn't store them explicitly. See D-036.
+- **Legacy SQLite migration** was a one-shot DEV-ONLY step (P1-10c); the
+  script and its fixture DB were removed at P1-14. Production schema changes
+  go through Alembic.
 
 ## Audit log
 

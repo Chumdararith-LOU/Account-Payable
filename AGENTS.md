@@ -21,9 +21,8 @@
 - `tests/`     — pytest suite
 - `docs/`      — ARCHITECTURE.md, TASKS.md, DECISIONS.md
 - `scripts/`   — one-off utilities (migration, doc generation)
-- Legacy prototype files (`ai_engine.py`, `database.py`, `api.py`,
-  `dashboard.py`, `pp.py`, `remark_generator.py`) stay at repo root
-  until the final Phase 1 task, when they get folded into `apmatch/`.
+- No legacy code at repo root as of P1-14; the prototype files were
+  removed (every capability now lives in `apmatch/` with tests).
 
 ## Task workflow
 - Read `docs/TASKS.md` at the start of every session.
