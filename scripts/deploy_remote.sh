@@ -28,6 +28,7 @@ echo "Deploying to ${SSH_TARGET}:${REMOTE_DIR}"
 rsync -az --delete \
   --exclude='.git/' \
   --exclude='.venv/' \
+  --exclude='.env.server' \
   --exclude='output/' \
   --exclude='documents/' \
   --exclude='test_docs/' \
