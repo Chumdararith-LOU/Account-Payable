@@ -31,6 +31,11 @@ decision in DECISIONS.md.
 - Only the API is exposed to the host; Postgres is internal to the
   compose network (no `-p` flag on the postgres service in the server
   compose file — see EMB-01)
+- No host-exposed Postgres port by default. The API reaches Postgres
+  via the compose-internal hostname `postgres:5432`. The server never
+  needs a host-exposed Postgres port. Port 5434 is reserved in case the
+  user wants an external psql connection for debugging; it is not
+  required by the API container.
 
 ## Coexistence rules
 
@@ -49,3 +54,14 @@ decision in DECISIONS.md.
   the same Tailscale account (`louchumdararith02@`).
 - Test connectivity from Mac: `curl http://100.76.126.16:8000/healthz`
 - Fallback: run the demo from the server's own console via SSH.
+
+## Deploy workflow
+
+All commands run from the Mac.
+
+1. Provision once: `./scripts/provision_remote.sh rith@100.76.126.16`
+2. Create `.env.server` on the remote (from `.env.server.example`)
+3. Deploy: `./scripts/deploy_remote.sh rith@100.76.126.16`
+4. Verify offline: `./scripts/verify_offline_remote.sh rith@100.76.126.16`
+5. Tear down (only if needed):
+   `ssh rith@100.76.126.16 "cd /opt/apmatch && docker compose -p apmatch-demo down"`

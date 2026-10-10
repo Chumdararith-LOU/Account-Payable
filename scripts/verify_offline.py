@@ -11,7 +11,13 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-FIXTURE = REPO_ROOT / "documents" / "invoice" / "INV_2026_1123.png"
+# In the container the fixture ships next to this script (COPY scripts/);
+# on a dev checkout it lives under documents/.
+FIXTURE = (
+    Path(__file__).resolve().parent / "INV_2026_1123.png"
+    if (Path(__file__).resolve().parent / "INV_2026_1123.png").exists()
+    else REPO_ROOT / "documents" / "invoice" / "INV_2026_1123.png"
+)
 sys.path.insert(0, str(REPO_ROOT))
 
 

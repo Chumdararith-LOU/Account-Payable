@@ -1,0 +1,27 @@
+# Server override for the shared home-lab server (see docs/DEPLOYMENT.md).
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.server.yml ...
+#
+# The server never needs a host-exposed Postgres port. The internal port
+# 5432 is used within the compose network. Port 5434 in DEPLOYMENT.md is
+# reserved in case the user wants an external psql connection for
+# debugging; it is not required by the API container.
+name: apmatch-demo
+
+services:
+  postgres:
+    # !reset [] is required: a plain empty list does NOT clear the base
+    # file's 5433:5432 mapping (compose merge appends lists).
+    ports: !reset []       # do NOT expose Postgres to the host
+    environment:
+      # Must match the password the API uses in DATABASE_URL below.
+      # The base file's dev password is not acceptable on the server.
+      POSTGRES_PASSWORD: "${APMATCH_DB_PASSWORD:?APMATCH_DB_PASSWORD must be set}"
+
+  api:
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+psycopg://apmatch:${APMATCH_DB_PASSWORD}@postgres:5432/apmatch"
+      APMATCH_API_KEY: "${APMATCH_API_KEY:?APMATCH_API_KEY must be set}"
+      APMATCH_LOG_LEVEL: "${APMATCH_LOG_LEVEL:-INFO}"

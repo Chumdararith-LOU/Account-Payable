@@ -66,6 +66,10 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy the application code (respects .dockerignore)
 COPY apmatch/ ./apmatch/
 
+# Ops scripts (verify_offline.py et al.) + its OCR fixture, so the
+# offline guarantee can be verified from inside the running container.
+COPY scripts/ ./scripts/
+
 # Copy the model cache. .dockerignore no longer excludes this.
 # Ownership matters — the non-root user must be able to read.
 COPY --chown=apmatch:apmatch models/ ./models/

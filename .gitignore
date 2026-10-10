@@ -18,3 +18,8 @@ output/imgs/
 models/
 *.pdmodel
 *.pdiparams
+
+# Local scratch files (not part of the project)
+VGM_OCL*
+*.pdf
+vgm_ocl_split/

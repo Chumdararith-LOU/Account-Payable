@@ -37,23 +37,30 @@
 | P1-13 | Bilingual test corpus + goldens | pending | |
 | P1-14 | Delete legacy prototype files + Postgres diagnostic | done | (P1-14) |
 | EMB-00 | Deployment parameter lock-in | done | (EMB-00) |
-| EMB-01 | Remote deploy skeleton + verify offline | pending | |
+| EMB-01 | Remote deploy skeleton + verify offline | done | (EMB-01) |
 | EMB-02 | Vendor MiniLM-L12-v2 model | pending | |
 | EMB-03 | apmatch/embeddings/ module | pending | |
-| EMB-04 | /embed endpoint + tests | pending | |
-| EMB-05 | Semantic matching integration | pending | |
-| EMB-06 | Rebuild image with vendored MiniLM model | pending | |
-| EMB-07 | Remote deploy to 100.76.126.16 | pending | |
-| EMB-08 | Remote offline verification | pending | |
-| EMB-09 | Remote smoke test | pending | |
-| EMB-10 | Demo runbook | pending | |
-| EMB-11 | Demo dry run | pending | |
-| EMB-12 | Demo fixes | pending | |
-| EMB-13 | Demo | pending | |
-| EMB-14 | Post-demo retrospective | pending | |
+| EMB-04 | Embedding tests: determinism, offline, similarity | pending | |
+| EMB-05 | Dockerfile update — bake in MiniLM, add sentence-transformers | pending | |
+| EMB-06 | Line-item similarity matching in the matching engine | pending | |
+| EMB-07 | Similarity matching tests (stub + real) | pending | |
+| EMB-08 | Audit log extension — similarity_matches JSONB + Alembic | pending | |
+| EMB-09 | Supplier name similarity matching | pending | |
+| EMB-10 | Configuration, ARCHITECTURE.md, DECISIONS.md | pending | |
+| EMB-11 | Demo fixtures — before/after scenario | pending | |
+| EMB-12 | Full-pipeline integration test on server | pending | |
+| EMB-12b | Remote deployment runbook + rehearsal | pending | |
+| EMB-13 | Demo script (scripts/demo_embedding.sh) | pending | |
+| EMB-14 | Demo rehearsal — 3× end-to-end | pending | |
 
 ## Deferred
 
 | ID | Task | Status | Commit |
 |---|---|---|---|
 | CI-1 | Enable GitHub Actions once repo is hosted | pending | |
+
+## Deferred / manual
+
+| ID | Task | Status | Commit |
+|---|---|---|---|
+| EMB-01b | Remote deploy (human-driven) | deferred | awaiting SSH keys |
