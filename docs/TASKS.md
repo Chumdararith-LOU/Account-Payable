@@ -36,6 +36,21 @@
 | P1-12e-fix | amd64-only smoke marker + CI stub + QEMU docs | done | (P1-12e-fix) |
 | P1-13 | Bilingual test corpus + goldens | pending | |
 | P1-14 | Delete legacy prototype files + Postgres diagnostic | done | (P1-14) |
+| EMB-00 | Deployment parameter lock-in | done | (EMB-00) |
+| EMB-01 | Remote deploy skeleton + verify offline | pending | |
+| EMB-02 | Vendor MiniLM-L12-v2 model | pending | |
+| EMB-03 | apmatch/embeddings/ module | pending | |
+| EMB-04 | /embed endpoint + tests | pending | |
+| EMB-05 | Semantic matching integration | pending | |
+| EMB-06 | Rebuild image with vendored MiniLM model | pending | |
+| EMB-07 | Remote deploy to 100.76.126.16 | pending | |
+| EMB-08 | Remote offline verification | pending | |
+| EMB-09 | Remote smoke test | pending | |
+| EMB-10 | Demo runbook | pending | |
+| EMB-11 | Demo dry run | pending | |
+| EMB-12 | Demo fixes | pending | |
+| EMB-13 | Demo | pending | |
+| EMB-14 | Post-demo retrospective | pending | |
 
 ## Deferred
 

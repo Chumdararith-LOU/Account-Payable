@@ -8,6 +8,7 @@ __pycache__/
 *.db.pre-p1-01.bak
 .env
 .env.local
+.env.server
 pgdata/
 *.pgdump
 *.log
