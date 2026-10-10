@@ -22,11 +22,12 @@ REMOTE_DIR="/opt/apmatch"
 
 echo "Deploying to ${SSH_TARGET}:${REMOTE_DIR}"
 
-# 1. Sync source (no models yet — they're baked into the image)
+# 1. Sync source. models/ IS included: the Dockerfile COPYs it into the
+# image, and it's gitignored, so rsync is the only transfer mechanism.
+# First run syncs ~1.2 GB over Tailscale; later runs are incremental.
 rsync -az --delete \
   --exclude='.git/' \
   --exclude='.venv/' \
-  --exclude='models/' \
   --exclude='output/' \
   --exclude='documents/' \
   --exclude='test_docs/' \
