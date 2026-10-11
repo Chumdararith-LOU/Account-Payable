@@ -299,11 +299,12 @@ def test_match_deterministic():
     assert [f.code for f in a.failures] == [f.code for f in b.failures]
 
 
-# --- Known normalization gap (P0.3) ----------------------------------------
+# --- Mixed-case OCR suffix (gap closed by D-074) ---------------------------
 
 
-def test_mixed_case_ocr_suffix_not_stripped():
-    # "/Hni" is mixed-case; normalize_text does NOT strip it (D-018/D-023).
-    # The vendor names therefore differ and VENDOR_MISMATCH is emitted.
+def test_mixed_case_ocr_suffix_stripped():
+    # "/Hni" is mixed-case OCR noise; normalize_text strips it (D-074,
+    # supersedes the D-018/D-023 gap this test used to document). The
+    # vendor names therefore match and NO VENDOR_MISMATCH is emitted.
     r = ENGINE.match(_invoice(), _po(vendor="Mekong Supplies Co., Ltd./Hni"), _grni(), _pard())
-    assert MatchCode.VENDOR_MISMATCH in _codes(r)
+    assert MatchCode.VENDOR_MISMATCH not in _codes(r)

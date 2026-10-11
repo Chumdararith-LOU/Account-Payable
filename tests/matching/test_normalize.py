@@ -40,6 +40,35 @@ def test_normalize_text_does_not_strip_long_lowercase_suffix():
     assert normalize_text("/abcdefghij") == "/abcdefghij"
 
 
+def test_normalize_text_strips_mixed_case_ocr_suffix():
+    # New behavior: /Hni is OCR noise and must be stripped
+    assert normalize_text("Desk Lamp/Hni") == "desk lamp"
+
+
+def test_normalize_text_strips_mixed_case_longer_suffix():
+    assert normalize_text("Office Chair/HiU") == "office chair"
+
+
+def test_normalize_text_preserves_single_uppercase_suffix():
+    # Existing behavior must not regress: P/N 12345 keeps /N
+    # because single uppercase letter doesn't match either
+    # alternative.
+    assert normalize_text("P/N 12345") == "p/n 12345"
+
+
+def test_normalize_text_preserves_uppercase_run_after_digits():
+    # /AB in Part/AB123 should not be stripped because the
+    # run continues with digits (no word boundary between
+    # letter and digit).
+    assert normalize_text("Part/AB123") == "part/ab123"
+
+
+def test_normalize_text_strips_lowercase_single_letter():
+    # Regression check: /i and /s must still be stripped.
+    assert normalize_text("Desk Lamp/i") == "desk lamp"
+    assert normalize_text("Whiteboard/s") == "whiteboard"
+
+
 # --- normalize_number_text -------------------------------------------------
 
 
