@@ -50,8 +50,11 @@ ssh "${SSH_TARGET}" bash -s <<'REMOTE'
     --env-file .env.server \
     up -d --build
   echo "Waiting for healthz..."
+  # Check inside the container so this works regardless of the host port
+  # mapping (the server override publishes the API on 8001, not 8000).
   for i in $(seq 1 90); do
-    if curl -fsS http://localhost:8000/healthz >/dev/null 2>&1; then
+    if docker compose -f docker-compose.yml -f docker-compose.server.yml \
+        exec -T api curl -fsS http://localhost:8000/healthz >/dev/null 2>&1; then
       echo "DEPLOY OK"
       exit 0
     fi
