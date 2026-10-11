@@ -28,10 +28,3 @@ services:
       DATABASE_URL: "postgresql+psycopg://apmatch:${APMATCH_DB_PASSWORD}@postgres:5432/apmatch"
       APMATCH_API_KEY: "${APMATCH_API_KEY:?APMATCH_API_KEY must be set}"
       APMATCH_LOG_LEVEL: "${APMATCH_LOG_LEVEL:-INFO}"
-      # Paddle 3.3.1's oneDNN+PIR path crashes on Intel amd64
-      # (NotImplementedError: ConvertPirAttribute2RuntimeAttribute in
-      # onednn_instruction.cc). PaddleX forces oneDNN on by default and the
-      # FLAGS_* C++ flags are overridden by its explicit enable_mkldnn(), so
-      # the only working switch is this PaddleX-level flag, which sets the
-      # run_mode to "paddle" (plain CPU, no oneDNN). See D-072.
-      PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT: "False"

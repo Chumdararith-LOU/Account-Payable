@@ -75,3 +75,15 @@ All commands run from the Mac.
 4. Verify offline: `./scripts/verify_offline_remote.sh rith@100.127.105.9`
 5. Tear down (only if needed):
    `ssh rith@100.127.105.9 "cd /opt/apmatch && docker compose -p apmatch-demo down"`
+
+## First successful deployment
+
+- Date: 2026-10-11
+- Server: `rith@100.127.105.9` (rith-Vivobook, i3-1220P)
+- Image: `apmatch:dev`, 6.72 GB
+- Paddle: 3.2.2 (oneDNN enabled) — see D-073
+- API memory after warm (post-`/match`): ~4.5 GB; host available ~8 GB
+- Verified: healthz OK, offline verify `OFFLINE_OK (47 text blocks)`,
+  `/match` returns a full result (route HUMAN_REVIEW on the fixture set).
+- Note: the first build on this box took a long time (slow link + the
+  laptop sleeping once). Subsequent builds reuse cached layers.

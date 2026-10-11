@@ -66,6 +66,12 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy the application code (respects .dockerignore)
 COPY apmatch/ ./apmatch/
 
+# Alembic migrations, so `alembic upgrade head` can run inside the container
+# (e.g. after a fresh Postgres volume). env.py reads DATABASE_URL from the
+# environment and imports apmatch.* models, both of which are present here.
+COPY alembic/ ./alembic/
+COPY alembic.ini ./alembic.ini
+
 # Ops scripts (verify_offline.py et al.) + its OCR fixture, so the
 # offline guarantee can be verified from inside the running container.
 COPY scripts/ ./scripts/

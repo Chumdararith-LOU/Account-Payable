@@ -63,4 +63,4 @@
 
 | ID | Task | Status | Commit |
 |---|---|---|---|
-| EMB-01b | Remote deploy (human-driven) | deferred | awaiting SSH keys |
+| EMB-01b | Remote deploy (human-driven) | done | (EMB-01b) |
