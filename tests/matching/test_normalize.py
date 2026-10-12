@@ -69,6 +69,45 @@ def test_normalize_text_strips_lowercase_single_letter():
     assert normalize_text("Whiteboard/s") == "whiteboard"
 
 
+def test_normalize_text_strips_lowercase_start_mixed_suffix():
+    # Server OCR (Paddle 3.2.2) produces lowercase-start mixed noise like
+    # /nHnw; must be stripped like the uppercase-start /Hni case.
+    assert normalize_text("Office Chair/nHnw") == "office chair"
+
+
+def test_normalize_text_keeps_long_lowercase_start_mixed_suffix():
+    # 9 letters exceeds the 1-8 bound; must NOT be stripped.
+    assert normalize_text("/nHnwnHnwn") == "/nhnwnhnwn"
+
+
+def test_normalize_text_strips_trailing_slash():
+    # OCR noise token cut off after the slash: empty letter run.
+    assert normalize_text("Desk Lamp/") == "desk lamp"
+
+
+def test_normalize_text_strips_trailing_slash_with_space():
+    assert normalize_text("Desk Lamp /") == "desk lamp"
+
+
+def test_normalize_text_strips_lowercase_start_mixed_suffix():
+    # Server OCR (Paddle 3.2.2) produces lowercase-start mixed noise like
+    # /nHnw; must be stripped like the uppercase-start /Hni case.
+    assert normalize_text("Office Chair/nHnw") == "office chair"
+    assert normalize_text("Desk Lamp/nH") == "desk lamp"
+
+
+def test_normalize_text_keeps_long_lowercase_start_mixed_suffix():
+    # 9 letters exceeds the 1-8 bound; must NOT be stripped.
+    assert normalize_text("/nHnwnHnwn") == "/nhnwnhnwn"
+
+
+def test_normalize_text_strips_trailing_slash():
+    # OCR noise with an empty letter run: the token was cut off after the
+    # slash. A trailing slash carries no meaning in a description.
+    assert normalize_text("Desk Lamp/") == "desk lamp"
+    assert normalize_text("Desk Lamp /") == "desk lamp"
+
+
 # --- normalize_number_text -------------------------------------------------
 
 
