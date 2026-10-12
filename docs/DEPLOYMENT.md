@@ -21,6 +21,15 @@ no AVX2) cannot run PaddlePaddle 3.3.1 (SIGILL in libphi_core.so).
   swap 2 GB, ~1.9 GB already in use
 - Disk: 61 GB free on /
 
+## Paddle versions (measured divergence)
+
+- Mac dev env: PaddlePaddle 3.3.1 (arm64)
+- Server prod env: PaddlePaddle 3.2.2 (amd64; pinned per D-073)
+- The two versions produce different OCR output on the same images
+  (2.7% of text blocks differ; the pipeline-level decision is identical —
+  see D-078/D-079). See docs/DETERMINISM_REPORT.md for the exact
+  divergence.
+
 ## Resource budget
 
 - Embedding model (MiniLM-L12-v2): ~500 MB resident
