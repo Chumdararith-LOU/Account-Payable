@@ -64,3 +64,4 @@
 | ID | Task | Status | Commit |
 |---|---|---|---|
 | EMB-01b | Remote deploy (human-driven) | done | (EMB-01b) |
+| EMB-01e | Server-based test workflow (remote wrappers + dev overlay) | done | (EMB-01e) |

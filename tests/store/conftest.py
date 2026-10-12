@@ -7,6 +7,7 @@ rolls back its transaction so tests are isolated.
 """
 
 import os
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -24,14 +25,20 @@ def _database_url() -> str:
 
 
 def _pg_reachable(url: str) -> bool:
+    # TCP probe instead of the pg_isready binary: the binary exists on dev
+    # hosts but not inside the api image (server test runs). A listening
+    # port is enough for the skip decision; create_engine() is the real test.
     try:
         hostport = url.split("@", 1)[1].split("/", 1)[0]
         host, _, port = hostport.partition(":")
+        port = int(port or "5433")
     except (IndexError, ValueError):
-        host, port = "localhost", "5433"
-    port = port or "5433"
-    result = subprocess.run(["pg_isready", "-h", host, "-p", port], capture_output=True, text=True)  # noqa: S603, S607 — fixed binary, host/port from local dev config
-    return result.returncode == 0
+        host, port = "localhost", 5433
+    try:
+        with socket.create_connection((host, port), timeout=3):
+            return True
+    except OSError:
+        return False
 
 
 @pytest.fixture(scope="session")

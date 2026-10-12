@@ -16,6 +16,25 @@
 - Python version: 3.12.13. Do not use the system `python3` (3.9.6).
 - All commands in a task run inside this env unless stated otherwise.
 
+## Command execution (updated 2026-10-11)
+As of EMB-01e, all pytest / ruff / python / docker commands in
+task packets are expected to run on the server via the wrappers:
+
+    ./scripts/remote_pytest.sh [pytest args]
+    ./scripts/remote.sh '<command>'
+
+Editing files happens locally (opencode on the Mac). git
+commits happen locally. The Mac is the source of truth; the
+server is a compute target. See docs/DEV_WORKFLOW.md for the
+full workflow, including the server-side detach pattern for
+long-running (OCR) commands and the `apmatch_test` database
+that tests use (never the production `apmatch` DB).
+
+Exceptions (run locally):
+- Tasks that explicitly say "run locally"
+- Fast tests (<5s) where the sync overhead is not worth it
+- Tests that modify the local Mac environment (rare)
+
 ## Repo layout (target)
 - `apmatch/`   — the production package (Phase 1 onward)
 - `tests/`     — pytest suite

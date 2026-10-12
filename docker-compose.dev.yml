@@ -1,0 +1,40 @@
+# Dev overlay. Mounts local source over the baked-in copy so
+# a freshly started container uses the current code. Intended
+# for `docker compose run --rm ...` (one-off commands), not
+# for running the live API.
+#
+# Usage:
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.server.yml \
+#                  -f docker-compose.dev.yml \
+#                  run --rm --entrypoint /opt/venv/bin/python \
+#                  api -m pytest tests/ -q
+
+services:
+  api:
+    environment:
+      # Tests run against a dedicated test database, never the
+      # production `apmatch` DB (tests assume a clean audit_log).
+      # One-time setup: docker exec apmatch-postgres psql -U apmatch \
+      #   -c "CREATE DATABASE apmatch_test"
+      # The pg_engine fixture runs `alembic upgrade head` on first use.
+      DATABASE_URL: "postgresql+psycopg://apmatch:${APMATCH_DB_PASSWORD}@postgres:5432/apmatch_test"
+    volumes:
+      - ./apmatch:/app/apmatch:ro
+      - ./tests:/app/tests:ro
+      - ./scripts:/app/scripts:ro
+      - ./documents:/app/documents:ro
+      - ./output:/app/output:ro
+      - ./alembic:/app/alembic:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+      - ./pytest.ini:/app/pytest.ini:ro
+      - ./requirements.txt:/app/requirements.txt:ro
+      - ./ruff.toml:/app/ruff.toml:ro
+
+# Notes:
+#   - All mounts are read-only. The container never writes to
+#     the synced source.
+#   - The mounts are NOT under models/ — models stay baked in
+#     the image.
+#   - We don't override entrypoint here; the caller supplies
+#     --entrypoint.
