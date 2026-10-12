@@ -24,6 +24,23 @@ diff with tolerances: text exact, bbox ±1 pixel per coordinate, confidence
 ±0.01. Full diff: `/tmp/determinism_diff.txt` (regenerate with
 `./scripts/compare_environments.sh`).
 
+### What "deterministic" means in this report
+
+Two distinct properties:
+
+1. **Single-environment determinism** — with the Paddle version
+   and hardware pinned, the same input always produces the same
+   output, byte-for-byte. This is what our `input_hash` verifies.
+   It is what an auditor on a given deployment can check.
+
+2. **Cross-environment decision parity** — two environments with
+   different Paddle versions (or different CPUs) produce the same
+   *decision* on the same input. This is what this report
+   measures.
+
+The first is a guarantee. The second is an observed property of
+the current fixtures, with the divergence numbers given below.
+
 ## Findings
 
 ### OCR-layer divergence
@@ -90,12 +107,16 @@ OCR-deterministic.
 
 ## Handling plan
 
-Per decisions D-078 and D-079 (see DECISIONS.md), the pipeline is made robust
-to OCR noise variation via semantic matching (embeddings, EMB-02 onward).
-The current normalizer-based approach handles a bounded set of noise
-patterns; semantic matching handles the unbounded remainder. The
-determinism claim is scoped to "same Paddle version + same fixture" (D-079):
-cross-environment parity is measured, not promised.
+The residual OCR-level variation (2.7% of text blocks) does not
+propagate to the pipeline decision on the measured fixtures.
+This is because normalization in apmatch/matching/normalize.py
+collapses the divergent forms to a common canonical string
+before matching runs. EMB-02 (embeddings) will further reduce
+sensitivity to noise by allowing semantic matches when
+normalization does not converge.
+
+The `input_hash` is deliberately scoped to a single environment
+(see D-079). It is *not* a cross-environment parity check.
 
 ## Additional findings
 

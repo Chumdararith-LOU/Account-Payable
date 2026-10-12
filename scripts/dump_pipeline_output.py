@@ -37,7 +37,6 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import paddle  # noqa: E402  (version only)
 
-import apmatch.layout.structure as _structure  # noqa: E402
 from apmatch.audit.hashing import compute_input_hash  # noqa: E402
 from apmatch.layout.structure import LayoutEngine  # noqa: E402
 from apmatch.matching.engine import MatchingEngine  # noqa: E402
@@ -45,32 +44,6 @@ from apmatch.ocr.router import OCRRouter  # noqa: E402
 from apmatch.parse import dispatch  # noqa: E402
 from apmatch.scoring.router import decide  # noqa: E402
 from apmatch.validation.arithmetic import validate_invoice  # noqa: E402
-
-
-def _table_from_entry_compat(entry: dict, page_index: int):
-    """Drop-in for structure._table_from_entry that tolerates a numpy
-    cell_box_list. Paddle 3.3.x (Mac) returns cell_box_list as a numpy array,
-    on which `if cells:` raises ValueError; Paddle 3.2.x (server) returns a
-    list. len() works on both, so this is behavior-identical for lists.
-    (Diagnostic-only shim; apmatch/ is not modified by this task.)"""
-    html = entry.get("pred_html", "")
-    cells = entry.get("cell_box_list", [])
-    try:
-        n = len(cells)
-    except TypeError:
-        n = 0
-    if n:
-        xs0 = [float(c[0]) for c in cells]
-        ys0 = [float(c[1]) for c in cells]
-        xs1 = [float(c[2]) for c in cells]
-        ys1 = [float(c[3]) for c in cells]
-        bbox = (min(xs0), min(ys0), max(xs1), max(ys1))
-    else:
-        bbox = (0.0, 0.0, 0.0, 0.0)
-    return _structure.Table(html=html, bbox=bbox, page_index=page_index)
-
-
-_structure._table_from_entry = _table_from_entry_compat
 
 
 def _bbox_ints(bbox) -> list[int]:

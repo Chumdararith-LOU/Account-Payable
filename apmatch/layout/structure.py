@@ -86,7 +86,11 @@ def _table_from_entry(entry: dict, page_index: int) -> Table:
     """Convert one PP-StructureV3 table_res_list entry into a Table."""
     html = entry.get("pred_html", "")
     cells = entry.get("cell_box_list", [])
-    if cells:
+    # `cells` may arrive as a Python list (Paddle 3.2.2) or as a
+    # numpy ndarray (Paddle 3.3.1, some inputs). `if cells:`
+    # raises on the ndarray case (ambiguous truth value). Check
+    # explicitly for None and length.
+    if cells is not None and len(cells) > 0:
         xs0 = [float(c[0]) for c in cells]
         ys0 = [float(c[1]) for c in cells]
         xs1 = [float(c[2]) for c in cells]
