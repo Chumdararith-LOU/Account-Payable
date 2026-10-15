@@ -17,7 +17,7 @@ from apmatch.audit.repository import (
     AuditEntryNotFound,
     AuditRepository,
 )
-from apmatch.matching.result import MatchCode, MatchFailure
+from apmatch.matching.result import MatchCode, MatchFailure, SimilarityMatch
 from apmatch.validation.result import CheckCode, CheckFailure, Severity
 
 
@@ -139,3 +139,46 @@ def test_input_hash_survives_roundtrip(pg_session, _mk_audit_entry):
     AuditRepository.append(pg_session, entry)
     loaded = AuditRepository.get(pg_session, entry.run_id)
     assert loaded.input_hash == "a1" * 32
+
+
+def _similarity_match(band="accept", score="0.7433") -> SimilarityMatch:
+    return SimilarityMatch(
+        location="line 1 (INV) -> line 1 (PO)",
+        invoice_text="office chair",
+        counterpart_text="chair office metal frame black",
+        score=Decimal(score),
+        threshold_review=Decimal("0.55"),
+        threshold_accept=Decimal("0.70"),
+        band=band,
+        model_version="f" * 64,
+    )
+
+
+def test_audit_entry_roundtrip_with_similarity_matches(pg_session, _mk_audit_entry):
+    entry = _mk_audit_entry(
+        run_id="f" * 32,
+        similarity_matches=(
+            _similarity_match(band="accept", score="0.7433"),
+            _similarity_match(band="review", score="0.6000"),
+        ),
+    )
+    AuditRepository.append(pg_session, entry)
+    loaded = AuditRepository.get(pg_session, entry.run_id)
+    assert loaded.similarity_matches == entry.similarity_matches
+    assert len(loaded.similarity_matches) == 2
+    first, second = loaded.similarity_matches
+    assert first.score == Decimal("0.7433")
+    assert isinstance(first.score, Decimal)
+    assert first.threshold_review == Decimal("0.55")
+    assert first.threshold_accept == Decimal("0.70")
+    assert first.band == "accept"
+    assert second.band == "review"
+    assert second.score == Decimal("0.6000")
+    assert first.model_version == "f" * 64
+
+
+def test_audit_entry_roundtrip_without_similarity_matches(pg_session, _mk_audit_entry):
+    entry = _mk_audit_entry(run_id="0" * 31 + "1")
+    AuditRepository.append(pg_session, entry)
+    loaded = AuditRepository.get(pg_session, entry.run_id)
+    assert loaded.similarity_matches == ()

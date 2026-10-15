@@ -92,5 +92,6 @@ def run_pipeline(
         validation_failures=validation.checks_failed,
         match_failures=match.failures,
         input_hash=compute_input_hash(invoice, po, grni, pard),
+        similarity_matches=match.similarity_matches,
     )
     return match, validation, decision, audit_entry

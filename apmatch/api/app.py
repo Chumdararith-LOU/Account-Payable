@@ -37,6 +37,7 @@ from apmatch.api.schemas import (
     MatchResponse,
     RecentRunOut,
     RouteCountsOut,
+    SimilarityMatchOut,
 )
 from apmatch.audit.entry import AuditEntry
 from apmatch.audit.kpis import count_by_route, recent_runs
@@ -59,11 +60,16 @@ class ApiError(Exception):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Heavy objects built ONCE at startup.
+    from apmatch.embeddings.model import EmbeddingModel
     from apmatch.layout.structure import LayoutEngine
     from apmatch.ocr.router import OCRRouter
 
     app.state.router = OCRRouter()
     app.state.layout = LayoutEngine()
+    # ~5-10 s (weights hash + load); per-request construction would multiply
+    # that latency (D-088).
+    app.state.embedding_model = EmbeddingModel()
+    logger.info("EmbeddingModel loaded: version=%s", app.state.embedding_model.model_version)
     app.state.db_engine = create_engine(config.DATABASE_URL)
     yield
     app.state.db_engine.dispose()
@@ -130,6 +136,19 @@ def _failure_out(failure) -> FailureOut:
     )
 
 
+def _similarity_out(sm) -> SimilarityMatchOut:
+    return SimilarityMatchOut(
+        location=sm.location,
+        invoice_text=sm.invoice_text,
+        counterpart_text=sm.counterpart_text,
+        score=str(sm.score),
+        threshold_review=str(sm.threshold_review),
+        threshold_accept=str(sm.threshold_accept),
+        band=sm.band,
+        model_version=sm.model_version,
+    )
+
+
 def _validate_images(paths: dict[str, Path]) -> None:
     """Reject uploads PIL cannot decode (400 INVALID_IMAGE, not 500).
 
@@ -190,6 +209,7 @@ def match(
                 paths.get("pard"),
                 router=request.app.state.router,
                 layout=request.app.state.layout,
+                embedding_model=request.app.state.embedding_model,
                 ocr_debug=config.APMATCH_OCR_DEBUG,
             )
         except ApiError:
@@ -214,6 +234,7 @@ def match(
         pard_ref=entry.pard_ref,
         validation_failures=[_failure_out(f) for f in entry.validation_failures],
         match_failures=[_failure_out(f) for f in entry.match_failures],
+        similarity_matches=[_similarity_out(sm) for sm in entry.similarity_matches],
     )
 
 
@@ -241,6 +262,7 @@ def _audit_response(entry: AuditEntry) -> AuditResponse:
         validation_failures=[_failure_out(f) for f in entry.validation_failures],
         match_failures=[_failure_out(f) for f in entry.match_failures],
         input_hash=entry.input_hash,
+        similarity_matches=[_similarity_out(sm) for sm in entry.similarity_matches],
     )
 
 

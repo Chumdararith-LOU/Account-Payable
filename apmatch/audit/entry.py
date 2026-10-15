@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from apmatch.matching.result import MatchFailure
+from apmatch.matching.result import MatchFailure, SimilarityMatch
 from apmatch.scoring.result import Route, RouteReason
 from apmatch.validation.result import CheckFailure
 
@@ -36,3 +36,4 @@ class AuditEntry:
     match_failures: tuple[MatchFailure, ...]
 
     input_hash: str  # 64 hex chars
+    similarity_matches: tuple[SimilarityMatch, ...] = ()

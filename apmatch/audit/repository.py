@@ -13,12 +13,14 @@ P1-08b).
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apmatch.audit.entry import AuditEntry
 from apmatch.audit.models import AuditLog
-from apmatch.matching.result import MatchCode, MatchFailure
+from apmatch.matching.result import MatchCode, MatchFailure, SimilarityMatch
 from apmatch.scoring.result import Route, RouteReason
 from apmatch.validation.result import CheckCode, CheckFailure, Severity
 
@@ -77,6 +79,40 @@ def _dict_to_match_failure(d: dict) -> MatchFailure:
     )
 
 
+def _serialize_similarity_matches(matches: tuple[SimilarityMatch, ...]) -> list[dict]:
+    """SimilarityMatch tuple -> JSONB-ready list of dicts (Decimals as str)."""
+    return [
+        {
+            "location": sm.location,
+            "invoice_text": sm.invoice_text,
+            "counterpart_text": sm.counterpart_text,
+            "score": str(sm.score),
+            "threshold_review": str(sm.threshold_review),
+            "threshold_accept": str(sm.threshold_accept),
+            "band": sm.band,
+            "model_version": sm.model_version,
+        }
+        for sm in matches
+    ]
+
+
+def _deserialize_similarity_matches(raw: list[dict]) -> tuple[SimilarityMatch, ...]:
+    """JSONB list of dicts -> SimilarityMatch tuple (Decimals reconstructed)."""
+    return tuple(
+        SimilarityMatch(
+            location=d["location"],
+            invoice_text=d["invoice_text"],
+            counterpart_text=d["counterpart_text"],
+            score=Decimal(d["score"]),
+            threshold_review=Decimal(d["threshold_review"]),
+            threshold_accept=Decimal(d["threshold_accept"]),
+            band=d["band"],
+            model_version=d["model_version"],
+        )
+        for d in raw
+    )
+
+
 class AuditRepository:
     """APPEND-ONLY. The only write method is ``append``."""
 
@@ -99,6 +135,7 @@ class AuditRepository:
                 validation_failures=[_failure_to_dict(f) for f in entry.validation_failures],
                 match_failures=[_failure_to_dict(f) for f in entry.match_failures],
                 input_hash=entry.input_hash,
+                similarity_matches=_serialize_similarity_matches(entry.similarity_matches),
             )
         )
         session.flush()
@@ -119,6 +156,7 @@ class AuditRepository:
             validation_failures=tuple(_dict_to_check_failure(d) for d in row.validation_failures),
             match_failures=tuple(_dict_to_match_failure(d) for d in row.match_failures),
             input_hash=row.input_hash,
+            similarity_matches=_deserialize_similarity_matches(row.similarity_matches),
         )
 
     @staticmethod

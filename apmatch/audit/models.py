@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Numeric, String
+from sqlalchemy import DateTime, Numeric, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,4 +39,13 @@ class AuditLog(Base):
     remark: Mapped[str] = mapped_column(String(1024), nullable=False)
     validation_failures: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     match_failures: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    # JSONB array. Each element is a dict with:
+    #   location, invoice_text, counterpart_text,
+    #   score, threshold_review, threshold_accept,
+    #   band, model_version
+    # Mirrors the SimilarityMatch dataclass in
+    # apmatch/matching/result.py.
+    similarity_matches: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
     input_hash: Mapped[str] = mapped_column(String(64), nullable=False)

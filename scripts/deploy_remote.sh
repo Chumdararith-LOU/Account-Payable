@@ -54,6 +54,7 @@ ssh "${SSH_TARGET}" bash -s <<'REMOTE'
   # mapping (the server override publishes the API on 8001, not 8000).
   for i in $(seq 1 90); do
     if docker compose -f docker-compose.yml -f docker-compose.server.yml \
+        --env-file .env.server \
         exec -T api curl -fsS http://localhost:8000/healthz >/dev/null 2>&1; then
       echo "DEPLOY OK"
       exit 0
@@ -61,7 +62,8 @@ ssh "${SSH_TARGET}" bash -s <<'REMOTE'
     sleep 2
   done
   echo "ERROR: healthz did not respond within 180 seconds" >&2
-  docker compose -f docker-compose.yml -f docker-compose.server.yml logs api --tail=50 >&2
+  docker compose -f docker-compose.yml -f docker-compose.server.yml \
+    --env-file .env.server logs api --tail=50 >&2
   exit 3
 REMOTE
 

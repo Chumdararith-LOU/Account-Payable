@@ -44,6 +44,22 @@ def test_match_happy_path(client_tx, test_api_key, match_body):
     assert audit["input_hash"] and len(audit["input_hash"]) == 64
 
 
+def test_match_response_includes_similarity_matches_field(client_tx, test_api_key, match_body):
+    assert "similarity_matches" in match_body
+    assert isinstance(match_body["similarity_matches"], list)
+    # The current fixtures match exactly — the similarity fallback never fires.
+    assert match_body["similarity_matches"] == []
+
+
+def test_audit_response_includes_similarity_matches_field(client_tx, test_api_key, match_body):
+    resp = client_tx.get(f"/audit/{match_body['run_id']}", headers={"X-API-Key": test_api_key})
+    assert resp.status_code == 200
+    audit = resp.json()
+    assert "similarity_matches" in audit
+    assert isinstance(audit["similarity_matches"], list)
+    assert audit["similarity_matches"] == []
+
+
 def test_match_missing_invoice_field(client_tx, test_api_key):
     # No invoice file at all -> FastAPI validation error.
     resp = client_tx.post("/match", headers={"X-API-Key": test_api_key})

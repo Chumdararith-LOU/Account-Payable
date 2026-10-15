@@ -28,6 +28,20 @@ class FailureOut(BaseModel):
     delta: str
 
 
+class SimilarityMatchOut(BaseModel):
+    """Similarity matches recorded during line-item fallback.
+    Empty when the exact-match path was used for every line."""
+
+    location: str
+    invoice_text: str
+    counterpart_text: str
+    score: str  # Decimal rendered as string
+    threshold_review: str
+    threshold_accept: str
+    band: str
+    model_version: str
+
+
 class MatchResponse(BaseModel):
     run_id: str
     route: str  # Route.value
@@ -40,6 +54,9 @@ class MatchResponse(BaseModel):
     pard_ref: str | None
     validation_failures: list[FailureOut]
     match_failures: list[FailureOut]
+    # Similarity matches recorded during line-item fallback.
+    # Empty when the exact-match path was used for every line.
+    similarity_matches: list[SimilarityMatchOut] = []
 
 
 class AuditResponse(BaseModel):
@@ -56,6 +73,9 @@ class AuditResponse(BaseModel):
     validation_failures: list[FailureOut]
     match_failures: list[FailureOut]
     input_hash: str
+    # Similarity matches recorded during line-item fallback.
+    # Empty when the exact-match path was used for every line.
+    similarity_matches: list[SimilarityMatchOut] = []
 
 
 class RouteCountsOut(BaseModel):

@@ -244,7 +244,13 @@ Append-only. Exactly one row per pipeline run.
 - **`input_hash`** is SHA-256 over canonical JSON of the four documents; same
   inputs → same hash, byte-for-byte, across processes.
 - **Failure tuples** stored as JSONB arrays of structured fields; never
-  pre-rendered strings.
+  pre-rendered strings. Each row carries `validation_failures`,
+  `match_failures`, and `similarity_matches` — three JSONB columns of
+  structured records.
+- **`similarity_matches`** records every embedding-based line match:
+  score, both thresholds, band, and model version. The model version
+  recorded at decision time is the SHA-256 of the embedding weights. A
+  future weight change does not alter past decisions (per D-080).
 - The repository provides `append`/`get`/`list_recent` only. `update`/`delete`/
   `upsert` are absent by design.
 - Read-only KPI queries live in `apmatch/audit/kpis.py`. Aggregates are

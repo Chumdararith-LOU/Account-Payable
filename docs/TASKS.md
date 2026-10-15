@@ -43,15 +43,13 @@
 | EMB-04 | Embedding tests: determinism, offline, similarity | done | (EMB-04) |
 | EMB-05 | folded into EMB-02 | done | (EMB-02) |
 | EMB-06 | Line-item similarity matching in the matching engine | done | (EMB-06) |
-| EMB-07 | Audit extension + API surface for similarity_matches | pending | |
-| EMB-08 | Audit log extension — similarity_matches JSONB + Alembic | pending | |
-| EMB-09 | Supplier name similarity matching | pending | |
-| EMB-10 | Configuration, ARCHITECTURE.md, DECISIONS.md | pending | |
-| EMB-11 | Demo fixtures — before/after scenario | pending | |
-| EMB-12 | Full-pipeline integration test on server | pending | |
-| EMB-12b | Remote deployment runbook + rehearsal | pending | |
-| EMB-13 | Demo script (scripts/demo_embedding.sh) | pending | |
-| EMB-14 | Demo rehearsal — 3× end-to-end | pending | |
+| EMB-07 | Audit extension + API surface for similarity_matches | done | (EMB-07) |
+| EMB-08 | Demo fixtures (before/after scenario) | pending | |
+| EMB-09 | Full-pipeline integration test | pending | |
+| EMB-10 | Docs + decisions polish | pending | |
+| EMB-11 | Deploy runbook + rehearsal | pending | |
+| EMB-12 | Demo script (scripts/demo_embedding.sh) | pending | |
+| EMB-13 | Final rehearsal (3× end-to-end) | pending | |
 
 ## Deferred
 

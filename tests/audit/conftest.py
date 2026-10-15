@@ -36,6 +36,7 @@ def _mk_audit_entry():
             validation_failures=kwargs.get("validation_failures", ()),
             match_failures=kwargs.get("match_failures", ()),
             input_hash=kwargs.get("input_hash", "0" * 64),
+            similarity_matches=kwargs.get("similarity_matches", ()),
         )
 
     return _build
