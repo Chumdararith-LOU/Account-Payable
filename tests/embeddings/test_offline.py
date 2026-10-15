@@ -1,9 +1,11 @@
-import subprocess, sys
+import subprocess
+import sys
 from pathlib import Path
+
 
 def test_embeddings_offline_verifier_passes():
     repo = Path(__file__).resolve().parents[2]
-    r = subprocess.run(
+    r = subprocess.run(  # noqa: S603 — args hardcoded (sys.executable + fixed script path)
         [sys.executable, str(repo / "scripts" / "verify_offline_embeddings.py")],
         capture_output=True, text=True, timeout=300,
     )

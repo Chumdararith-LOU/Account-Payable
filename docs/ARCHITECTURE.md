@@ -303,6 +303,29 @@ The API ships as a self-contained Docker image (`Dockerfile`, multi-stage):
   `ubuntu-latest`. The workflow is a stub until the repo is pushed and CI is
   enabled (D-063).
 
+## Embedding layer
+
+A local, deterministic text-embedding model is loaded at API
+startup and used by the matching layer for semantic similarity
+(see EMB-06). The layer is at apmatch/embeddings/.
+
+- Model: paraphrase-multilingual-MiniLM-L12-v2 (~470 MB on disk).
+- Weights are vendored in models/embeddings/ and hashed. The
+  hash is recorded per-decision in the audit log (D-080).
+- The rest of the codebase interacts with embeddings exclusively
+  via EmbeddingModel (apmatch/embeddings/model.py).
+- Offline: HF_HUB_OFFLINE and TRANSFORMERS_OFFLINE are set at
+  module import time, before sentence-transformers is imported.
+- Determinism: same input → same vector, byte-identical across
+  processes. Locked by tests in tests/embeddings/test_model.py.
+- Thresholds are Python constants, not config files
+  (apmatch/embeddings/config.py). Accept = 0.70,
+  review-band = [0.55, 0.70).
+
+Note: this layer uses a *non-generative encoder*. It cannot
+invent text. It maps text to vectors for similarity comparison
+only. No LLM in the decision path (see D-046, D-080).
+
 ## Linting and dev tooling
 
 - **ruff**, configured via `ruff.toml` at the repo root. `ruff check .` is
