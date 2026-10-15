@@ -15,7 +15,11 @@ pgdata/
 cloudflared-linux-amd64
 output/imgs/
 .DS_Store
-models/
+# Ignore model weights, but keep the embeddings provenance doc tracked.
+models/*
+!models/embeddings/
+models/embeddings/*
+!models/embeddings/MODEL_INFO.md
 *.pdmodel
 *.pdiparams
 

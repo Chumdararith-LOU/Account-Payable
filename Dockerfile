@@ -18,17 +18,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
-COPY requirements.txt .
+COPY requirements.txt constraints.txt ./
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip \
-    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt \
+        -c constraints.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # torch + torchvision (CPU-only) are runtime deps of the Khmer engine
 # (tror-yong-ocr) but are NOT declared in its sdist, so requirements.txt never
 # pulls them. The standard PyPI torch/torchvision for Linux bundle CUDA; install
 # the CPU-only builds from the PyTorch CPU index instead (no CUDA, per the
 # CPU-only constraint). Versions match the host env (torch 2.5.1 / torchvision
-# 0.20.1).
+# 0.20.1). sentence-transformers (EMB-02) does declare torch, so
+# constraints.txt pins it to 2.5.1 and the CPU index is added to the
+# requirements install above — otherwise pip pulls the CUDA torch + nvidia_*
+# libs from PyPI.
 RUN /opt/venv/bin/pip install --no-cache-dir torch==2.5.1 torchvision==0.20.1 \
     --index-url https://download.pytorch.org/whl/cpu
 

@@ -81,6 +81,11 @@ if ! wait_for 120 curl -fsS http://localhost:8000/healthz; then
 fi
 echo "api healthy"
 
+# 6b. Verify the embedding model loads offline inside the container
+# (set -e: a non-zero exit fails the smoke test)
+echo "Verifying embeddings are online..."
+docker compose exec -T api python scripts/verify_offline_embeddings.py
+
 # 7. POST /match
 echo "POSTing /match..."
 RESPONSE_FILE="$(mktemp)"

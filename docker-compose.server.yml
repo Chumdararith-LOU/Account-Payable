@@ -10,6 +10,7 @@ name: apmatch-demo
 
 services:
   postgres:
+    restart: unless-stopped
     # !reset [] is required: a plain empty list does NOT clear the base
     # file's 5433:5432 mapping (compose merge appends lists).
     ports: !reset []       # do NOT expose Postgres to the host
@@ -19,6 +20,7 @@ services:
       POSTGRES_PASSWORD: "${APMATCH_DB_PASSWORD:?APMATCH_DB_PASSWORD must be set}"
 
   api:
+    restart: unless-stopped
     # Host port 8001: 8000 is taken by an existing service on the server.
     # !override replaces the base file's 8000:8000 mapping (a plain list
     # would be appended, leaving the dead 8000 binding in place).

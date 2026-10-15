@@ -1,0 +1,4 @@
+# Pin torch to the CPU build during `pip install -r requirements.txt`
+# (sentence-transformers depends on torch). With --extra-index-url pointing at
+# the PyTorch CPU index, pip resolves 2.5.1+cpu, which has no nvidia deps.
+torch==2.5.1

@@ -37,6 +37,8 @@ transformers==4.47.1
 sqlalchemy>=2.0,<3
 psycopg[binary]>=3.1
 alembic>=1.13
+# Embedding model runtime (see models/embeddings/MODEL_INFO.md)
+sentence-transformers>=3.0,<4
 # Test
 pytest>=8.0
 pytest-cov>=5.0

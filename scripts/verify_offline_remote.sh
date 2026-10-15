@@ -16,4 +16,7 @@ ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=4 "${SSH_TARGET}" bash -s <
   docker compose -f docker-compose.yml -f docker-compose.server.yml \
     --env-file .env.server \
     exec -T api python scripts/verify_offline.py
+  docker compose -f docker-compose.yml -f docker-compose.server.yml \
+    --env-file .env.server \
+    exec -T api python scripts/verify_offline_embeddings.py
 REMOTE

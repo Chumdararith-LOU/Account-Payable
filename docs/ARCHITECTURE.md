@@ -272,8 +272,11 @@ The API ships as a self-contained Docker image (`Dockerfile`, multi-stage):
   cv2/paddle need (`libgl1`, `libglib2.0-0`, `libgomp1`, `libsm6`, `libxext6`,
   `libxrender1`) plus `curl` for the healthcheck.
 - **Models are baked into the image** (`models/` → `/app/models`, owned by the
-  app user). Image size ~2–3 GB. Model updates ship as new image versions, not
-  out-of-band file drops (D-055).
+  app user). The embedding model
+  (`/app/models/embeddings/paraphrase-multilingual-MiniLM-L12-v2`, EMB-02) is
+  included; see `models/embeddings/MODEL_INFO.md` for provenance and the
+  weights hash. Image size ~7.7 GB. Model updates ship as new image versions,
+  not out-of-band file drops (D-055).
 - **Non-root** user `apmatch`.
 - **Offline env vars** are set at build time (`ENV` in the Dockerfile):
   `HF_HUB_OFFLINE`, `TRANSFORMERS_OFFLINE`,
