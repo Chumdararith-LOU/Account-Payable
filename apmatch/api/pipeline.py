@@ -49,13 +49,16 @@ def run_pipeline(
     *,
     router: OCRRouter | None = None,
     layout: LayoutEngine | None = None,
+    embedding_model=None,
     ocr_debug: bool = False,
 ) -> tuple[MatchResult, ValidationResult, RoutingDecision, AuditEntry]:
     """Run the full deterministic chain over up to four document images.
 
     ``router``/``layout`` are heavy to construct; pass pre-built instances
     (the endpoint builds them once at startup). If omitted, they are built
-    here.
+    here. ``embedding_model`` (duck-typed; needs .similarity() and
+    .model_version) enables the similarity fallback in the matching engine;
+    None keeps the exact-match-only behavior.
     """
     router = router or OCRRouter()
     layout = layout or LayoutEngine()
@@ -66,7 +69,7 @@ def run_pipeline(
     pard = _recognize_and_parse(router, layout, dispatch.DocumentKind.PAYMENT_ADVICE, pard_path, ocr_debug) if pard_path else None
 
     validation = validate_invoice(invoice)
-    match = MatchingEngine().match(invoice, po, grni, pard)
+    match = MatchingEngine(embedding_model=embedding_model).match(invoice, po, grni, pard)
     decision = decide(validation, match, ocr_confidence=None)
 
     # Reviewer-facing remark rule (D-052): for a MATCH outcome the

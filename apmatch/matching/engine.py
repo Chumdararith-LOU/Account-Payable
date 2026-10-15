@@ -8,6 +8,18 @@ Matching strategy: vendor name via ``normalize_text``; currency via
 ``normalize_currency``; line items joined on ``normalize_text(description)``
 with quantity/price/amount tolerance checks.
 
+Line-item matching is two-tier:
+  1. Exact match on normalized description (deterministic, no model).
+  2. If no exact match AND an ``embedding_model`` was provided to the
+     constructor: cosine similarity against each candidate line.
+     - best score >= SIMILARITY_ACCEPT (0.70): accept, no failure
+     - best score in [SIMILARITY_REVIEW, SIMILARITY_ACCEPT): accept,
+       add a SIMILARITY_MATCH_REVIEW warning (routes to human review)
+     - best score < SIMILARITY_REVIEW (0.55): no match;
+       NO_MATCHING_PO_LINE / NO_MATCHING_GRNI_LINE as before
+  Every similarity-based match is recorded as a ``SimilarityMatch`` on the
+  result. The engine is fast when constructed without a model.
+
 Currency rule: CURRENCY_MISMATCH fires when invoice.currency and (po.currency
 or pard.currency) are both populated and differ after normalize_currency.
 Missing currency on either side skips the check — no false positive. PO and
@@ -29,10 +41,11 @@ import dataclasses
 import json
 import sys
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from enum import Enum
 from pathlib import Path
 
+from apmatch.embeddings.config import SIMILARITY_ACCEPT, SIMILARITY_REVIEW
 from apmatch.matching.config import (
     AMOUNT_TOLERANCE,
     AMOUNT_TOLERANCE_REL,
@@ -48,6 +61,7 @@ from apmatch.matching.result import (
     MatchFailure,
     MatchResult,
     Outcome,
+    SimilarityMatch,
     _order_failures,
 )
 from apmatch.schema.coercion import to_money, to_qty, to_unit_price
@@ -58,9 +72,83 @@ from apmatch.validation.result import Severity
 class MatchingEngine:
     """Matches an invoice against its PO, GRNI, and payment advice."""
 
-    def __init__(self) -> None:
-        # No state today; reserved for future config objects.
-        pass
+    def __init__(self, embedding_model=None) -> None:
+        # Optional duck-typed embedding model (needs .similarity() and
+        # .model_version). None disables the similarity fallback — the
+        # engine then behaves exactly as before (fast path for tests and
+        # CLI tools). The class is NOT imported here: apmatch.embeddings.model
+        # pulls in sentence-transformers, which must stay out of every import
+        # path that does not need it (D-082).
+        self._embedding_model = embedding_model
+
+    def _similarity_lookup(
+        self, inv_line: LineItem, candidates: tuple[LineItem, ...], counterpart: str
+    ) -> tuple[LineItem | None, SimilarityMatch | None]:
+        """
+        Find the candidate line with the highest embedding
+        similarity to inv_line.description.
+
+        Returns (candidate_line_or_None, SimilarityMatch_or_None).
+
+        - If the best score is below SIMILARITY_REVIEW:
+            returns (None, None) — no match.
+        - If the best score is in [REVIEW, ACCEPT):
+            returns (candidate, SimilarityMatch(band="review")).
+        - If the best score is >= ACCEPT:
+            returns (candidate, SimilarityMatch(band="accept")).
+
+        Determinism: ties broken by candidate line_no ascending,
+        then by candidate description ascending. Never by dict
+        iteration order.
+        """
+        if not candidates:
+            return None, None
+
+        inv_text = normalize_text(inv_line.description)
+        if not inv_text:
+            return None, None
+
+        # Compute similarity against each candidate. Use the
+        # model's .similarity() method (not .encode()) so we
+        # get the wrapper's determinism guarantees.
+        scores: list[tuple[float, LineItem]] = []
+        for cand in candidates:
+            cand_text = normalize_text(cand.description)
+            if not cand_text:
+                continue
+            score = self._embedding_model.similarity(inv_text, cand_text)
+            scores.append((score, cand))
+
+        if not scores:
+            return None, None
+
+        # Sort: descending score, then ascending line_no, then ascending
+        # normalized description.
+        scores.sort(key=lambda t: (-t[0], t[1].line_no, normalize_text(t[1].description)))
+
+        best_score, best_cand = scores[0]
+
+        # Quantize for the record.
+        score_dec = Decimal(str(best_score)).quantize(
+            Decimal("0.0001"), rounding=ROUND_HALF_UP
+        )
+
+        if score_dec < SIMILARITY_REVIEW:
+            return None, None
+
+        band = "accept" if score_dec >= SIMILARITY_ACCEPT else "review"
+        sim = SimilarityMatch(
+            location=f"line {inv_line.line_no} (INV) -> "
+            f"line {best_cand.line_no} ({counterpart})",
+            invoice_text=inv_text,
+            counterpart_text=normalize_text(best_cand.description),
+            score=score_dec,
+            threshold_review=SIMILARITY_REVIEW,
+            threshold_accept=SIMILARITY_ACCEPT,
+            band=band,
+            model_version=self._embedding_model.model_version,
+        )
+        return best_cand, sim
 
     def match(
         self,
@@ -139,8 +227,24 @@ class MatchingEngine:
             )
 
         # 3. Line-item matching.
+        similarity_matches: list[SimilarityMatch] = []
         for n, inv_line in enumerate(invoice.line_items, start=1):
             po_line = _find_line(po.line_items, inv_line.description)
+            if po_line is None and self._embedding_model is not None:
+                po_line, sim = self._similarity_lookup(inv_line, po.line_items, "PO")
+                if sim is not None:
+                    similarity_matches.append(sim)
+                    if sim.band == "review":
+                        failures.append(
+                            MatchFailure(
+                                MatchCode.SIMILARITY_MATCH_REVIEW,
+                                Severity.WARNING,
+                                sim.location,
+                                sim.counterpart_text,
+                                sim.invoice_text,
+                                "",
+                            )
+                        )
             if po_line is None:
                 failures.append(
                     MatchFailure(
@@ -200,6 +304,21 @@ class MatchingEngine:
                         )
 
             grni_line = _find_line(grni.line_items, inv_line.description)
+            if grni_line is None and self._embedding_model is not None:
+                grni_line, sim = self._similarity_lookup(inv_line, grni.line_items, "GRN")
+                if sim is not None:
+                    similarity_matches.append(sim)
+                    if sim.band == "review":
+                        failures.append(
+                            MatchFailure(
+                                MatchCode.SIMILARITY_MATCH_REVIEW,
+                                Severity.WARNING,
+                                sim.location,
+                                sim.counterpart_text,
+                                sim.invoice_text,
+                                "",
+                            )
+                        )
             if grni_line is None:
                 failures.append(
                     MatchFailure(
@@ -263,6 +382,7 @@ class MatchingEngine:
             po_number=po.po_number,
             grn_number=grni.grn_number,
             pard_ref=pard.pard_number,
+            similarity_matches=tuple(similarity_matches),
         )
 
 

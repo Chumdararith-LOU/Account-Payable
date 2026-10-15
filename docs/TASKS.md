@@ -41,9 +41,9 @@
 | EMB-02 | Vendor MiniLM-L12-v2 model | done | (EMB-02) |
 | EMB-03 | apmatch/embeddings/ module | done | (EMB-03) |
 | EMB-04 | Embedding tests: determinism, offline, similarity | done | (EMB-04) |
-| EMB-05 | Verification: image dependencies, size, and constraints (post-EMB-04) | pending | |
-| EMB-06 | Line-item similarity matching in the matching engine | pending | |
-| EMB-07 | Similarity matching tests (stub + real) | pending | |
+| EMB-05 | folded into EMB-02 | done | (EMB-02) |
+| EMB-06 | Line-item similarity matching in the matching engine | done | (EMB-06) |
+| EMB-07 | Audit extension + API surface for similarity_matches | pending | |
 | EMB-08 | Audit log extension — similarity_matches JSONB + Alembic | pending | |
 | EMB-09 | Supplier name similarity matching | pending | |
 | EMB-10 | Configuration, ARCHITECTURE.md, DECISIONS.md | pending | |

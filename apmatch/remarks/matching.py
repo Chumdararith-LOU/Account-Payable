@@ -58,6 +58,9 @@ MATCH_TEMPLATES: dict[MatchCode, str] = {
         "Payment advice amount mismatch: expected {expected}, actual {actual} (off by {delta})."
     ),
     MatchCode.DATE_OUT_OF_ORDER: "Payment advice date precedes invoice date.",
+    MatchCode.SIMILARITY_MATCH_REVIEW: (
+        "Similarity match at {location} requires human review: expected {expected}, actual {actual}."
+    ),
 }
 
 

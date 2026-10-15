@@ -165,6 +165,20 @@ the schema dataclasses and returns a `MatchResult`.
   `normalize_text(description)`, first match in source order. Quantity must
   match exactly; unit price and line amount use the absolute-OR-relative
   tolerance (pass if `abs diff <= ABS` or `abs diff / max <= REL`).
+- **Line-item matching uses a two-tier strategy.**
+  1. Exact match on normalized description (deterministic, no model
+     involved).
+  2. If no exact match and an `EmbeddingModel` was provided to the
+     constructor, cosine similarity fallback against each candidate line.
+     Every similarity-based match is recorded as a `SimilarityMatch` with
+     score, thresholds, band, and model version; the record is carried on
+     `MatchResult.similarity_matches`.
+- **Review-band matches.** `SIMILARITY_REVIEW <= score < SIMILARITY_ACCEPT`
+  accepts the match but emits a `SIMILARITY_MATCH_REVIEW` warning failure,
+  which routes the case to human review via the normal scoring path.
+  Scores below `SIMILARITY_REVIEW` fall through to `NO_MATCHING_*_LINE` as
+  before. The engine is fast when constructed without a model; tests and
+  CLI tools default to the no-model path.
 - **Currency check.** `CURRENCY_MISMATCH` fires only when both
   `invoice.currency` and the counterpart document's currency (PO and/or PARD)
   are populated and differ after `normalize_currency`. Missing currency on

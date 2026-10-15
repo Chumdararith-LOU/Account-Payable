@@ -64,4 +64,7 @@ MATCH_CODE_WEIGHTS: dict[MatchCode, Decimal] = {
     MatchCode.LINE_AMOUNT_MISMATCH: Decimal("0.3"),
     MatchCode.PARD_AMOUNT_MISMATCH: Decimal("0.2"),
     MatchCode.DATE_OUT_OF_ORDER: Decimal("0.1"),
+    # Review-band similarity match: the line IS matched, but a human should
+    # confirm. Softest penalty — it flags uncertainty, not a value mismatch.
+    MatchCode.SIMILARITY_MATCH_REVIEW: Decimal("0.1"),
 }

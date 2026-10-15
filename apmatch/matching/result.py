@@ -10,6 +10,7 @@ mirroring ``apmatch.validation.result``.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 
 from apmatch.validation.result import Severity
@@ -46,6 +47,9 @@ class MatchCode(str, Enum):
     # ordering sanity
     DATE_OUT_OF_ORDER = "DATE_OUT_OF_ORDER"
 
+    # similarity fallback — match accepted but in the review band
+    SIMILARITY_MATCH_REVIEW = "SIMILARITY_MATCH_REVIEW"
+
 
 @dataclass(frozen=True)
 class MatchFailure:
@@ -60,6 +64,30 @@ class MatchFailure:
 
 
 @dataclass(frozen=True)
+class SimilarityMatch:
+    """
+    Record of an embedding-based line match.
+
+    Present whenever the engine accepted a similarity match
+    (either accept band or review band). Absent when the
+    exact-match path was used.
+
+    The score and both thresholds are recorded at decision
+    time, so future threshold changes do not invalidate
+    the audit trail (per D-080).
+    """
+
+    location: str  # "line 2 (INV) -> line 2 (PO)" or "line 2 (INV) -> line 2 (GRN)"
+    invoice_text: str  # invoice line description, post-normalization
+    counterpart_text: str  # counterpart line description, post-normalization
+    score: Decimal  # cosine similarity, quantized to 4dp
+    threshold_review: Decimal  # config.SIMILARITY_REVIEW at match time
+    threshold_accept: Decimal  # config.SIMILARITY_ACCEPT at match time
+    band: str  # "accept" or "review"
+    model_version: str  # SHA-256 of the embedding weights, from EmbeddingModel
+
+
+@dataclass(frozen=True)
 class MatchResult:
     """The outcome of matching an invoice against PO / GRNI / PARD."""
 
@@ -71,6 +99,7 @@ class MatchResult:
     po_number: str | None = None
     grn_number: str | None = None
     pard_ref: str | None = None
+    similarity_matches: tuple[SimilarityMatch, ...] = ()
 
     @property
     def ok(self) -> bool:
