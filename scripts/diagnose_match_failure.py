@@ -17,11 +17,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from apmatch.layout.structure import LayoutEngine
-from apmatch.matching.engine import MatchingEngine
-from apmatch.matching.normalize import normalize_text
-from apmatch.ocr.router import OCRRouter
-from apmatch.parse import dispatch
+from apmatch.layout.structure import LayoutEngine  # noqa: E402 — after sys.path.insert
+from apmatch.matching.engine import MatchingEngine  # noqa: E402 — after sys.path.insert
+from apmatch.matching.normalize import normalize_text  # noqa: E402 — after sys.path.insert
+from apmatch.ocr.router import OCRRouter  # noqa: E402 — after sys.path.insert
+from apmatch.parse import dispatch  # noqa: E402 — after sys.path.insert
 
 DOCS = {
     "invoice": ("documents/invoice/INV_2026_1123.png", dispatch.DocumentKind.INVOICE),

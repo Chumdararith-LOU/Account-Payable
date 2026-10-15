@@ -108,3 +108,57 @@ def test_encode_deterministic_across_processes(tmp_path):
     assert r1.returncode == 0, r1.stderr
     assert r2.returncode == 0, r2.stderr
     assert r1.stdout == r2.stdout
+
+
+def test_similarity_across_languages():
+    # MiniLM-L12 is multilingual. Test that an English phrase
+    # and its Khmer equivalent are closer than two unrelated
+    # phrases.
+    model = EmbeddingModel()
+    s_en_km = model.similarity("Office Chair", "កៅអីការិយាល័យ")
+    s_unrel = model.similarity("Office Chair", "Desk Lamp")
+    assert s_en_km > s_unrel, (
+        f"expected EN-KM closer than EN-unrelated; "
+        f"got {s_en_km:.4f} vs {s_unrel:.4f}"
+    )
+
+    # The absolute number may be low; we only assert relative
+    # ordering, which is what the matching engine uses.
+
+
+def test_similarity_case_and_punctuation_invariant():
+    model = EmbeddingModel()
+    a = model.similarity("OFFICE CHAIR", "office chair")
+    b = model.similarity("Office Chair", "Chair, office, metal frame")
+    # Both should be high; the exact relative order may vary.
+    assert a > 0.90
+    assert b > 0.60
+
+
+def test_similarity_symmetric():
+    # cosine is symmetric
+    model = EmbeddingModel()
+    s1 = model.similarity("Office Chair", "Desk Lamp")
+    s2 = model.similarity("Desk Lamp", "Office Chair")
+    assert abs(s1 - s2) < 1e-6
+
+
+def test_encode_batch_matches_single():
+    # Batching must not change output. This is a strong
+    # determinism claim used by the matching engine (EMB-06).
+    model = EmbeddingModel()
+    batch = model.encode(["Office Chair", "Desk Lamp", "Whiteboard"])
+    singles = [
+        model.encode(["Office Chair"])[0],
+        model.encode(["Desk Lamp"])[0],
+        model.encode(["Whiteboard"])[0],
+    ]
+    for b, s in zip(batch, singles, strict=True):
+        for x, y in zip(b, s, strict=True):
+            assert abs(x - y) < 1e-6, "batch != single"
+
+
+def test_similarity_returns_float():
+    model = EmbeddingModel()
+    s = model.similarity("a", "b")
+    assert isinstance(s, float)

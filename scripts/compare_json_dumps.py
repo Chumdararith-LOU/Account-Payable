@@ -18,7 +18,7 @@ CONF_TOL = 0.01
 
 
 def _bbox_close(a, b) -> bool:
-    return all(abs(x - y) <= BBOX_TOL for x, y in zip(a, b))
+    return all(abs(x - y) <= BBOX_TOL for x, y in zip(a, b, strict=True))
 
 
 def _conf_close(a, b) -> bool:
@@ -65,7 +65,7 @@ def _compare_ocr(doc_a: dict, doc_b: dict, diffs: list) -> None:
     if len(tables_a) != len(tables_b):
         diffs.append(f"tables-count[{path}]")
         print(f"  tables: count differs Mac={len(tables_a)} Server={len(tables_b)}")
-    for i, (ta, tb) in enumerate(zip(tables_a, tables_b)):
+    for i, (ta, tb) in enumerate(zip(tables_a, tables_b)):  # noqa: B905 — count mismatch reported above; compare overlapping prefix
         if ta["html"] != tb["html"] or not _bbox_close(ta["bbox"], tb["bbox"]):
             diffs.append(f"tables[{path}][{i}]")
             print(f"  tables[{i}] differ (html equal: {ta['html'] == tb['html']})")
@@ -93,7 +93,7 @@ def _compare_parsed(doc_a: dict, doc_b: dict, diffs: list) -> None:
         field_diffs += 1
         diffs.append(f"parsed[{kind}].line_items-count")
         print(f"  line_items count differs: Mac={len(la)} Server={len(lb)}")
-    for i, (xa, xb) in enumerate(zip(la, lb)):
+    for i, (xa, xb) in enumerate(zip(la, lb)):  # noqa: B905 — count mismatch reported above; compare overlapping prefix
         for key in sorted(set(xa) | set(xb)):
             if xa.get(key) != xb.get(key):
                 field_diffs += 1

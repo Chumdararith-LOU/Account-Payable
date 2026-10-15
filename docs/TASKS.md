@@ -40,8 +40,8 @@
 | EMB-01 | Remote deploy skeleton + verify offline | done | (EMB-01) |
 | EMB-02 | Vendor MiniLM-L12-v2 model | done | (EMB-02) |
 | EMB-03 | apmatch/embeddings/ module | done | (EMB-03) |
-| EMB-04 | Embedding tests: determinism, offline, similarity | pending | |
-| EMB-05 | Dockerfile update — bake in MiniLM, add sentence-transformers | pending | |
+| EMB-04 | Embedding tests: determinism, offline, similarity | done | (EMB-04) |
+| EMB-05 | Verification: image dependencies, size, and constraints (post-EMB-04) | pending | |
 | EMB-06 | Line-item similarity matching in the matching engine | pending | |
 | EMB-07 | Similarity matching tests (stub + real) | pending | |
 | EMB-08 | Audit log extension — similarity_matches JSONB + Alembic | pending | |

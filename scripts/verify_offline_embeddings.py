@@ -12,10 +12,12 @@ Exits 2 on any other error (prints the traceback).
 """
 
 import os
+
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 import socket
+
 _real_connect = socket.socket.connect
 _real_create = socket.create_connection
 
@@ -33,6 +35,7 @@ socket.create_connection = _blocked_create
 
 try:
     from pathlib import Path
+
     from sentence_transformers import SentenceTransformer
 
     model_path = Path(__file__).resolve().parents[1] / "models" / "embeddings" / "paraphrase-multilingual-MiniLM-L12-v2"
@@ -63,13 +66,13 @@ try:
     raise SystemExit(0)
 except AssertionError as e:
     print(str(e), flush=True)
-    raise SystemExit(1)
+    raise SystemExit(1) from e
 except SystemExit:
     raise
 except Exception:
     import traceback
     traceback.print_exc()
-    raise SystemExit(2)
+    raise SystemExit(2) from None
 finally:
     socket.socket.connect = _real_connect
     socket.create_connection = _real_create

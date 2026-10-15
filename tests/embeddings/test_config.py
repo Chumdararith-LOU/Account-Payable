@@ -22,3 +22,14 @@ def test_model_hash_is_sha256_or_placeholder():
         pytest.skip("placeholder — pending EMB-02 hash")
     assert len(h) == 64
     assert all(c in "0123456789abcdef" for c in h)
+
+
+def test_encode_batch_size_is_positive_int():
+    from apmatch.embeddings.config import ENCODE_BATCH_SIZE
+    assert isinstance(ENCODE_BATCH_SIZE, int)
+    assert ENCODE_BATCH_SIZE > 0
+
+
+def test_max_input_chars_is_reasonable():
+    from apmatch.embeddings.config import MAX_INPUT_CHARS
+    assert 128 <= MAX_INPUT_CHARS <= 2048

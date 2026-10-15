@@ -27,9 +27,9 @@ import dataclasses
 import json
 import platform
 import sys
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
-from dataclasses import replace
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -47,7 +47,7 @@ from apmatch.validation.arithmetic import validate_invoice  # noqa: E402
 
 
 def _bbox_ints(bbox) -> list[int]:
-    return [int(round(v)) for v in bbox]
+    return [round(v) for v in bbox]  # round() with no ndigits already returns int
 
 
 def _scalar(v):
