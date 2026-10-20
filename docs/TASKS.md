@@ -44,7 +44,7 @@
 | EMB-05 | folded into EMB-02 | done | (EMB-02) |
 | EMB-06 | Line-item similarity matching in the matching engine | done | (EMB-06) |
 | EMB-07 | Audit extension + API surface for similarity_matches | done | (EMB-07) |
-| EMB-08 | Demo fixtures (before/after scenario) | pending | |
+| EMB-08 | Demo fixtures (before/after scenario) | done | (EMB-08) |
 | EMB-09 | Full-pipeline integration test | pending | |
 | EMB-10 | Docs + decisions polish | pending | |
 | EMB-11 | Deploy runbook + rehearsal | pending | |

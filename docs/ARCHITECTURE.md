@@ -179,6 +179,12 @@ the schema dataclasses and returns a `MatchResult`.
   Scores below `SIMILARITY_REVIEW` fall through to `NO_MATCHING_*_LINE` as
   before. The engine is fast when constructed without a model; tests and
   CLI tools default to the no-model path.
+- **Demo fixtures.** `documents/demo/` exercises the similarity fallback:
+  PO/GRN/Invoice carry semantically equivalent but textually distinct
+  line-item descriptions. Running the pipeline on them with
+  `embedding_model=None` yields DISCREPANCY; with an `EmbeddingModel` it
+  yields MATCH (or a review-band match) and records `similarity_matches`.
+  Verified by `tests/integration/test_embeddings_demo.py`.
 - **Currency check.** `CURRENCY_MISMATCH` fires only when both
   `invoice.currency` and the counterpart document's currency (PO and/or PARD)
   are populated and differ after `normalize_currency`. Missing currency on

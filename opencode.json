@@ -12,10 +12,18 @@
   },
   "lsp": true,
   "mcp": {
-    "context7": {
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp",
-      "enabled": true
+    "servers": {
+      "context7": {
+        "type": "remote",
+        "url": "https://mcp.context7.com/mcp"
+      },
+      "searxng": {
+        "type": "local",
+        "command": ["bunx", "@tterrasson/mcp-searxng"],
+        "environment": {
+          "SEARXNG_URL": "http://100.127.105.9:8888"
+        }
+      }
     }
   },
   "agent": {
