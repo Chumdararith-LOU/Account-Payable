@@ -11,6 +11,9 @@ Target changed 2026-10-27 from `rith@100.127.105.9` to
 `rith@100.88.94.91` (see D-090): the Vivobook was a temporary target;
 the new server has 2× the RAM, 8 cores, and a GPU.
 
+For step-by-step operations (deploy, backup, restore, GPU mode,
+troubleshooting), see `docs/DEPLOYMENT_RUNBOOK.md`.
+
 ## Target server
 
 - SSH: `rith@100.88.94.91` (hostname `ubuntuvilalab-Z390-AORUS-ULTRA`)

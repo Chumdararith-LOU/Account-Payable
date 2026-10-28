@@ -8,7 +8,7 @@ Step-by-step operations guide for the production host
 
 - Host: `rith@100.88.94.91` (Tailscale) / `rith@172.17.0.134` (LAN)
 - CPU: Intel i9-9900 (8 cores)
-- GPU: NVIDIA RTX 2080 Ti (11 GB VRAM) — NOT YET USED (see note below)
+- GPU: NVIDIA RTX 2080 Ti (11 GB VRAM) — production default (see GPU mode)
 - RAM: 31 GiB
 - OS: Ubuntu 22.04.5 LTS, kernel 6.8
 - Docker: 29.6.2, Compose v5.3.1
@@ -27,38 +27,36 @@ This server hosts unrelated services (Ollama :11434, VNC :902,
 
 ## Routine operations
 
-All compose commands below run from `/opt/apmatch` on the server with the
-server override files:
+All compose commands below run from `/opt/apmatch` on the server. **GPU is
+the production default** (the `dc` alias includes the GPU overlay); `dcc`
+is the CPU fallback:
 
 ```bash
 cd /opt/apmatch
-alias dc='docker compose -f docker-compose.yml -f docker-compose.server.yml --env-file .env.server'
+alias dc='docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.server.gpu.yml --env-file .env.server'
+alias dcc='docker compose -f docker-compose.yml -f docker-compose.server.yml --env-file .env.server'
 ```
 
-### Deploy the latest code
+### Deploy the latest code (GPU, default)
+
+`deploy_remote.sh` syncs the code and builds/deploys the **CPU** image.
+To deploy the **GPU** image (the production default), sync, build the GPU
+image, then switch:
 
 ```bash
 cd ~/Documents/Turing/dpai          # on the Mac (or any checkout of the repo)
-./scripts/deploy_remote.sh rith@100.88.94.91
+./scripts/deploy_remote.sh rith@100.88.94.91   # rsync + build CPU + deploy CPU
+ssh rith@100.88.94.91 'cd /opt/apmatch && \
+  docker build -f Dockerfile.gpu -t apmatch:dev-gpu . && \
+  docker compose -f docker-compose.yml -f docker-compose.server.yml \
+    -f docker-compose.server.gpu.yml --env-file .env.server up -d'
 ```
 
-What it does, in order:
+The first GPU build is ~30–60 min; later builds reuse cached layers.
 
-1. `rsync` the tree to `/opt/apmatch` (incremental; includes `models/`).
-2. `docker compose up -d --build` on the server.
-3. Wait up to 180 s for `/healthz` inside the container.
-
-It is idempotent — safe to re-run. **Database migrations run
-automatically at container startup** (the image entrypoint runs
-`alembic upgrade head` before uvicorn), so a fresh Postgres volume gets
-its schema on first start. No manual migration step is needed.
-
-Expected tail of the output:
-
-```
-DEPLOY OK
-Deploy complete.
-```
+**Database migrations run automatically at container startup** (the image
+entrypoint runs `alembic upgrade head` before uvicorn), so a fresh Postgres
+volume gets its schema on first start. No manual migration step is needed.
 
 ### Verify a deploy
 
@@ -154,35 +152,36 @@ docker image prune -a                   # removes dangling/unused images
 The `apmatch:dev` image is ~2 GB; the Postgres volume grows with audit
 rows. Check `df -h /` and the docker data-root usage.
 
-## GPU note
+## GPU mode (default) + CPU fallback
 
-The RTX 2080 Ti is installed and the Docker NVIDIA runtime is configured
-(`daemon.json`), but the production image is **CPU-only** by design.
-GPU acceleration is tracked as PROD-A1 and will change the image, not
-the runbook.
+The production image is `apmatch:dev-gpu` (built from `Dockerfile.gpu`),
+running on the RTX 2080 Ti via the `docker-compose.server.gpu.yml` overlay.
+Device selection is a runtime env choice (`APMATCH_DEVICE=cuda`, set by the
+overlay); the same code runs on CPU when the var is unset. See D-095/D-096.
 
-## Vivobook decommission (2026-10-28)
+- **GPU (default):** `dc up -d` (the `dc` alias includes the GPU overlay).
+- **CPU fallback** (if the GPU is unavailable): `dcc up -d`.
+- **Verify the GPU is in use:** `ssh rith@100.88.94.91 'nvidia-smi'` —
+  expect a `python3.12` process using ~2 GB of VRAM.
 
-The old deployment on the Vivobook (`rith@100.127.105.9`) was
-decommissioned when the GPU server became the production target
-(EMB-13a). What was done:
+Ollama (:11434) shares the GPU. If Ollama has loaded its 7.4 GB model, the
+GPU pipeline will OOM. Check `nvidia-smi` before a GPU deploy; stop Ollama
+(`sudo systemctl stop ollama`) or configure it CPU-only if needed.
 
-- `docker compose down` in `/opt/apmatch` on the Vivobook — containers
-  `apmatch-api` and `apmatch-postgres` and the compose network were
-  removed.
-- The Postgres volume `apmatch-demo_apmatch_pgdata` was **kept** — the
-  old audit history is still recoverable.
-- The source tree in `/opt/apmatch` was left in place.
+## Vivobook decommission (done 2026-10-28 / 2026-10-29)
 
-To restore the old deployment (should it ever be needed):
+The old deployment on the Vivobook (`rith@100.127.105.9`) was torn down
+after the migration to the GPU server (EMB-13a). Completed:
+
+- Containers `apmatch-api` / `apmatch-postgres` and the compose network
+  removed (`docker compose down`).
+- The Postgres volume `apmatch-demo_apmatch_pgdata` removed (`down -v`).
+- The `apmatch:dev` image removed (`docker image rm`).
+- `/opt/apmatch-dev` (the dev mirror) was left intact — the dev wrappers
+  still use it as a fallback.
+
+One step needs the Vivobook's sudo password (the `/opt` dir is root-owned):
 
 ```bash
-ssh rith@100.127.105.9
-cd /opt/apmatch
-docker compose -f docker-compose.yml -f docker-compose.server.yml \
-  --env-file .env.server up -d
+ssh rith@100.127.105.9 'sudo rm -rf /opt/apmatch'
 ```
-
-The kept volume is remounted automatically; the entrypoint migrates the
-schema forward. Do not delete the volume until the old audit data has
-been exported or is confirmed unneeded.
