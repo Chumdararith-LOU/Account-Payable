@@ -99,6 +99,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
 # Uvicorn in single-worker mode. Startup loads ~1.2 GB of
 # models; multiple workers would multiply that. Scale
 # horizontally with container replicas instead.
-ENTRYPOINT ["uvicorn", "apmatch.api.app:app", \
+# The entrypoint runs `alembic upgrade head` first (idempotent), so a
+# fresh Postgres volume gets its schema on first start — every
+# `docker compose up` is safe without manual migration steps.
+# (scripts/ is already COPYed above; Docker COPY preserves the exec bit.)
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh", "uvicorn", "apmatch.api.app:app", \
             "--host", "0.0.0.0", "--port", "8000", \
             "--log-level", "info"]
