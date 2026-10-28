@@ -78,8 +78,14 @@ class LatinOCREngine:
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         from paddleocr import PaddleOCR
 
+        from apmatch.runtime import get_device
+
         kwargs = {kwarg: str(root / subdir) for kwarg, subdir in _MODEL_DIRS.items()}
-        self._ocr = PaddleOCR(use_textline_orientation=False, lang="en", **kwargs)
+        # Paddlex device vocabulary is "cpu"/"gpu", not torch's "cuda".
+        paddle_device = "gpu" if get_device() == "cuda" else "cpu"
+        self._ocr = PaddleOCR(
+            use_textline_orientation=False, lang="en", device=paddle_device, **kwargs
+        )
 
     def recognize(self, image_path: Path | str) -> OCRResult:
         """Run OCR on one image and return text blocks in engine order."""

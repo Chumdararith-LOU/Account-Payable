@@ -99,7 +99,9 @@ class EmbeddingModel:
         # Import here, not at module top, so env vars are set first.
         from sentence_transformers import SentenceTransformer
 
-        self._model = SentenceTransformer(str(self._model_dir), device="cpu")
+        from apmatch.runtime import get_device
+
+        self._model = SentenceTransformer(str(self._model_dir), device=get_device())
         # Force eval mode: no dropout, no training-time behavior.
         self._model.eval()
 

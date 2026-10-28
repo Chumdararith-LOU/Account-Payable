@@ -48,8 +48,13 @@ class KhmerOCREngine:
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         import tror_yong_ocr as tyo
 
+        from apmatch.runtime import get_device
+
         self._tyo = tyo
         self._model = tyo.TrorYongOCRModel.from_pretrained(str(root), verbose=False)
+        # Move to the target device BEFORE the determinism fix below, so the
+        # eval()/dropout zeroing applies to the module that actually runs.
+        self._model = self._model.to(get_device())
         # Determinism: the package passes dropout_p straight into the
         # FUNCTIONAL F.scaled_dot_product_attention, which applies it even
         # in eval mode. Zero every dropout probability so inference is

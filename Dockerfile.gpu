@@ -1,0 +1,132 @@
+# APMatch API — GPU image (PROD-A1).
+#
+# Runs the same pipeline on the RTX 2080 Ti. A SEPARATE image from the CPU
+# Dockerfile (which stays unchanged):
+#   - paddlepaddle-gpu 3.2.2 is a CUDA 11.8 build, distributed only via
+#     Paddle's cu118 index (NOT on PyPI), so the base provides CUDA 11.8 +
+#     cuDNN 8.x for it.
+#   - torch 2.5.1 cu121 is self-contained (bundles CUDA 12.1 runtime + cuDNN
+#     via pip nvidia-* packages), so it coexists with the system CUDA 11.8.
+#   - APMATCH_DEVICE=cuda is the default; the four engine classes read it via
+#     apmatch/runtime.py. The CPU image runs with APMATCH_DEVICE unset (cpu).
+#
+# The CPU image (Dockerfile) remains the fallback.
+
+# ── Stage 1: builder ─────────────────────────────────────────────────────────
+FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 AS builder
+
+# Non-interactive apt (tzdata would otherwise prompt and hang the build).
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Ubuntu 22.04 ships Python 3.10; we need 3.12 (deadsnakes PPA).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      software-properties-common \
+      gnupg \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+      python3.12 \
+      python3.12-venv \
+      python3.12-dev \
+      build-essential \
+      libglib2.0-0 \
+      libgl1 \
+      libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY requirements.txt constraints.txt ./
+RUN python3.12 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip
+
+# torch + torchvision: CUDA 12.1 build from the PyTorch index. Self-contained
+# (bundles CUDA 12.1 runtime + cuDNN via pip nvidia-* packages), so it
+# coexists with the system CUDA 11.8 that Paddle uses.
+RUN /opt/venv/bin/pip install --no-cache-dir \
+      torch==2.5.1 torchvision==0.20.1 \
+      --index-url https://download.pytorch.org/whl/cu121
+
+# Paddle GPU: 3.2.2 is a CUDA 11.8 build, available only on Paddle's cu118
+# index (not PyPI). Uses the system CUDA 11.8 + cuDNN 8.x from the base image.
+RUN /opt/venv/bin/pip install --no-cache-dir \
+      "paddlepaddle-gpu==3.2.2" \
+      -i https://www.paddlepaddle.org.cn/packages/stable/cu118
+
+# Everything else. The CPU `paddlepaddle==3.2.2` line is excluded (replaced by
+# paddlepaddle-gpu above); the constraints.txt torch pin is satisfied by the
+# cu121 build (PEP 440 ignores the +cu121 local label when matching ==2.5.1).
+RUN grep -v -E "^paddlepaddle" requirements.txt > /tmp/reqs-no-paddle.txt \
+    && /opt/venv/bin/pip install --no-cache-dir \
+         -c constraints.txt -r /tmp/reqs-no-paddle.txt
+
+# ── Stage 2: runtime ─────────────────────────────────────────────────────────
+FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 AS runtime
+
+# Non-interactive apt (tzdata would otherwise prompt and hang the build).
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      software-properties-common \
+      gnupg \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+      python3.12 \
+      python3.12-venv \
+      libglib2.0-0 \
+      libgl1 \
+      libgomp1 \
+      libsm6 \
+      libxext6 \
+      libxrender1 \
+      curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user
+RUN groupadd --system apmatch \
+    && useradd --system --gid apmatch --home-dir /app apmatch
+
+# Offline guarantees — set BEFORE the app ever imports OCR.
+# APMATCH_DEVICE=cuda: the four engine classes read this via apmatch/runtime.py.
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    APMATCH_DEVICE=cuda \
+    PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Copy the venv from the builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy the application code (respects .dockerignore)
+COPY apmatch/ ./apmatch/
+
+# Alembic migrations, so the entrypoint can run `alembic upgrade head`
+COPY alembic/ ./alembic/
+COPY alembic.ini ./alembic.ini
+
+# Ops scripts + entrypoint (Docker COPY preserves the exec bit)
+COPY scripts/ ./scripts/
+
+# Copy the model cache. Ownership matters — the non-root user must read it.
+COPY --chown=apmatch:apmatch models/ ./models/
+
+# /app is created by WORKDIR (root-owned). PaddleX writes a cache dir
+# (/app/.paddlex) at startup, so the app user must own /app.
+RUN chown apmatch:apmatch /app
+
+USER apmatch
+
+EXPOSE 8000
+
+# GPU startup is slower (model load + CUDA context); give it more headroom.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s \
+            --retries=3 \
+  CMD curl -fsS http://localhost:8000/healthz || exit 1
+
+# The entrypoint runs `alembic upgrade head` (idempotent) before uvicorn, so
+# every `docker compose up` is safe even on a fresh Postgres volume.
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh", "uvicorn", "apmatch.api.app:app", \
+            "--host", "0.0.0.0", "--port", "8000", \
+            "--log-level", "info"]

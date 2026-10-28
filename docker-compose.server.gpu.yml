@@ -1,0 +1,27 @@
+# GPU overlay. Use alongside docker-compose.server.yml:
+#
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.server.yml \
+#                  -f docker-compose.server.gpu.yml \
+#                  --env-file .env.server up -d
+#
+# Requires the GPU image to be built first:
+#   docker build -f Dockerfile.gpu -t apmatch:dev-gpu .
+#
+# The CPU deploy (without this overlay) remains the fallback.
+
+services:
+  api:
+    image: apmatch:dev-gpu
+    runtime: nvidia
+    environment:
+      APMATCH_DEVICE: cuda
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

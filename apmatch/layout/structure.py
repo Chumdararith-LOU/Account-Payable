@@ -57,14 +57,19 @@ class LayoutEngine:
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         from paddleocr import PPStructureV3
 
+        from apmatch.runtime import get_device
+
         kwargs = {kwarg: str(root / subdir) for kwarg, subdir in _MODEL_DIRS.items()}
         # AP invoices contain no formulas, machine-readable seals, or charts.
         # Disabling these sub-pipelines skips their model construction (and
         # the 702 MB PP-FormulaNet_plus-L weights) entirely.
+        # Paddlex device vocabulary is "cpu"/"gpu", not torch's "cuda".
+        paddle_device = "gpu" if get_device() == "cuda" else "cpu"
         self._pipeline = PPStructureV3(
             use_formula_recognition=False,
             use_seal_recognition=False,
             use_chart_recognition=False,
+            device=paddle_device,
             **kwargs,
         )
 

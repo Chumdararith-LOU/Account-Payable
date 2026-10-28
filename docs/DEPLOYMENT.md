@@ -71,6 +71,51 @@ the new server has 2× the RAM, 8 cores, and a GPU.
   never collide with another project.
 - All our operations target `docker compose -p apmatch-demo`.
 
+## GPU mode (default on the current server)
+
+The server hosts an RTX 2080 Ti. The GPU image (`apmatch:dev-gpu`,
+built from `Dockerfile.gpu`) runs the same pipeline on the GPU; the
+CPU image (`apmatch:dev`) remains the fallback.
+
+Build the GPU image (first time ~30-60 min; layers cache after):
+
+```bash
+cd /opt/apmatch
+docker build -f Dockerfile.gpu -t apmatch:dev-gpu .
+```
+
+To use the GPU:
+
+```bash
+docker compose -f docker-compose.yml \
+               -f docker-compose.server.yml \
+               -f docker-compose.server.gpu.yml \
+               --env-file .env.server up -d
+```
+
+To fall back to CPU (if the GPU is unavailable):
+
+```bash
+docker compose -f docker-compose.yml \
+               -f docker-compose.server.yml \
+               --env-file .env.server up -d
+```
+
+To verify the GPU is in use:
+
+```bash
+ssh rith@100.88.94.91 'nvidia-smi'
+```
+
+Device selection is runtime, not build-time: the four engine classes
+read `APMATCH_DEVICE` (default `cpu`; the GPU overlay sets `cuda`) via
+`apmatch/runtime.py`. See D-095/D-096.
+
+Ollama (:11434) shares the GPU. If Ollama has loaded its 7.4 GB model,
+the GPU pipeline will OOM. Either stop Ollama
+(`sudo systemctl stop ollama`) or configure it CPU-only. Check with
+`nvidia-smi` before a GPU deploy.
+
 ## Demo venue
 
 - The server is Tailscale-only. The demo machine (Mac) must be on

@@ -52,6 +52,14 @@
 | EMB-13 | Final rehearsal (3× end-to-end) | pending | |
 | EMB-13a | Deploy target migration to 100.88.94.91 (GPU server) | done | (EMB-13a) |
 
+## Production (BPO)
+
+| ID | Task | Status | Commit |
+|---|---|---|---|
+| PROD-A1 | GPU pipeline (apmatch:dev-gpu image + APMATCH_DEVICE) | done | (PROD-A1) |
+| PROD-A2 | Batch endpoint (/batch) | pending | |
+| PROD-B | Customer-scoped templates | pending | |
+
 ## Deferred
 
 | ID | Task | Status | Commit |
