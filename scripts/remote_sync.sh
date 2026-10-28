@@ -6,10 +6,10 @@ set -euo pipefail
 # directly.
 #
 # Environment:
-#   APMATCH_SERVER   default: rith@100.127.105.9
+#   APMATCH_SERVER   default: rith@100.88.94.91
 #   APMATCH_REMOTE_DEV   default: /opt/apmatch-dev
 
-SERVER="${APMATCH_SERVER:-rith@100.127.105.9}"
+SERVER="${APMATCH_SERVER:-rith@100.88.94.91}"
 REMOTE_DIR="${APMATCH_REMOTE_DEV:-/opt/apmatch-dev}"
 
 # Create the remote dir if missing (idempotent).

@@ -27,3 +27,9 @@ models/embeddings/*
 VGM_OCL*
 *.pdf
 vgm_ocl_split/
+
+# Batch-120 evaluation data (provided externally, not part of the repo)
+documents/batch-120-cases.zip
+documents/CASE-*/
+documents/labels.csv
+documents/ground_truth.jsonl

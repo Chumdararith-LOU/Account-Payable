@@ -12,7 +12,7 @@ set -euo pipefail
 #   ./scripts/remote.sh 'python scripts/diagnose_match_failure.py'
 #   ./scripts/remote.sh 'alembic upgrade head'
 
-SERVER="${APMATCH_SERVER:-rith@100.127.105.9}"
+SERVER="${APMATCH_SERVER:-rith@100.88.94.91}"
 REMOTE_DIR="${APMATCH_REMOTE_DEV:-/opt/apmatch-dev}"
 
 # Sync first

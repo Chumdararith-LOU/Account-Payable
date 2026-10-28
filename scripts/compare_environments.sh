@@ -23,7 +23,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-SERVER="${APMATCH_SERVER:-rith@100.127.105.9}"
+SERVER="${APMATCH_SERVER:-rith@100.88.94.91}"
 LOCAL_DUMP="/tmp/dump_mac.json"
 REMOTE_DUMP="/tmp/dump_server.json"
 DIFF_OUT="/tmp/determinism_diff.txt"

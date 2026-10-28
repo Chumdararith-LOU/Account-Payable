@@ -7,7 +7,7 @@ set -euo pipefail
 #   ./scripts/deploy_remote.sh <ssh-target>
 #
 # Example:
-#   ./scripts/deploy_remote.sh rith@100.76.126.16
+#   ./scripts/deploy_remote.sh rith@100.88.94.91
 #
 # Assumptions:
 #   - SSH key auth is configured (no password prompts).

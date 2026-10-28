@@ -50,6 +50,7 @@
 | EMB-11 | Deploy runbook + rehearsal | pending | |
 | EMB-12 | Demo script (scripts/demo_embedding.sh) | pending | |
 | EMB-13 | Final rehearsal (3× end-to-end) | pending | |
+| EMB-13a | Deploy target migration to 100.88.94.91 (GPU server) | done | (EMB-13a) |
 
 ## Deferred
 

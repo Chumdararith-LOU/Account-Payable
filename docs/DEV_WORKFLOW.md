@@ -7,7 +7,7 @@ test, build, or Python/ruff/docker command, a wrapper syncs
 the tree to the server and runs the command there.
 
 ## Prerequisites
-- SSH key auth to `rith@100.127.105.9` (no password prompt).
+- SSH key auth to `rith@100.88.94.91` (no password prompt).
 - The server has `/opt/apmatch` (production deploy) and
   `/opt/apmatch-dev` (dev mirror, synced by our scripts).
 - Both directories have a `.env.server` file with real values.
@@ -60,7 +60,7 @@ expected to take more than ~10 minutes, detach **on the
 server side** so the run survives local disconnects:
 
     ./scripts/remote_sync.sh
-    ssh rith@100.127.105.9 'cd /opt/apmatch-dev && \
+    ssh rith@100.88.94.91 'cd /opt/apmatch-dev && \
       nohup docker compose -f docker-compose.yml \
         -f docker-compose.server.yml -f docker-compose.dev.yml \
         --env-file .env.server \
@@ -70,7 +70,7 @@ server side** so the run survives local disconnects:
 
 Then poll the log:
 
-    ssh rith@100.127.105.9 'tail -5 /tmp/apm_full.log'
+    ssh rith@100.88.94.91 'tail -5 /tmp/apm_full.log'
 
 Memory: the server has 15 GiB RAM and the production API holds
 ~4 GiB of it. The OCR test container needs ~5 GiB. The full
@@ -91,5 +91,5 @@ failure.
 - Anything that touches the server's Postgres directly
 
 ## Environment variables
-- `APMATCH_SERVER`      default `rith@100.127.105.9`
+- `APMATCH_SERVER`      default `rith@100.88.94.91`
 - `APMATCH_REMOTE_DEV`  default `/opt/apmatch-dev`
