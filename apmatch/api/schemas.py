@@ -57,6 +57,8 @@ class MatchResponse(BaseModel):
     # Similarity matches recorded during line-item fallback.
     # Empty when the exact-match path was used for every line.
     similarity_matches: list[SimilarityMatchOut] = []
+    # Multi-tenant tag (D-091); echoes the request's customer_id.
+    customer_id: str = "default"
 
 
 class AuditResponse(BaseModel):
@@ -76,6 +78,8 @@ class AuditResponse(BaseModel):
     # Similarity matches recorded during line-item fallback.
     # Empty when the exact-match path was used for every line.
     similarity_matches: list[SimilarityMatchOut] = []
+    # Multi-tenant tag (D-091).
+    customer_id: str = "default"
 
 
 class RouteCountsOut(BaseModel):

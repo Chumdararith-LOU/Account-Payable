@@ -272,9 +272,17 @@ full deterministic pipeline behind a small FastAPI app:
   optional) → OCR → parse → validate → match → score → one `audit_log` row →
   the routing decision. Sync on purpose: the OCR pipeline is blocking, so
   FastAPI runs it in its threadpool.
+  - `/match` accepts an optional `customer_id` query parameter
+    (default `"default"`). Pattern: `^[a-z0-9_-]{1,64}$`; anything else is
+    rejected with 400 `INVALID_CUSTOMER_ID` before any pipeline work.
+  - Every audit row stores the `customer_id` (indexed). KPI endpoints accept
+    `customer_id` and filter by it. This is the foundation for multi-tenant
+    operation (BPO use case, D-091).
+  - The `customer_id` does NOT currently affect template selection or file
+    storage — those are PROD-B/C tasks.
 - **`GET /audit/{run_id}`** — the stored decision for a run.
 - **`GET /kpis/routes`** / **`GET /kpis/recent`** — read-only KPI queries over
-  the audit log.
+  the audit log; both accept an optional `customer_id` filter.
 - **`GET /healthz`** — no auth; liveness for the load balancer.
 
 Design notes (see D-051/D-052):

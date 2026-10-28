@@ -182,3 +182,17 @@ def test_audit_entry_roundtrip_without_similarity_matches(pg_session, _mk_audit_
     AuditRepository.append(pg_session, entry)
     loaded = AuditRepository.get(pg_session, entry.run_id)
     assert loaded.similarity_matches == ()
+
+
+def test_audit_entry_roundtrip_preserves_customer_id(pg_session, _mk_audit_entry):
+    entry = _mk_audit_entry(run_id="g" * 32, customer_id="hotel_acme")
+    AuditRepository.append(pg_session, entry)
+    loaded = AuditRepository.get(pg_session, entry.run_id)
+    assert loaded.customer_id == "hotel_acme"
+
+
+def test_audit_entry_default_customer_id(pg_session, _mk_audit_entry):
+    entry = _mk_audit_entry(run_id="h" * 32)
+    AuditRepository.append(pg_session, entry)
+    loaded = AuditRepository.get(pg_session, entry.run_id)
+    assert loaded.customer_id == "default"

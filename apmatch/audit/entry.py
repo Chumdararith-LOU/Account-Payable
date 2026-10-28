@@ -37,3 +37,6 @@ class AuditEntry:
 
     input_hash: str  # 64 hex chars
     similarity_matches: tuple[SimilarityMatch, ...] = ()
+    # Multi-tenant tag (D-091). Defaulted and last: dataclass fields with
+    # defaults must trail the required ones, so it cannot sit mid-class.
+    customer_id: str = "default"

@@ -14,6 +14,7 @@ responses or logs.
 from __future__ import annotations
 
 import logging
+import re
 import tempfile
 import time
 from contextlib import asynccontextmanager
@@ -21,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from PIL import Image
 from sqlalchemy import create_engine
@@ -119,6 +120,9 @@ def get_session(request: Request):
 # these, else default to .png.
 _IMAGE_SUFFIXES = {".bmp", ".dib", ".jpeg", ".jpg", ".png", ".webp", ".pbm", ".pgm", ".ppm", ".pnm", ".sr", ".ras", ".tiff", ".tif"}
 
+# Multi-tenant tag (D-091): lowercase alphanumerics, underscore, hyphen.
+_CUSTOMER_ID_RE = re.compile(r"^[a-z0-9_-]{1,64}$")
+
 
 def _suffix_for(upload: UploadFile) -> str:
     suffix = Path(upload.filename or "").suffix.lower()
@@ -178,6 +182,7 @@ def match(
     po: UploadFile | None = File(None),
     grni: UploadFile | None = File(None),
     pard: UploadFile | None = File(None),
+    customer_id: str = Query("default"),
     session: Session = Depends(get_session),
 ) -> MatchResponse:
     """Full pipeline: up to 4 images in -> decision + one audit_log row.
@@ -185,6 +190,10 @@ def match(
     Sync on purpose: the OCR pipeline is blocking, so FastAPI runs this in
     its threadpool instead of stalling the event loop.
     """
+    # Validate before any pipeline work: a bad tag must not cost an OCR run.
+    if not _CUSTOMER_ID_RE.fullmatch(customer_id):
+        raise ApiError(400, "INVALID_CUSTOMER_ID", "customer_id must match ^[a-z0-9_-]{1,64}$")
+
     contents: dict[str, tuple[bytes, str]] = {}
     for name, upload in (("invoice", invoice), ("po", po), ("grni", grni), ("pard", pard)):
         if upload is None:
@@ -211,6 +220,7 @@ def match(
                 layout=request.app.state.layout,
                 embedding_model=request.app.state.embedding_model,
                 ocr_debug=config.APMATCH_OCR_DEBUG,
+                customer_id=customer_id,
             )
         except ApiError:
             raise
@@ -235,6 +245,7 @@ def match(
         validation_failures=[_failure_out(f) for f in entry.validation_failures],
         match_failures=[_failure_out(f) for f in entry.match_failures],
         similarity_matches=[_similarity_out(sm) for sm in entry.similarity_matches],
+        customer_id=entry.customer_id,
     )
 
 
@@ -263,12 +274,17 @@ def _audit_response(entry: AuditEntry) -> AuditResponse:
         match_failures=[_failure_out(f) for f in entry.match_failures],
         input_hash=entry.input_hash,
         similarity_matches=[_similarity_out(sm) for sm in entry.similarity_matches],
+        customer_id=entry.customer_id,
     )
 
 
 @app.get("/kpis/routes", response_model=RouteCountsOut, dependencies=[Depends(require_api_key)])
-def kpis_routes(since: datetime | None = None, session: Session = Depends(get_session)) -> RouteCountsOut:
-    counts = count_by_route(session, since)
+def kpis_routes(
+    since: datetime | None = None,
+    customer_id: str | None = None,
+    session: Session = Depends(get_session),
+) -> RouteCountsOut:
+    counts = count_by_route(session, since, customer_id)
     return RouteCountsOut(
         auto_approve=counts.auto_approve,
         human_review=counts.human_review,
@@ -278,7 +294,11 @@ def kpis_routes(since: datetime | None = None, session: Session = Depends(get_se
 
 
 @app.get("/kpis/recent", response_model=list[RecentRunOut], dependencies=[Depends(require_api_key)])
-def kpis_recent(limit: int = 50, session: Session = Depends(get_session)) -> list[RecentRunOut]:
+def kpis_recent(
+    limit: int = 50,
+    customer_id: str | None = None,
+    session: Session = Depends(get_session),
+) -> list[RecentRunOut]:
     return [
         RecentRunOut(
             run_id=r.run_id,
@@ -289,5 +309,5 @@ def kpis_recent(limit: int = 50, session: Session = Depends(get_session)) -> lis
             score=float(r.score_value),
             remark=r.remark,
         )
-        for r in recent_runs(session, limit)
+        for r in recent_runs(session, limit, customer_id)
     ]

@@ -51,6 +51,7 @@ def run_pipeline(
     layout: LayoutEngine | None = None,
     embedding_model=None,
     ocr_debug: bool = False,
+    customer_id: str = "default",
 ) -> tuple[MatchResult, ValidationResult, RoutingDecision, AuditEntry]:
     """Run the full deterministic chain over up to four document images.
 
@@ -93,5 +94,6 @@ def run_pipeline(
         match_failures=match.failures,
         input_hash=compute_input_hash(invoice, po, grni, pard),
         similarity_matches=match.similarity_matches,
+        customer_id=customer_id,
     )
     return match, validation, decision, audit_entry

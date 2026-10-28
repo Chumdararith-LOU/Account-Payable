@@ -30,6 +30,10 @@ class AuditLog(Base):
     run_id: Mapped[str] = mapped_column(String(32), primary_key=True)
     run_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     invoice_number: Mapped[str] = mapped_column(String(64), nullable=False)
+    # Multi-tenant tag (D-091). Indexed: every KPI query filters by it.
+    customer_id: Mapped[str] = mapped_column(
+        String(64), nullable=False, server_default="default", index=True
+    )
     po_number: Mapped[str | None] = mapped_column(String(64))
     grn_number: Mapped[str | None] = mapped_column(String(64))
     pard_ref: Mapped[str | None] = mapped_column(String(64))

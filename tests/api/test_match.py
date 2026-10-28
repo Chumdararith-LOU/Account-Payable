@@ -96,3 +96,46 @@ def test_match_audit_row_written(client_tx, api_session, match_body):
     rows = api_session.execute(select(AuditLog).where(AuditLog.run_id == match_body["run_id"])).scalars().all()
     assert len(rows) == 1
     assert rows[0].route == match_body["route"]
+
+
+def test_match_default_customer_id(client_tx, test_api_key, match_body):
+    # The module-scoped POST was sent without a customer_id.
+    assert match_body["customer_id"] == "default"
+
+
+def test_match_with_customer_id(client_tx, test_api_key):
+    files = {name: (p.name, p.read_bytes(), "image/png") for name, p in IMAGES.items()}
+    resp = client_tx.post(
+        "/match",
+        files=files,
+        params={"customer_id": "hotel_acme"},
+        headers={"X-API-Key": test_api_key},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["customer_id"] == "hotel_acme"
+
+
+def test_match_rejects_invalid_customer_id(client_tx, test_api_key):
+    # Uppercase is invalid — the tag must be lowercase. Rejected before any
+    # pipeline work (a bad tag must not cost an OCR run).
+    files = {"invoice": ("invoice.png", b"\x89PNG\r\n\x1a\n", "image/png")}
+    resp = client_tx.post(
+        "/match",
+        files=files,
+        params={"customer_id": "Hotel-ACME"},
+        headers={"X-API-Key": test_api_key},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "INVALID_CUSTOMER_ID"
+
+
+def test_match_rejects_overlong_customer_id(client_tx, test_api_key):
+    files = {"invoice": ("invoice.png", b"\x89PNG\r\n\x1a\n", "image/png")}
+    resp = client_tx.post(
+        "/match",
+        files=files,
+        params={"customer_id": "a" * 65},
+        headers={"X-API-Key": test_api_key},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "INVALID_CUSTOMER_ID"

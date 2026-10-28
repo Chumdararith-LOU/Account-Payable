@@ -69,11 +69,15 @@ def _row_to_recent_run(row: AuditLog) -> RecentRun:
     )
 
 
-def count_by_route(session: Session, since: datetime | None = None) -> RouteCounts:
-    """Count runs grouped by route, optionally filtered to run_timestamp >= since."""
+def count_by_route(
+    session: Session, since: datetime | None = None, customer_id: str | None = None
+) -> RouteCounts:
+    """Count runs grouped by route, optionally filtered by since and customer_id."""
     stmt = select(AuditLog.route, func.count()).group_by(AuditLog.route)
     if since is not None:
         stmt = stmt.where(AuditLog.run_timestamp >= since)
+    if customer_id is not None:
+        stmt = stmt.where(AuditLog.customer_id == customer_id)
     counts = {route: count for route, count in session.execute(stmt).all()}
     return RouteCounts(
         auto_approve=counts.get(Route.AUTO_APPROVE.value, 0),
@@ -82,7 +86,9 @@ def count_by_route(session: Session, since: datetime | None = None) -> RouteCoun
     )
 
 
-def count_by_reason(session: Session, since: datetime | None = None) -> tuple[ReasonCounts, ...]:
+def count_by_reason(
+    session: Session, since: datetime | None = None, customer_id: str | None = None
+) -> tuple[ReasonCounts, ...]:
     """Count runs grouped by route_reason, ordered by count DESC then reason ASC."""
     stmt = (
         select(AuditLog.route_reason, func.count().label("count"))
@@ -91,13 +97,17 @@ def count_by_reason(session: Session, since: datetime | None = None) -> tuple[Re
     )
     if since is not None:
         stmt = stmt.where(AuditLog.run_timestamp >= since)
+    if customer_id is not None:
+        stmt = stmt.where(AuditLog.customer_id == customer_id)
     return tuple(
         ReasonCounts(reason=RouteReason(reason), count=count)
         for reason, count in session.execute(stmt).all()
     )
 
 
-def recent_runs(session: Session, limit: int = 50) -> tuple[RecentRun, ...]:
+def recent_runs(
+    session: Session, limit: int = 50, customer_id: str | None = None
+) -> tuple[RecentRun, ...]:
     """Most recent runs first (run_timestamp DESC, run_id DESC), bounded limit."""
     if limit < 1 or limit > 500:
         raise ValueError(f"limit must be between 1 and 500, got {limit}")
@@ -106,10 +116,14 @@ def recent_runs(session: Session, limit: int = 50) -> tuple[RecentRun, ...]:
         .order_by(AuditLog.run_timestamp.desc(), AuditLog.run_id.desc())
         .limit(limit)
     )
+    if customer_id is not None:
+        stmt = stmt.where(AuditLog.customer_id == customer_id)
     return tuple(_row_to_recent_run(row) for row in session.execute(stmt).scalars().all())
 
 
-def score_histogram(session: Session, since: datetime | None = None) -> ScoreBuckets:
+def score_histogram(
+    session: Session, since: datetime | None = None, customer_id: str | None = None
+) -> ScoreBuckets:
     """5 fixed score buckets computed in a single Postgres query (COUNT FILTER)."""
     s = AuditLog.score_value
     stmt = select(
@@ -121,6 +135,8 @@ def score_histogram(session: Session, since: datetime | None = None) -> ScoreBuc
     )
     if since is not None:
         stmt = stmt.where(AuditLog.run_timestamp >= since)
+    if customer_id is not None:
+        stmt = stmt.where(AuditLog.customer_id == customer_id)
     row = session.execute(stmt).one()
     return ScoreBuckets(
         b_00_02=row.b_00_02,
@@ -132,7 +148,10 @@ def score_histogram(session: Session, since: datetime | None = None) -> ScoreBuc
 
 
 def top_discrepancy_invoices(
-    session: Session, limit: int = 10, since: datetime | None = None
+    session: Session,
+    limit: int = 10,
+    since: datetime | None = None,
+    customer_id: str | None = None,
 ) -> tuple[RecentRun, ...]:
     """Most recent HUMAN_REVIEW/REJECT runs, lowest confidence first.
 
@@ -148,4 +167,6 @@ def top_discrepancy_invoices(
     )
     if since is not None:
         stmt = stmt.where(AuditLog.run_timestamp >= since)
+    if customer_id is not None:
+        stmt = stmt.where(AuditLog.customer_id == customer_id)
     return tuple(_row_to_recent_run(row) for row in session.execute(stmt).scalars().all())

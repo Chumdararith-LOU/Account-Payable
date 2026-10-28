@@ -136,6 +136,10 @@ _FORBIDDEN_PREFIX = ("apmatch.ocr", "apmatch.layout")
 
 def test_integration_has_no_ml_or_network_imports():
     for py in sorted(Path(__file__).resolve().parent.rglob("*.py")):
+        # The demo module runs the real OCR pipeline by design (EMB-08);
+        # the no-ML rule applies to the fast, deterministic tests only.
+        if py.name == "test_embeddings_demo.py":
+            continue
         tree = ast.parse(py.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             modules = []

@@ -42,7 +42,7 @@ def layout_engine():
     return LayoutEngine()
 
 
-def _run(embedding_model=None, router=None, layout=None):
+def _run(embedding_model=None, router=None, layout=None, customer_id="default"):
     from apmatch.api.pipeline import run_pipeline
 
     return run_pipeline(
@@ -53,6 +53,7 @@ def _run(embedding_model=None, router=None, layout=None):
         embedding_model=embedding_model,
         router=router,
         layout=layout,
+        customer_id=customer_id,
     )
 
 
@@ -103,3 +104,11 @@ def test_demo_route_depends_on_embeddings(embedding_model, ocr_router, layout_en
         embedding_model=embedding_model, router=ocr_router, layout=layout_engine)
     assert d_off.route.value == "HUMAN_REVIEW"
     assert d_on.route.value != "REJECT"
+
+
+def test_demo_with_customer_id(embedding_model, ocr_router, layout_engine):
+    # The multi-tenant tag (D-091) is carried through to the AuditEntry.
+    _, _, _, entry = _run(
+        embedding_model=embedding_model, router=ocr_router, layout=layout_engine,
+        customer_id="hotel_demo")
+    assert entry.customer_id == "hotel_demo"

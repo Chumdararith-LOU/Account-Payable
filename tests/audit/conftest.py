@@ -37,6 +37,7 @@ def _mk_audit_entry():
             match_failures=kwargs.get("match_failures", ()),
             input_hash=kwargs.get("input_hash", "0" * 64),
             similarity_matches=kwargs.get("similarity_matches", ()),
+            customer_id=kwargs.get("customer_id", "default"),
         )
 
     return _build
