@@ -48,7 +48,7 @@
 | EMB-09 | Full-pipeline integration test + demo verify on new server + customer_id tagging | done | (EMB-09) |
 | EMB-10 | Docs + decisions polish | done | (EMB-10) |
 | EMB-11 | Deploy runbook + rehearsal | done | (EMB-11) |
-| EMB-12 | Demo script (scripts/demo_embedding.sh) | pending | |
+| EMB-12 | Demo script (scripts/run_demo_case.py) + demo narrative | done | (EMB-12) |
 | EMB-13 | Final rehearsal (3× end-to-end) | pending | |
 | EMB-13a | Deploy target migration to 100.88.94.91 (GPU server) | done | (EMB-13a) |
 

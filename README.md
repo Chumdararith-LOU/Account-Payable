@@ -183,7 +183,14 @@ uvicorn apmatch.api.app:app --host 0.0.0.0 --port 8000
 
 ## Running the demo
 
-Demo case runner: coming in EMB-12.
+```bash
+APMATCH_API_KEY=... python scripts/run_demo_case.py
+```
+
+Runs one 4-document case against the deployed API (default
+`http://100.88.94.91:8001`) and prints the route, score, similarity
+matches, and audit row. Stdlib-only. See `docs/DEMO.md` for the demo-day
+narrative and `docs/demo-screenshots/` for a saved sample output.
 
 ## Testing
 

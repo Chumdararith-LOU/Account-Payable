@@ -1,0 +1,30 @@
+┌──────────────────────────────────────────────────┐
+│ APMatch demo case                                │
+│ Server:   http://100.88.94.91:8001               │
+│ Customer: demo                                   │
+│ invoice:   documents/demo/invoice.png            │
+│ po:        documents/demo/po.png                 │
+│ grni:      documents/demo/grn.png                │
+│ pard:      documents/demo/pard.png               │
+└──────────────────────────────────────────────────┘
+
+Running pipeline (this may take 30-90s)...
+
+Route:            AUTO_APPROVE
+Reason:           ALL_CHECKS_PASSED
+Score:            1.0000
+Invoice number:   INV-2026-1123
+Remark:           Validated OK.
+
+Similarity matches: 6  (embedding fallback)
+  - [accept] chair, office, metal frame, black ~ office chair  (score 0.7344)
+  - [accept] chair, office, metal frame, black ~ office chair (black frame)  (score 0.8978)
+  - [accept] lamp for desk, adjustable ~ desk lamp  (score 0.8832)
+  - [accept] lamp for desk, adjustable ~ desk lamp  (score 0.8832)
+  - [accept] white board, wall-mounted ~ whiteboard  (score 0.7723)
+  - [accept] white board, wall-mounted ~ whiteboard  (score 0.7723)
+
+Audit row:
+  run_id:         904f0c8075b54ed0b854336f3b09f308
+  customer_id:    demo
+  input_hash:     bb2db8d2399d401cc3afc64b8533ebf5fc3a21b42ec3e357a89caa68a247a232
