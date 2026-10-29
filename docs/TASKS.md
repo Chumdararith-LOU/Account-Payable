@@ -58,6 +58,8 @@
 |---|---|---|---|
 | PROD-A1 | GPU pipeline (apmatch:dev-gpu image + APMATCH_DEVICE) | done | (PROD-A1) |
 | PROD-A2 | Batch endpoint (/batch) | pending | |
+| PROD-B0 | Batch evaluation runner + 120-case baseline | done | (PROD-B0) |
+| PROD-B0.5 | None-guards in matching engine (unmask crash-dominated baseline) | pending | |
 | PROD-B | Customer-scoped templates | pending | |
 
 ## Deferred

@@ -1,0 +1,4254 @@
+{
+  "batch_id": "20261029T025700Z",
+  "started_at": "2026-10-29T02:57:00.476264+00:00",
+  "finished_at": "2026-10-29T03:26:45.368824+00:00",
+  "duration_seconds": 1784.9,
+  "batch_dir": "/app/batch-120",
+  "csv": "/app/batch-120/labels.csv",
+  "total": 120,
+  "passed": 7,
+  "failed": 113,
+  "pass_rate": 0.0583,
+  "hard_errors": 99,
+  "by_style": {
+    "kh": {
+      "total": 40,
+      "passed": 7,
+      "failed": 33
+    },
+    "us": {
+      "total": 40,
+      "passed": 0,
+      "failed": 40
+    },
+    "in": {
+      "total": 40,
+      "passed": 0,
+      "failed": 40
+    }
+  },
+  "by_expected": {
+    "MATCH": {
+      "total": 54,
+      "passed": 0,
+      "failed": 54
+    },
+    "DISCREPANCY": {
+      "total": 61,
+      "passed": 7,
+      "failed": 54
+    },
+    "PENDING INFO": {
+      "total": 5,
+      "passed": 0,
+      "failed": 5
+    }
+  },
+  "cases": [
+    {
+      "case_id": "CASE-0001",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 90.568,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0002",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.016,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0003",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.082,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0004",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "HUMAN_REVIEW",
+      "actual_reason": "MATCH_DISCREPANCY",
+      "passed": false,
+      "duration_seconds": 12.522,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "warning",
+          "location": "line 2 (INV) -> line 2 (PO)",
+          "expected": "16384.00000000",
+          "actual": "1024.00",
+          "delta": "15360.00000000"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "UNIT_PRICE_MISMATCH",
+          "severity": "warning",
+          "location": "line 2 (INV) -> line 2 (PO)",
+          "expected": "1024.0000",
+          "actual": "64.0000",
+          "delta": "960.0000"
+        }
+      ],
+      "run_id": "40dfc74ee8754f3886d45516fb2e5763"
+    },
+    {
+      "case_id": "CASE-0005",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.439,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0006",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 15.292,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "invoice_number",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "vendor_name",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "subtotal",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "tax_amount",
+          "delta": ""
+        },
+        {
+          "code": "NO_LINE_ITEMS",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "",
+          "actual": "0 lines",
+          "delta": ""
+        },
+        {
+          "code": "PARD_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "52535877771148.00",
+          "actual": "156074.37",
+          "delta": "52535877615073.63"
+        },
+        {
+          "code": "VENDOR_MISMATCH",
+          "severity": "warning",
+          "location": "header",
+          "expected": "kaveri home store",
+          "actual": "",
+          "delta": ""
+        }
+      ],
+      "run_id": "35cc043b157f4842b225f6f63c144c17"
+    },
+    {
+      "case_id": "CASE-0007",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.668,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0008",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.822,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0009",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.381,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0010",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 14.016,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0011",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.394,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0012",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.132,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0013",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 11.629,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "1452.00",
+          "actual": "3.00",
+          "delta": "1449.00"
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "539.00",
+          "actual": "476.00",
+          "delta": "63.00"
+        },
+        {
+          "code": "PARD_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "539.00",
+          "actual": "592.90",
+          "delta": "53.90"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "811775d4adc34907b4005fb0a0e1af9e"
+    },
+    {
+      "case_id": "CASE-0014",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 55.882,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0015",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.889,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0016",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.982,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0017",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.728,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0018",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 14.98,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0019",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 11.495,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0020",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 9.716,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0021",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 14.243,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0022",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 14.611,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0023",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.168,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0024",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 14.309,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0025",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 11.21,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0026",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 9.746,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0027",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.348,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0028",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": true,
+      "duration_seconds": 12.883,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "3184.35",
+          "actual": "774.95",
+          "delta": "2409.40"
+        },
+        {
+          "code": "PARD_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "3184.35",
+          "actual": "3502.79",
+          "delta": "318.44"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "3365214238f2462b84a68f784efde3bb"
+    },
+    {
+      "case_id": "CASE-0029",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 13.028,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0030",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.558,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0031",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.78,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0032",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.333,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0033",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 14.67,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0034",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 16.797,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0035",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.465,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0036",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.684,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0037",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 12.317,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "2204.28",
+          "actual": "671.00",
+          "delta": "1533.28"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "a34fbb7e69cf45358d6606fe79be285b"
+    },
+    {
+      "case_id": "CASE-0038",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.463,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0039",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.838,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0040",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": true,
+      "duration_seconds": 14.153,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "VENDOR_MISMATCH",
+          "severity": "warning",
+          "location": "header",
+          "expected": "tonle sap logistics co., ltd.",
+          "actual": "ltd.",
+          "delta": ""
+        }
+      ],
+      "run_id": "7f3caa43083540cc98281e2102ff890f"
+    },
+    {
+      "case_id": "CASE-0041",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.069,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0042",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 13.873,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0043",
+      "style": "kh",
+      "expected": "PENDING INFO",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 10.822,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 5",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "2119.00",
+          "actual": "0.00",
+          "delta": "2119.00"
+        },
+        {
+          "code": "PARD_MISSING",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "present",
+          "actual": "missing",
+          "delta": ""
+        }
+      ],
+      "run_id": "660a2f439d844eaead5f769a204aab58"
+    },
+    {
+      "case_id": "CASE-0044",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.747,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0045",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.757,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0046",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 42.585,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0047",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.008,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0048",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.713,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0049",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 14.678,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "3136.00",
+          "actual": "56.00",
+          "delta": "3080.00"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "36.00",
+          "actual": "6.00",
+          "delta": "30.00"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "168100.00",
+          "actual": "410.00",
+          "delta": "167690.00"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "12.25",
+          "actual": "3.50",
+          "delta": "8.75"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 5",
+          "expected": "1768900.00",
+          "actual": "1330.00",
+          "delta": "1767570.00"
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "5667.50",
+          "actual": "1805.50",
+          "delta": "3862.00"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 5 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 5 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "QTY_MISMATCH",
+          "severity": "warning",
+          "location": "line 4 (INV) -> line 3 (GRNI)",
+          "expected": "1.0000",
+          "actual": "3.5000",
+          "delta": "2.5000"
+        },
+        {
+          "code": "SIMILARITY_MATCH_REVIEW",
+          "severity": "warning",
+          "location": "line 4 (INV) -> line 3 (GRN)",
+          "expected": "3",
+          "actual": "3.50",
+          "delta": ""
+        }
+      ],
+      "run_id": "ed84096cfe2c45728a1c6b69785d3519"
+    },
+    {
+      "case_id": "CASE-0050",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 10.983,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0051",
+      "style": "in",
+      "expected": "PENDING INFO",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 10.722,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "vendor_name",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "invoice_date",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "PARD_MISSING",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "present",
+          "actual": "missing",
+          "delta": ""
+        }
+      ],
+      "run_id": "c02aa608b726499aacb8f9b162bbb063"
+    },
+    {
+      "case_id": "CASE-0052",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 13.218,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "63504.00",
+          "actual": "252.00",
+          "delta": "63252.00"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "9.00",
+          "actual": "3.00",
+          "delta": "6.00"
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "2777.20",
+          "actual": "255.00",
+          "delta": "2522.20"
+        },
+        {
+          "code": "PARD_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "2777.20",
+          "actual": "3054.92",
+          "delta": "277.72"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "b5f20db16d7a414aa3b0179482d80ad7"
+    },
+    {
+      "case_id": "CASE-0053",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.09,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0054",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.21,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0055",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.254,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0056",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.043,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0057",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.913,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0058",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.693,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0059",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.308,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0060",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.037,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0061",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "HUMAN_REVIEW",
+      "actual_reason": "MATCH_DISCREPANCY",
+      "passed": true,
+      "duration_seconds": 11.809,
+      "failures": [
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "49a57493dceb4028ae627b1e93c2be0d"
+    },
+    {
+      "case_id": "CASE-0062",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.573,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0063",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.795,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0064",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 13.995,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0065",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 12.363,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0066",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.806,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0067",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 12.82,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0068",
+      "style": "us",
+      "expected": "PENDING INFO",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 8.173,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "invoice_number",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "vendor_name",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "invoice_date",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 5",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 5",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 6",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 6",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 7",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 7",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 8",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 8",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 8",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "202.35",
+          "actual": "648.53",
+          "delta": "446.18"
+        },
+        {
+          "code": "PO_MISSING",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "present",
+          "actual": "missing",
+          "delta": ""
+        }
+      ],
+      "run_id": "144858e887454e82a78132f6c6d53a2f"
+    },
+    {
+      "case_id": "CASE-0069",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.771,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0070",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.743,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0071",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.238,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0072",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.095,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0073",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.706,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0074",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.282,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0075",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.518,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0076",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": true,
+      "duration_seconds": 11.542,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "2175.00",
+          "actual": "81.00",
+          "delta": "2094.00"
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "2256.00",
+          "actual": "81.00",
+          "delta": "2175.00"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "755b782fb22547b78856d31ddf8febab"
+    },
+    {
+      "case_id": "CASE-0077",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.361,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0078",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.962,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0079",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 11.879,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "572.00",
+          "actual": "51.00",
+          "delta": "521.00"
+        },
+        {
+          "code": "PARD_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "572.00",
+          "actual": "629.20",
+          "delta": "57.20"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "cb69b1bb84734850b52b2fb67657f0e0"
+    },
+    {
+      "case_id": "CASE-0080",
+      "style": "us",
+      "expected": "PENDING INFO",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 9.477,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "999.19",
+          "actual": "2.00",
+          "delta": "997.19"
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "invoice_number",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "vendor_name",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "non-empty",
+          "actual": "invoice_date",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 10",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 10",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 10",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 11",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 11",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 11",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 12",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 12",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 12",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 13",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 13",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 13",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 14",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 14",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 14",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 15",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 15",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 15",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 16",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 16",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 16",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 17",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 17",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 17",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 18",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 18",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 18",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 19",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 19",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 19",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 20",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 20",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 20",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 21",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 21",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 21",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 22",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 22",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 22",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 23",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 23",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 23",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 24",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 24",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 24",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 25",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 25",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 25",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 26",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 26",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 26",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 27",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 27",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 27",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 28",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 28",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 28",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 29",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 29",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 29",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 30",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 30",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 30",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 31",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 31",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 31",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 32",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 32",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 32",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 33",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 33",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 33",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 34",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 34",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 34",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 35",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 35",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 35",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 36",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 36",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 36",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 37",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 37",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 37",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 38",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 38",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 38",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 39",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 39",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 39",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 40",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 40",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 40",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 41",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 41",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 41",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 42",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 42",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 42",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 43",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 43",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 43",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 44",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 44",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 44",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 45",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 45",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 45",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 46",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 46",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 46",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 47",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 47",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 47",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 48",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 48",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 48",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 49",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 49",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 49",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 50",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 50",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 50",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 51",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 51",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 51",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 52",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 52",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 52",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 53",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 53",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 53",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 54",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 54",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 54",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 55",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 55",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 55",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 56",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 56",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 56",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 57",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 57",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 57",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 58",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 58",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 58",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 59",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 59",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 59",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 6",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 6",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 7",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 7",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 7",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 8",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 8",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 8",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 9",
+          "expected": "non-empty",
+          "actual": "quantity",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 9",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 9",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "210.65",
+          "actual": "15.00",
+          "delta": "195.65"
+        },
+        {
+          "code": "PARD_MISSING",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "present",
+          "actual": "missing",
+          "delta": ""
+        }
+      ],
+      "run_id": "4e766384a9e14bc1bb15bf3436512012"
+    },
+    {
+      "case_id": "CASE-0081",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 38.731,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0082",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 75.974,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0083",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.504,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0084",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.811,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0085",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 14.37,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "2420.00",
+          "actual": "3.00",
+          "delta": "2417.00"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "36100.00",
+          "actual": "4.00",
+          "delta": "36096.00"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "715.00",
+          "actual": "52.00",
+          "delta": "663.00"
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "1771.42",
+          "actual": "59.00",
+          "delta": "1712.42"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "warning",
+          "location": "line 3 (INV) -> line 4 (PO)",
+          "expected": "36100.00000000",
+          "actual": "4.00",
+          "delta": "36096.00000000"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "warning",
+          "location": "line 4 (INV) -> line 80 (PO)",
+          "expected": "1320.00000000",
+          "actual": "52.00",
+          "delta": "1268.00000000"
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "QTY_MISMATCH",
+          "severity": "warning",
+          "location": "line 4 (INV) -> line 80 (PO)",
+          "expected": "440.0000",
+          "actual": "143.0000",
+          "delta": "297.0000"
+        },
+        {
+          "code": "SIMILARITY_MATCH_REVIEW",
+          "severity": "warning",
+          "location": "line 4 (INV) -> line 80 (PO)",
+          "expected": "5.50",
+          "actual": "2.75",
+          "delta": ""
+        },
+        {
+          "code": "UNIT_PRICE_MISMATCH",
+          "severity": "warning",
+          "location": "line 4 (INV) -> line 80 (PO)",
+          "expected": "3.0000",
+          "actual": "5.0000",
+          "delta": "2.0000"
+        }
+      ],
+      "run_id": "cd9596019aff490aa9084d0b4778d84a"
+    },
+    {
+      "case_id": "CASE-0086",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.118,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0087",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 14.072,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0088",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 54.64,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0089",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.68,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0090",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.56,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0091",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.515,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0092",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.065,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0093",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.14,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0094",
+      "style": "kh",
+      "expected": "PENDING INFO",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 12.307,
+      "failures": [
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "non-empty",
+          "actual": "unit_price",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 3",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "MISSING_REQUIRED_FIELD",
+          "severity": "blocker",
+          "location": "line 4",
+          "expected": "non-empty",
+          "actual": "amount",
+          "delta": ""
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "4916.20",
+          "actual": "0.00",
+          "delta": "4916.20"
+        },
+        {
+          "code": "PARD_MISSING",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "present",
+          "actual": "missing",
+          "delta": ""
+        }
+      ],
+      "run_id": "da5b0f9e60e14c26be8743dc9bd65b7b"
+    },
+    {
+      "case_id": "CASE-0095",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.384,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0096",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.28,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0097",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": true,
+      "duration_seconds": 11.225,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 1",
+          "expected": "285.00",
+          "actual": "11.36",
+          "delta": "273.64"
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "647.52",
+          "actual": "11.36",
+          "delta": "636.16"
+        },
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "warning",
+          "location": "line 1 (INV) -> line 1 (PO)",
+          "expected": "285.00000000",
+          "actual": "11.36",
+          "delta": "273.64000000"
+        },
+        {
+          "code": "QTY_MISMATCH",
+          "severity": "warning",
+          "location": "line 1 (INV) -> line 1 (GRNI)",
+          "expected": "57.0000",
+          "actual": "5.0000",
+          "delta": "52.0000"
+        }
+      ],
+      "run_id": "7e4b596437fb4fdba2aa41c7c7d74e2a"
+    },
+    {
+      "case_id": "CASE-0098",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.331,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0099",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.059,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0100",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "HUMAN_REVIEW",
+      "actual_reason": "MATCH_DISCREPANCY",
+      "passed": true,
+      "duration_seconds": 13.938,
+      "failures": [
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_GRNI_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a GRNI line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 1 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 2 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 3 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        },
+        {
+          "code": "NO_MATCHING_PO_LINE",
+          "severity": "warning",
+          "location": "line 4 (INV)",
+          "expected": "a PO line",
+          "actual": "none",
+          "delta": ""
+        }
+      ],
+      "run_id": "5a9862245a7643fa89e8965d0db2be5f"
+    },
+    {
+      "case_id": "CASE-0101",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.385,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0102",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.059,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0103",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.15,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0104",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.482,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0105",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 14.446,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0106",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": true,
+      "duration_seconds": 11.078,
+      "failures": [
+        {
+          "code": "NO_LINE_ITEMS",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "",
+          "actual": "0 lines",
+          "delta": ""
+        }
+      ],
+      "run_id": "982e59ac90ef4b9994db99299aeb0142"
+    },
+    {
+      "case_id": "CASE-0107",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.088,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0108",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.459,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0109",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "REJECT",
+      "actual_reason": "VALIDATION_BLOCKER",
+      "passed": false,
+      "duration_seconds": 14.953,
+      "failures": [
+        {
+          "code": "LINE_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "line 2",
+          "expected": "4.00",
+          "actual": "2.00",
+          "delta": "2.00"
+        },
+        {
+          "code": "SUBTOTAL_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "331.11",
+          "actual": "3.00",
+          "delta": "328.11"
+        },
+        {
+          "code": "PARD_AMOUNT_MISMATCH",
+          "severity": "blocker",
+          "location": "header",
+          "expected": "331.11",
+          "actual": "364.22",
+          "delta": "33.11"
+        },
+        {
+          "code": "QTY_MISMATCH",
+          "severity": "warning",
+          "location": "line 1 (INV) -> line 1 (GRNI)",
+          "expected": "9.0000",
+          "actual": "1.0000",
+          "delta": "8.0000"
+        },
+        {
+          "code": "QTY_MISMATCH",
+          "severity": "warning",
+          "location": "line 1 (INV) -> line 1 (PO)",
+          "expected": "26.1500",
+          "actual": "1.0000",
+          "delta": "25.1500"
+        },
+        {
+          "code": "QTY_MISMATCH",
+          "severity": "warning",
+          "location": "line 2 (INV) -> line 1 (PO)",
+          "expected": "26.1500",
+          "actual": "2.0000",
+          "delta": "24.1500"
+        },
+        {
+          "code": "QTY_MISMATCH",
+          "severity": "warning",
+          "location": "line 2 (INV) -> line 2 (GRNI)",
+          "expected": "63.0000",
+          "actual": "2.0000",
+          "delta": "61.0000"
+        },
+        {
+          "code": "SIMILARITY_MATCH_REVIEW",
+          "severity": "warning",
+          "location": "line 1 (INV) -> line 1 (PO)",
+          "expected": "#",
+          "actual": "1",
+          "delta": ""
+        },
+        {
+          "code": "SIMILARITY_MATCH_REVIEW",
+          "severity": "warning",
+          "location": "line 2 (INV) -> line 1 (PO)",
+          "expected": "#",
+          "actual": "2",
+          "delta": ""
+        },
+        {
+          "code": "VENDOR_MISMATCH",
+          "severity": "warning",
+          "location": "header",
+          "expected": "\u179f\u17b6\u179b\u17b6\u1794\u178b\u1798\u179f\u17b7\u1780\u17d2\u179f\u17b6",
+          "actual": "golden angkor trading co.,ltd.",
+          "delta": ""
+        }
+      ],
+      "run_id": "147181009e3d4be3a99e745cefaa9fab"
+    },
+    {
+      "case_id": "CASE-0110",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 11.797,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0111",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 12.762,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0112",
+      "style": "kh",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 15.955,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0113",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.3,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0114",
+      "style": "in",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'decimal.Decimal' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.418,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0115",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'decimal.Decimal'",
+      "passed": false,
+      "duration_seconds": 15.111,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0116",
+      "style": "us",
+      "expected": "MATCH",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.65,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0117",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 13.787,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0118",
+      "style": "kh",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 11.137,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0119",
+      "style": "us",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 10.117,
+      "failures": [],
+      "run_id": null
+    },
+    {
+      "case_id": "CASE-0120",
+      "style": "in",
+      "expected": "DISCREPANCY",
+      "actual_route": "ERROR",
+      "actual_reason": "TypeError: '<' not supported between instances of 'datetime.date' and 'NoneType'",
+      "passed": false,
+      "duration_seconds": 15.15,
+      "failures": [],
+      "run_id": null
+    }
+  ]
+}
