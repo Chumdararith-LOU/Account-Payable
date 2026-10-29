@@ -162,3 +162,10 @@ override is logged."
 - [ ] Terminal font size increased (16pt+)
 - [ ] Browser zoom set if showing JSON output
 - [ ] Phone on silent
+
+## Rehearsal results (EMB-13)
+
+Rehearsed 3× on the live GPU server (2026-10-29). Cold start **19s**, warm
+runs **21–27s** wall clock (pipeline ~17s). All three produced
+**AUTO_APPROVE** with **6 similarity matches** and identical scores. Ready
+for demo. Full log: `docs/REHEARSAL_LOG.md`.
