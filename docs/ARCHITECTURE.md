@@ -54,7 +54,7 @@ dashboard + FastAPI service.
 | `apmatch/store/models.py` | SQLAlchemy 2.x ORM models mirroring the P1-06 dataclasses (7 tables); money/quantity are `Numeric(18,4)`, never Float |
 | `docker-compose.yml` | Local dev Postgres 16 on port 5433 (dev-only credentials); `alembic/` + `alembic.ini` hold the migrations |
 | `apmatch/audit/` | `entry.py` (`AuditEntry`), `hashing.py` (`compute_input_hash`), `models.py` (`audit_log`), `repository.py` (`AuditRepository`) — append-only audit log with SHA-256 input hashing; no FKs, no update/delete/upsert |
-| `apmatch/parse/` | Deterministic OCR-to-dataclass extraction layer: `spatial.py` (bbox primitives), `coerce.py` (noisy-string parsers), `_table.py` (table-HTML rows), `_common.py` (shared label/vendor/total heuristics), `invoice.py` / `purchase_order.py` / `grni.py` / `payment_advice.py` (extractors + CLIs), `dispatch.py` (`DocumentKind` + `extract`) |
+| `apmatch/parse/` | Deterministic OCR-to-dataclass extraction layer: `spatial.py` (bbox primitives + candidate-validated value lookup + vendor heuristic), `coerce.py` (noisy-string parsers), `_table.py` (table-HTML rows), `_common.py` (shared label/vendor/total heuristics), `templates.py` / `template_loader.py` / `template_selector.py` (per-style YAML template schema, loader, selector), `invoice.py` / `purchase_order.py` / `grni.py` / `payment_advice.py` (extractors + CLIs), `dispatch.py` (`DocumentKind` + `extract`). Templates are data in `templates/*.yaml` at the repo root |
 | `apmatch/api/` | FastAPI HTTP API: `config.py` (env-driven, fail-fast), `schemas.py` (Pydantic response models), `pipeline.py` (`run_pipeline` — OCR→parse→validate→match→score→audit entry, no DB write), `app.py` (lifespan, `X-API-Key` auth, `/healthz` `/match` `/audit/{run_id}` `/kpis/routes` `/kpis/recent`, enum-coded errors) |
 
 `LatinOCREngine` wraps PaddleOCR 3.7.0 PP-OCRv6_medium; `LayoutEngine` wraps
@@ -142,6 +142,28 @@ read-only as reference; not imported).
   e.g. `No.:INV-2026-1123`), then from blocks to the right, then below.
   Same-block remainders must contain a digit, so OCR noise tails (`/H`,
   `/NJU`) fall through to the spatial lookup.
+- **Header extraction is template-driven.** Templates live in
+  `templates/*.yaml` at the repo root, one per style (`kh`, `us`, `in`,
+  `generic`). `template_selector.select_template` picks the best match for an
+  `OCRResult` by label-variant overlap (fraction of the template's labeled
+  fields present in the blocks); below a 0.5 score it falls back to
+  `generic`. Each field spec carries label variants, a candidate order, date
+  formats, and an optional position fallback. Adding a new style is a YAML
+  file, not a Python change.
+- **Value extraction validates candidates.** `value_after_label_with_validation`
+  tries each label (in candidate order) and, for each, the same-block / right /
+  below candidates, returning the first candidate the field's parser accepts.
+  This fixes the "wrong text block grabbed" failure mode (a `Date` label next
+  to a P.O. block no longer yields `parse_date("P.O.#") -> None`).
+- **Vendor uses labels or a heuristic.** The vendor spec's strategy is
+  `labeled`, `heuristic`, or `labeled_then_heuristic`. The heuristic
+  (`find_vendor_heuristic`) picks the top-20%-of-page block carrying a legal
+  suffix (LLC, Inc., Ltd., …), largest by area — because "Bill to" labels the
+  *buyer*, not the seller.
+- **Hardcoded fallbacks are the safety net.** The extractor modules keep their
+  original label constants; a template field with an empty label list (the
+  `generic` template) falls back to them, so the pre-template behavior is
+  preserved byte-for-byte when no style matches.
 - **No-LLM guard.** `tests/parse/test_no_llm.py` AST-walks the package and
   fails on any LLM/network import, with a /tmp sanity check proving the
   walker catches a synthetic bad import.

@@ -15,7 +15,6 @@ from decimal import Decimal
 
 from apmatch.ocr.engine import OCRResult
 from apmatch.parse._common import (
-    company_name_fallback,
     find_total_label,
     labeled_money,
     labeled_money_at,
@@ -27,9 +26,17 @@ from apmatch.parse.coerce import (
     parse_date,
     parse_document_number,
 )
+from apmatch.parse.spatial import find_vendor_heuristic, value_after_label_with_validation
+from apmatch.parse.template_loader import templates_by_id
+from apmatch.parse.template_selector import select_template
+from apmatch.parse.templates import Template
 from apmatch.schema.coercion import to_money
 from apmatch.schema.documents import Invoice
 
+# Hardcoded fallbacks: used when the selected template has empty label lists
+# (the generic template) or when no templates are loaded at all. These are the
+# pre-template constants, kept verbatim so the generic path is byte-identical
+# to the legacy behavior.
 INVOICE_NUMBER_VARIANTS = ("Invoice No", "Invoice Number", "INV No", "No.")
 # Bare "Vendor" is deliberately absent: it matches the document title
 # "VENDOR INVOICE" before the real "From (Vendor)" label.
@@ -40,26 +47,81 @@ TAX_VARIANTS = ("VAT", "Tax")
 DEFAULT_CURRENCY = "USD"  # documented default when no ISO 4217 token is found
 
 
+def _select_template(blocks) -> Template:
+    """Pick the template for these blocks; generic if none load or match."""
+    templates = templates_by_id()
+    if not templates:
+        return Template(template_id="generic", style="generic")
+    template, _ = select_template(blocks, templates)
+    if template is None:
+        return templates.get("generic") or Template(template_id="generic", style="generic")
+    return template
+
+
+def _extract_vendor(blocks, vendor_spec) -> str | None:
+    """Vendor by template strategy: labeled, heuristic, or labeled-then-heuristic."""
+    labels = vendor_spec.labels or VENDOR_VARIANTS
+    if vendor_spec.strategy in ("labeled", "labeled_then_heuristic"):
+        value = labeled_value(blocks, labels)
+        if value is not None:
+            return value
+    if vendor_spec.strategy in ("heuristic", "labeled_then_heuristic"):
+        block = find_vendor_heuristic(blocks)
+        if block is not None:
+            return block.text.strip()
+    return None
+
+
+def _extract_date(blocks, date_spec):
+    """Invoice date via candidate iteration (first candidate that parses wins)."""
+    labels = date_spec.labels or DATE_VARIANTS
+    formats = date_spec.formats or None  # None -> coerce layer's default formats
+
+    def _parse(text: str):
+        return parse_date(text, formats=formats)
+
+    parsed, _ = value_after_label_with_validation(
+        blocks,
+        labels,
+        _parse,
+        candidate_order=date_spec.candidate_order or None,
+        position_fallback=date_spec.position_fallback,
+    )
+    return parsed
+
+
+def _extract_currency(blocks, currency_spec) -> str:
+    """Currency: template symbol/code map, then ISO token, then the default."""
+    if currency_spec.symbol_map:
+        for block in blocks:
+            for token, code in currency_spec.symbol_map:
+                if token and token in block.text:
+                    return code
+    return detect_currency(blocks) or DEFAULT_CURRENCY
+
+
 def extract_invoice(ocr: OCRResult) -> Invoice:
     blocks = ocr.text_blocks
+    template = _select_template(blocks)
 
-    invoice_number = parse_document_number(labeled_value(blocks, INVOICE_NUMBER_VARIANTS))
+    inv_labels = template.invoice_number.labels or INVOICE_NUMBER_VARIANTS
+    invoice_number = parse_document_number(labeled_value(blocks, inv_labels))
 
-    vendor_name = labeled_value(blocks, VENDOR_VARIANTS)
-    if vendor_name is None:
-        vendor_name = company_name_fallback(blocks)
+    vendor_name = _extract_vendor(blocks, template.vendor)
 
-    invoice_date = parse_date(labeled_value(blocks, DATE_VARIANTS))
+    invoice_date = _extract_date(blocks, template.invoice_date)
 
-    currency = detect_currency(blocks) or DEFAULT_CURRENCY
+    currency = _extract_currency(blocks, template.currency)
 
     line_items = line_items_from_table(ocr)
 
-    subtotal = labeled_money(blocks, SUBTOTAL_VARIANTS)
-    tax_amount = labeled_money(blocks, TAX_VARIANTS)
+    subtotal = labeled_money(blocks, template.totals.subtotal.labels or SUBTOTAL_VARIANTS)
+    tax_amount = labeled_money(blocks, template.totals.tax.labels or TAX_VARIANTS)
 
     total = None
-    total_label = find_total_label(blocks)
+    total_label = find_total_label(
+        blocks, exclude=template.totals.total_exclude_labels or ("subtotal",)
+    )
     if total_label is not None:
         total = labeled_money_at(blocks, total_label.bbox)
 

@@ -75,15 +75,19 @@ def labeled_money_at(
     return to_money(value) if value is not None else None
 
 
-def find_total_label(blocks: tuple[TextBlock, ...]) -> TextBlock | None:
-    """First block containing 'total' but not 'subtotal' (source order).
+def find_total_label(
+    blocks: tuple[TextBlock, ...],
+    exclude: tuple[str, ...] = ("subtotal",),
+) -> TextBlock | None:
+    """First block containing 'total' but none of the ``exclude`` substrings.
 
     'Subtotal' contains 'total' as a substring, so a plain find_label for
-    ('Total',) would return the subtotal row.
+    ('Total',) would return the subtotal row. Templates can extend the
+    exclusion list (e.g. "Sub Total") via ``exclude``.
     """
     for block in blocks:
         text = _normalize(block.text)
-        if "total" in text and "subtotal" not in text:
+        if "total" in text and not any(_normalize(ex) in text for ex in exclude):
             return block
     return None
 

@@ -33,8 +33,9 @@ def parse_money(s: str | None) -> Decimal | None:
     if not text:
         return None
     # Strip a leading currency code / symbol.
-    text = re.sub(r"^(USD|KHR|THB|VND|CNY|EUR|GBP|JPY)\s*", "", text, flags=re.IGNORECASE)
-    text = text.replace("$", "").strip()
+    text = re.sub(r"^(USD|KHR|THB|VND|CNY|EUR|GBP|JPY|INR)\s*", "", text, flags=re.IGNORECASE)
+    text = text.replace("$", "").replace("₹", "").strip()
+    text = re.sub(r"^Rs\.?\s*", "", text, flags=re.IGNORECASE)
     # Ambiguous European format: a dot used as thousands separator followed by
     # a comma decimal (e.g. "1.000,00"). Reject rather than guess.
     if re.fullmatch(r"\d{1,3}(\.\d{3})+,\d{2}", text):

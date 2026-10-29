@@ -23,6 +23,10 @@ streamlit>=1.40
 plotly>=6.0
 python-dotenv>=1.0
 pillow>=10
+# Per-style extraction templates (apmatch/parse/template_loader.py) are YAML.
+# PyYAML is already a transitive dep of paddlex/transformers; pinned explicitly
+# because the parse layer now imports it directly.
+PyYAML>=6.0,<7
 # Khmer OCR. Weights vendored in models/khmer/ (gitignored).
 # See D-007.
 tror-yong-ocr==0.2.7

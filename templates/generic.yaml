@@ -1,0 +1,34 @@
+# Generic fallback template.
+#
+# Used when the selector can't confidently match a style. Empty label lists
+# mean "fall back to the extractor's hardcoded defaults" — this preserves the
+# pre-template behavior as a safety net. The vendor uses the labeled-then-
+# heuristic strategy (labels first, top-company-suffix fallback) so an
+# unlabeled vendor still resolves.
+template_id: generic
+style: generic
+
+invoice_number:
+  labels: []
+
+invoice_date:
+  labels: []
+
+vendor:
+  strategy: labeled_then_heuristic
+  labels: []
+  heuristic_fallback: top_company_suffix
+
+currency:
+  symbol_map: []
+
+totals:
+  subtotal:
+    labels: []
+  tax:
+    labels: []
+  total:
+    labels: []
+
+line_items:
+  enabled: false

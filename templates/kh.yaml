@@ -1,0 +1,46 @@
+# Khmer-style invoice template.
+#
+# This reproduces the pre-template hardcoded behavior EXACTLY (the regression
+# guard is tests/parse/test_extractors.py against the INV_2026_1123 fixture).
+# Label lists are the current apmatch/parse/invoice.py constants, verbatim.
+# Bare "Vendor" is deliberately absent: the fixture carries a "VENDOR INVOICE"
+# title block that would false-match before the real "From (Vendor)" label.
+template_id: kh
+style: kh
+
+invoice_number:
+  labels:
+    - "Invoice No"
+    - "Invoice Number"
+    - "INV No"
+    - "No."
+
+invoice_date:
+  labels:
+    - "Date"
+
+vendor:
+  strategy: labeled_then_heuristic
+  labels:
+    - "From (Vendor)"
+    - "Bill From"
+    - "Supplier"
+  heuristic_fallback: top_company_suffix
+
+currency:
+  symbol_map:
+    - ["$", "USD"]
+    - ["USD", "USD"]
+    - ["KHR", "KHR"]
+
+totals:
+  subtotal:
+    labels: ["Subtotal"]
+  tax:
+    labels: ["VAT", "Tax"]
+  total:
+    labels: ["TOTAL", "Total", "Grand Total"]
+    exclude: ["Subtotal"]
+
+line_items:
+  enabled: false   # PROD-B1b handles line items

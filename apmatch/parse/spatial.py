@@ -152,3 +152,114 @@ def same_block_value(label: TextBlock, variants: tuple[str, ...]) -> str | None:
         if rest and any(c.isdigit() for c in rest):
             return rest
     return None
+
+
+def value_after_label_with_validation(
+    blocks: tuple[TextBlock, ...],
+    labels: tuple[str, ...],
+    parse_fn,
+    candidate_order: tuple[str, ...] | None = None,
+    position_fallback: str | None = None,
+    max_gap_px: float = 200.0,
+):
+    """Try labels in order; for each, try same-block, right, below candidates.
+
+    Returns the first candidate that ``parse_fn`` accepts as
+    ``(parsed_value, raw_text)``; ``(None, None)`` if nothing parses.
+
+    This is the fix for the ``value_parse_failed`` failure mode (PROD-B0.6):
+    the legacy ``value_after_label`` grabs the first non-empty candidate
+    without checking it parses, so a "Date" label next to a P.O. block yields
+    ``parse_date("P.O.#") -> None``. Here every candidate is validated, and a
+    bad one falls through to the next. ``candidate_order`` lets a specific
+    label ("Invoice Date") win over a bare one ("Date"). ``position_fallback``
+    ("top-right" / "top-left") is used only when no label matches.
+    """
+    order = candidate_order if candidate_order else labels
+    for label in order:
+        label_block = find_label(blocks, (label,))
+        if label_block is None:
+            continue
+        candidates: list[str] = []
+        sv = same_block_value(label_block, (label,))
+        if sv is not None:
+            candidates.append(sv)
+        for b in (
+            *bbox_right_of(blocks, label_block.bbox, max_gap_px),
+            *bbox_below(blocks, label_block.bbox, max_gap_px),
+        ):
+            text = b.text.strip().lstrip(":").strip()
+            if text:
+                candidates.append(text)
+        for cand in candidates:
+            try:
+                parsed = parse_fn(cand)
+            except (ValueError, TypeError):
+                continue
+            if parsed is not None:
+                return parsed, cand
+    if position_fallback:
+        fb = position_block(blocks, position_fallback)
+        if fb is not None:
+            try:
+                parsed = parse_fn(fb.text.strip())
+            except (ValueError, TypeError):
+                parsed = None
+            if parsed is not None:
+                return parsed, fb.text.strip()
+    return None, None
+
+
+_COMPANY_SUFFIX_RE = re.compile(
+    r"\b(LLC|Inc\.?|Co\.?|Ltd\.?|Limited|Corp\.?|Corporation|"
+    r"GmbH|AG|SA|SAS|SRL|Pvt\.?\s*Ltd\.?|Private Limited)\b",
+    re.IGNORECASE,
+)
+
+
+def find_vendor_heuristic(
+    blocks: tuple[TextBlock, ...],
+    page_height: float | None = None,
+) -> TextBlock | None:
+    """Most likely vendor name from an unlabeled document.
+
+    Heuristic: top 20% of the page, block containing a legal suffix (LLC,
+    Inc., Ltd., ...), largest by area. Rationale (PROD-B0.6): "Bill to" /
+    "BILL TO" are near-misses for "vendor" but label the BUYER; a label-based
+    approach grabs the wrong company. The suffix heuristic finds the company
+    that is actually selling.
+    """
+    if page_height is None:
+        page_height = max((b.bbox[3] for b in blocks), default=0)
+        if page_height == 0:
+            return None
+    top_zone = [b for b in blocks if b.bbox[1] < page_height * 0.2]
+    candidates = [b for b in top_zone if _COMPANY_SUFFIX_RE.search(b.text)]
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda b: (b.bbox[2] - b.bbox[0]) * (b.bbox[3] - b.bbox[1]),
+    )
+
+
+def position_block(
+    blocks: tuple[TextBlock, ...],
+    position: str,
+) -> TextBlock | None:
+    """Largest block in a page corner zone ("top-right" / "top-left")."""
+    if not blocks:
+        return None
+    width = max(b.bbox[2] for b in blocks)
+    height = max(b.bbox[3] for b in blocks)
+    if width == 0 or height == 0:
+        return None
+    if position == "top-right":
+        zone = [b for b in blocks if b.bbox[0] > width * 0.6 and b.bbox[1] < height * 0.2]
+    elif position == "top-left":
+        zone = [b for b in blocks if b.bbox[0] < width * 0.4 and b.bbox[1] < height * 0.2]
+    else:
+        return None
+    if not zone:
+        return None
+    return max(zone, key=lambda b: (b.bbox[2] - b.bbox[0]) * (b.bbox[3] - b.bbox[1]))

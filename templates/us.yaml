@@ -1,0 +1,60 @@
+# US-style invoice template (from the PROD-B0.6 batch diagnostic).
+#
+# Observed gaps the hardcoded lists missed:
+#   - invoice number labeled "INVOICE" / "INVOICE #" (not "Invoice No")
+#   - date labeled "INVOICE DATE", format "Mar 15, 2026" (%b %d, %Y)
+#   - vendor unlabeled (the doc labels the BUYER as "BILL TO"); the top
+#     company-suffix heuristic finds the seller
+#   - currency as a "$" symbol
+template_id: us
+style: us
+
+invoice_number:
+  labels:
+    - "INVOICE #"
+    - "Invoice #"
+    - "Invoice No."
+    - "Invoice Number"
+    - "Inv. No."
+  position_fallback: top-right
+
+invoice_date:
+  labels:
+    - "Invoice Date"
+    - "Date Issued"
+    - "Date"
+  candidate_order:
+    - "Invoice Date"
+    - "Date Issued"
+    - "Date"      # bare "Date" is last-resort (P.O.-block risk)
+  formats:
+    - "%b %d, %Y"    # Mar 15, 2026
+    - "%B %d, %Y"    # February 10, 2025
+    - "%m/%d/%Y"     # 02/10/2025
+    - "%m-%d-%Y"
+
+vendor:
+  strategy: labeled_then_heuristic
+  labels:
+    - "From"
+    - "Vendor"
+    - "Supplier"
+    - "Billed From"
+  heuristic_fallback: top_company_suffix
+
+currency:
+  symbol_map:
+    - ["$", "USD"]
+    - ["USD", "USD"]
+
+totals:
+  subtotal:
+    labels: ["Subtotal", "Sub-total"]
+  tax:
+    labels: ["Sales Tax", "Tax", "VAT"]
+  total:
+    labels: ["Total", "Grand Total", "Amount Due"]
+    exclude: ["Subtotal", "Sub-total"]
+
+line_items:
+  enabled: false

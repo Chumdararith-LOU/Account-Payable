@@ -112,3 +112,54 @@ trajectory is now meaningful and monotonic: PROD-B0 = 5.8% (crash-dominated) →
 header guards = 35.8% → all guards = 50.8%. Template work that improves field
 extraction attacks the 48 `MISSING_REQUIRED_FIELD` failures directly; closing
 most of them would lift the rate toward ~90%.
+
+## Post-header-templates (PROD-B1a)
+
+After externalizing header extraction into per-style YAML templates
+(`templates/{kh,us,in,generic}.yaml`) plus candidate-validated value lookup and
+the top-company-suffix vendor heuristic, the batch re-runs. Full per-case
+report: `reports/batch-b1a-20261029.json`.
+
+- Total: 120 · Passed: 61 · Failed: 59 · **Rate: 50.8%** (unchanged)
+- **Hard errors: 0**
+- By style: kh 17/40 · us 21/40 · in 23/40 (all unchanged)
+
+### The templates work — but they are not the bottleneck
+
+The header extraction genuinely improved. Per-case `MISSING_REQUIRED_FIELD`
+counts on us/in cases dropped **1025 → 955 (−70)**, and `VENDOR_MISMATCH`
+dropped **82 → 62** (the vendor heuristic resolves unlabeled sellers). The
+selector picks the right style for each document and the kh fixture still
+extracts byte-for-byte (regression guard green).
+
+**Yet 0 of the 120 cases changed pass/fail status.** The reason: the us/in
+MATCH cases that carry missing-field failures *also* carry line-item matching
+failures, so removing the missing-field blocker does not unblock the route.
+The dominant non-missing failures on the still-failing us/in MATCH cases are:
+
+| Failure | Count | Meaning |
+|---|---|---|
+| NO_MATCHING_GRNI_LINE | 67 | invoice line has no matching GRNI line |
+| NO_MATCHING_PO_LINE | 66 | invoice line has no matching PO line |
+| QTY_MISMATCH | 25 | quantity differs beyond tolerance |
+| VENDOR_MISMATCH | 24 | vendor name differs across documents |
+| PARD_AMOUNT_MISMATCH | 15 | PARD amount ≠ invoice total |
+| NO_LINE_ITEMS | 14 | table parse returned no lines |
+| LINE_AMOUNT_MISMATCH | 11 | line amount differs beyond tolerance |
+
+### Interpretation
+
+The PROD-B0.6 diagnostic was right that header labels were a real gap, but it
+was **optimistic about the payoff**: it counted the 48 `MISSING_REQUIRED_FIELD`
+failures as the lever, without noting that those same cases also fail the
+line-item match. The header fix is necessary but not sufficient. The real
+bottleneck is **line-item alignment** — the same class of problem as the kh
+puzzle (descriptions OCR-garbled → the description-keyed matcher misaligns
+lines → `NO_MATCHING_*` / `QTY_MISMATCH` / `LINE_AMOUNT_MISMATCH`). This is
+**PROD-B1b** scope (line-item diagnostic + fix), not header scope.
+
+**Consequence for the roadmap:** the pass rate is flat at 50.8% after
+PROD-B1a. The trajectory is still monotonic (it did not regress), but the next
+gain requires fixing line-item alignment, not adding more header labels.
+PROD-B1b should re-run the batch after the line-item fix; that is where the
+rate is expected to climb.
