@@ -65,3 +65,50 @@ line-item pattern) — must land before PROD-B1+ can be measured. Once the 99
 crashes are unmasked into routes, the pass rate will jump substantially and the
 trajectory becomes meaningful. This baseline is the starting point of that
 trajectory; it is not yet a usable auto-processing-rate claim.
+
+## Post-None-guards baseline (PROD-B0.5)
+
+After guarding every None-unsafe arithmetic site in the matching engine — the
+two header checks (`engine.py:346` PARD amount, `:359` date ordering) **and**
+the line-item quantity checks (`:261`, `:333`) plus the PO amount-implied
+multiplication guard (`:288`) — the batch re-runs with **zero crashes**.
+Full per-case report: `reports/batch-b0.5-20261029.json`.
+
+- Total: 120 · Passed: 61 · Failed: 59 · **Rate: 50.8%**
+- **Hard errors: 0** (was 99 at PROD-B0)
+- Duration: 29.6 min on GPU · Per-case average: 14.8 s
+
+### By style
+| Style | Passed | Total | Rate  |
+|-------|--------|-------|-------|
+| kh    | 17     | 40    | 42.5% |
+| us    | 21     | 40    | 52.5% |
+| in    | 23     | 40    | 57.5% |
+
+### By expected outcome
+| Expected     | Passed | Total | Rate  |
+|--------------|--------|-------|-------|
+| MATCH        | 0      | 54    | 0%    |
+| DISCREPANCY  | 61     | 61    | 100%  |
+| PENDING INFO | 0      | 5     | 0%    |
+
+### Failure categories (the 59 failures)
+1. **MISSING_REQUIRED_FIELD (blocker): 48 cases** — e.g. `CASE-0005`. OCR did
+   not extract a required field on the noisy document; validation blocks →
+   REJECT. This is the dominant lever for template work.
+2. **LINE_AMOUNT_MISMATCH (blocker): 10 cases** — e.g. `CASE-0001`. Line-item
+   amount beyond tolerance → REJECT.
+3. **LINE_AMOUNT_MISMATCH (warning): 1 case** — `CASE-0004` (MATCH→HUMAN_REVIEW).
+
+### Interpretation
+**This is the honest baseline** that template work (PROD-B1+) is measured
+against: **61/120 (50.8%)**, crash-free. The pass rate is entirely carried by
+DISCREPANCY cases (61/61 = 100%): a discrepancy correctly routes to
+REJECT/HUMAN_REVIEW, which is the expected outcome. Every MATCH case (54) and
+PENDING INFO case (5) currently fails — almost all to a `MISSING_REQUIRED_FIELD`
+validation blocker (48 of 59), i.e. OCR is not extracting a required field on
+the noisy document, so the pipeline rejects instead of auto-approving. The
+trajectory is now meaningful and monotonic: PROD-B0 = 5.8% (crash-dominated) →
+header guards = 35.8% → all guards = 50.8%. Template work that improves field
+extraction attacks the 48 `MISSING_REQUIRED_FIELD` failures directly; closing
+most of them would lift the rate toward ~90%.

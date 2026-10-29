@@ -1,15 +1,16 @@
 name: CI
 
-# Stub workflow: inactive until this repo is pushed to a GitHub remote and CI
-# is enabled (D-063). The `smoke` job additionally requires the
-# APMATCH_API_KEY repository secret to be set by a repo admin
-# (Settings -> Secrets and variables -> Actions) before it can run.
+# NOTE: auto-triggers are disabled (2026-10-29). The test job requires model
+# weights (~1.7 GB) and a Postgres service that ubuntu-latest doesn't provide
+# by default. Enabling this properly requires: (a) downloading models in the
+# workflow, (b) starting a postgres service container, (c) setting
+# APMATCH_API_KEY. Deferred until after BPO foundation is stable. Trigger
+# manually via Actions tab -> CI -> Run workflow. See D-099.
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:  # manual trigger only
+  # Auto-triggers disabled until CI is production-ready
+  # (needs model weights + Postgres service). See D-099.
 
 jobs:
   test:

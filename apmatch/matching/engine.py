@@ -258,7 +258,11 @@ class MatchingEngine:
                 )
             else:
                 loc = f"line {n} (INV) -> line {po_line.line_no} (PO)"
-                if abs(inv_line.quantity - po_line.quantity) > QTY_TOLERANCE_ABS:
+                if (
+                    inv_line.quantity is not None
+                    and po_line.quantity is not None
+                    and abs(inv_line.quantity - po_line.quantity) > QTY_TOLERANCE_ABS
+                ):
                     failures.append(
                         MatchFailure(
                             MatchCode.QTY_MISMATCH,
@@ -285,7 +289,11 @@ class MatchingEngine:
                                 str(diff),
                             )
                         )
-                if inv_line.amount is not None and po_line.unit_price is not None:
+                if (
+                    inv_line.amount is not None
+                    and po_line.quantity is not None
+                    and po_line.unit_price is not None
+                ):
                     po_amount = po_line.quantity * po_line.unit_price
                     diff = abs(inv_line.amount - po_amount)
                     max_val = max(abs(inv_line.amount), abs(po_amount))
@@ -330,7 +338,11 @@ class MatchingEngine:
                         "",
                     )
                 )
-            elif abs(inv_line.quantity - grni_line.quantity) > QTY_TOLERANCE_ABS:
+            elif (
+                inv_line.quantity is not None
+                and grni_line.quantity is not None
+                and abs(inv_line.quantity - grni_line.quantity) > QTY_TOLERANCE_ABS
+            ):
                 failures.append(
                     MatchFailure(
                         MatchCode.QTY_MISMATCH,
@@ -342,8 +354,14 @@ class MatchingEngine:
                     )
                 )
 
-        # 4. PARD amount vs invoice total.
-        if abs(pard.amount - invoice.total) > TOTAL_TOLERANCE:
+        # 4. PARD amount vs invoice total. Skip when either side is None —
+        # the validator already emits MISSING_REQUIRED_FIELD(blocker) for a
+        # missing header field, so the route is REJECT before matching runs.
+        if (
+            pard.amount is not None
+            and invoice.total is not None
+            and abs(pard.amount - invoice.total) > TOTAL_TOLERANCE
+        ):
             failures.append(
                 MatchFailure(
                     MatchCode.PARD_AMOUNT_MISMATCH,
@@ -355,8 +373,12 @@ class MatchingEngine:
                 )
             )
 
-        # 5. Date ordering (soft).
-        if pard.payment_date < invoice.invoice_date:
+        # 5. Date ordering (soft). Skip when either date is None (same reason).
+        if (
+            pard.payment_date is not None
+            and invoice.invoice_date is not None
+            and pard.payment_date < invoice.invoice_date
+        ):
             failures.append(
                 MatchFailure(
                     MatchCode.DATE_OUT_OF_ORDER,

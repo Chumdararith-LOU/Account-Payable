@@ -13,7 +13,7 @@ def _line(no, desc, qty, price=None, amount=None):
     return LineItem(
         line_no=no,
         description=desc,
-        quantity=Decimal(qty),
+        quantity=Decimal(qty) if qty is not None else None,
         unit_price=Decimal(price) if price is not None else None,
         amount=Decimal(amount) if amount is not None else None,
     )
@@ -26,7 +26,7 @@ def _invoice(lines=None, vendor="Mekong Supplies Co., Ltd.", currency="USD", tot
             _line(2, "Desk Lamp", "20", "12.50", "250.00"),
             _line(3, "Whiteboard", "5", "60.00", "300.00"),
         )
-    return Invoice("INV-1", vendor, inv_date, currency, Decimal("1000.00"), Decimal("100.00"), Decimal(total), lines)
+    return Invoice("INV-1", vendor, inv_date, currency, Decimal("1000.00"), Decimal("100.00"), Decimal(total) if total is not None else None, lines)
 
 
 def _po(lines=None, vendor="Mekong Supplies Co., Ltd.", currency=None):
@@ -46,7 +46,7 @@ def _grni(lines=None, vendor="Mekong Supplies Co., Ltd."):
 
 
 def _pard(amount="1100.00", pard_date=date(2026, 8, 25), currency=None):
-    return PaymentAdvice("PARD-1", "INV-1", Decimal(amount), pard_date, "REF", currency)
+    return PaymentAdvice("PARD-1", "INV-1", Decimal(amount) if amount is not None else None, pard_date, "REF", currency)
 
 
 def _codes(result):
@@ -308,3 +308,58 @@ def test_mixed_case_ocr_suffix_stripped():
     # vendor names therefore match and NO VENDOR_MISMATCH is emitted.
     r = ENGINE.match(_invoice(), _po(vendor="Mekong Supplies Co., Ltd./Hni"), _grni(), _pard())
     assert MatchCode.VENDOR_MISMATCH not in _codes(r)
+
+
+# --- None-safety (PROD-B0.5) ------------------------------------------------
+# The header-level PARD-amount and date-ordering checks must skip (not crash)
+# when a field is None. The validator already emits MISSING_REQUIRED_FIELD
+# (blocker) for a missing header field, so the route is REJECT before matching
+# runs; skipping the downstream check just stops the TypeError (D-100).
+
+
+def test_pard_amount_none_does_not_crash():
+    r = ENGINE.match(_invoice(total="100.00"), _po(), _grni(), _pard(amount=None))
+    assert r.outcome in (Outcome.MATCH, Outcome.DISCREPANCY, Outcome.PENDING_INFO)
+    assert MatchCode.PARD_AMOUNT_MISMATCH not in _codes(r)
+
+
+def test_pard_date_none_does_not_crash():
+    r = ENGINE.match(_invoice(), _po(), _grni(), _pard(pard_date=None))
+    assert r.outcome in (Outcome.MATCH, Outcome.DISCREPANCY, Outcome.PENDING_INFO)
+    assert MatchCode.DATE_OUT_OF_ORDER not in _codes(r)
+
+
+def test_invoice_total_none_does_not_crash():
+    r = ENGINE.match(_invoice(total=None), _po(), _grni(), _pard(amount="100.00"))
+    assert r.outcome in (Outcome.MATCH, Outcome.DISCREPANCY, Outcome.PENDING_INFO)
+    assert MatchCode.PARD_AMOUNT_MISMATCH not in _codes(r)
+
+
+def test_both_pard_fields_none_does_not_crash():
+    r = ENGINE.match(_invoice(), _po(), _grni(), _pard(amount=None, pard_date=None))
+    assert r.outcome in (Outcome.MATCH, Outcome.DISCREPANCY, Outcome.PENDING_INFO)
+    assert MatchCode.PARD_AMOUNT_MISMATCH not in _codes(r)
+    assert MatchCode.DATE_OUT_OF_ORDER not in _codes(r)
+
+
+def test_none_fields_do_not_produce_arithmetic_failure():
+    # Pattern A: the skipped check emits NO failure (not one claiming
+    # "expected X, actual None").
+    r = ENGINE.match(_invoice(total=None), _po(), _grni(), _pard(amount=None, pard_date=None))
+    assert MatchCode.PARD_AMOUNT_MISMATCH not in _codes(r)
+    assert MatchCode.DATE_OUT_OF_ORDER not in _codes(r)
+    assert all(f.actual != "None" and f.expected != "None" for f in r.failures)
+
+
+def test_po_quantity_none_does_not_crash():
+    po = _po(lines=(_line(1, "Office Chair", None), _line(2, "Desk Lamp", "20"), _line(3, "Whiteboard", "5")))
+    r = ENGINE.match(_invoice(), po, _grni(), _pard())
+    assert r.outcome in (Outcome.MATCH, Outcome.DISCREPANCY, Outcome.PENDING_INFO)
+    assert MatchCode.QTY_MISMATCH not in _codes(r)
+
+
+def test_grni_quantity_none_does_not_crash():
+    grni = _grni(lines=(_line(1, "Office Chair", None), _line(2, "Desk Lamp", "20"), _line(3, "Whiteboard", "5")))
+    r = ENGINE.match(_invoice(), _po(), grni, _pard())
+    assert r.outcome in (Outcome.MATCH, Outcome.DISCREPANCY, Outcome.PENDING_INFO)
+    assert MatchCode.QTY_MISMATCH not in _codes(r)
