@@ -82,9 +82,18 @@ class TotalsSpec:
 
 @dataclass(frozen=True)
 class LineItemsSpec:
-    """Reserved for PROD-B1b. ``enabled`` is False until then."""
+    """Line-item column mapping (PROD-B1c).
+
+    columns: canonical column -> header aliases (casefolded substring match).
+        Canonical keys: "description", "quantity", "price", "amount".
+        Empty = use the extractor's built-in defaults (the generic safety net).
+    fallback: "positional" = when no header maps, assign columns by index
+        (0=#, 1=desc, 2=qty, 3=price, 4=amount). None = no positional fallback.
+    """
 
     enabled: bool = False
+    columns: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    fallback: str | None = "positional"
 
 
 @dataclass(frozen=True)

@@ -92,31 +92,31 @@ def find_total_label(
     return None
 
 
-def line_items_from_table(ocr: OCRResult) -> tuple:
-    """Line items from the first table (invoice/PO layout).
+def _items_from_html(html: str, columns: dict) -> tuple:
+    """Line items from a table's HTML, columns located by header text.
 
-    Columns located by header text (case-insensitive): #, Description, Qty,
-    Unit Price, Amount. Robust to column reordering; if the table has no
-    header row, falls back to positional (0=#, 1=desc, 2=qty, 3=price,
-    4=amount). Unparseable cells become None — the validator flags them.
+    Each header cell is classified to a canonical column (description /
+    quantity / price / amount); unmapped columns (HSN, Discount, Condition,
+    ...) are skipped. A positional fallback (1=desc, 2=qty, 3=price, 4=amount)
+    is used only when NO header cell maps at all.
     """
-    from apmatch.parse._table import find_column, parse_table_rows
+    from apmatch.parse._table import classify_header_cell, parse_table_rows
     from apmatch.parse.coerce import parse_money, parse_qty
     from apmatch.schema.coercion import to_money, to_qty, to_unit_price
     from apmatch.schema.documents import LineItem
 
-    if not ocr.tables:
-        return ()
-    header, rows = parse_table_rows(ocr.tables[0].html)
-    has_header = any("description" in c.lower() for c in header)
-    if has_header:
-        col_line = find_column(header, "#")
-        col_desc = find_column(header, "description")
-        col_qty = find_column(header, "qty")
-        col_price = find_column(header, "unit price", "price")
-        col_amount = find_column(header, "amount")
-    else:
-        col_line, col_desc, col_qty, col_price, col_amount = 0, 1, 2, 3, 4
+    header, rows = parse_table_rows(html)
+    col_idx: dict[str, int] = {}
+    for i, cell_text in enumerate(header):
+        col = classify_header_cell(cell_text, columns)
+        if col is not None and col not in col_idx:
+            col_idx[col] = i
+    if not col_idx:
+        col_idx = {"description": 1, "quantity": 2, "price": 3, "amount": 4}
+    col_line = next(
+        (i for i, c in enumerate(header) if c.strip().casefold() in ("#", "no", "no.", "sl", "sl.")),
+        None,
+    )
 
     items = []
     for i, row in enumerate(rows, start=1):
@@ -131,16 +131,53 @@ def line_items_from_table(ocr: OCRResult) -> tuple:
         if raw_no:
             with contextlib.suppress(ValueError):
                 line_no = int(raw_no)
-        qty = parse_qty(cell(col_qty))
-        price = parse_money(cell(col_price))
-        amount = parse_money(cell(col_amount))
+        qty = parse_qty(cell(col_idx.get("quantity")))
+        price = parse_money(cell(col_idx.get("price")))
+        amount = parse_money(cell(col_idx.get("amount")))
         items.append(
             LineItem(
                 line_no=line_no,
-                description=cell(col_desc) or "",
+                description=cell(col_idx.get("description")) or "",
                 quantity=to_qty(qty) if qty is not None else None,
                 unit_price=to_unit_price(price) if price is not None else None,
                 amount=to_money(amount) if amount is not None else None,
             )
         )
     return tuple(items)
+
+
+def _completeness_score(items) -> int:
+    """Count lines with a real (non-numeric) description AND a qty or amount.
+
+    Used to pick the better of the HTML-table and text-block results: a
+    garbage / transposed table yields empty or numeric descriptions and scores
+    low, while the clean text blocks score high.
+    """
+    n = 0
+    for li in items:
+        d = (li.description or "").strip()
+        if not d or re.fullmatch(r"[\d.,]+", d):
+            continue
+        if li.quantity is not None or li.amount is not None:
+            n += 1
+    return n
+
+
+def line_items_from_table(ocr: OCRResult, template=None) -> tuple:
+    """Line items for an invoice/PO, from the best available source.
+
+    Tries the PP-StructureV3 table (header-driven column mapping) and a
+    text-block rebuild, and returns the more complete one. The text-block path
+    covers borderless tables (zero detected tables) and transposed / shifted
+    tables (garbage HTML) where the raw OCR blocks are still clean.
+    """
+    from apmatch.parse._table import DEFAULT_COLUMNS, line_items_from_text_blocks
+
+    columns = DEFAULT_COLUMNS
+    if template is not None and getattr(template.line_items, "columns", None):
+        columns = template.line_items.columns
+    html_items = _items_from_html(ocr.tables[0].html, columns) if ocr.tables else ()
+    block_items = line_items_from_text_blocks(ocr.text_blocks, columns)
+    if _completeness_score(html_items) >= _completeness_score(block_items):
+        return html_items
+    return block_items

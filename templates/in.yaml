@@ -54,4 +54,11 @@ totals:
     exclude: ["Subtotal", "Sub Total"]
 
 line_items:
-  enabled: false
+  enabled: true
+  columns:
+    description: ["Description", "Item Description", "Item", "Product"]
+    quantity: ["Qty", "Quantity", "Units", "Count"]
+    # in-style invoices label the price column "Item Rate" / "Rate".
+    price: ["Item Rate", "Rate", "Unit Price", "Price"]
+    amount: ["Amount", "Line Total", "Total", "Value"]
+  fallback: positional

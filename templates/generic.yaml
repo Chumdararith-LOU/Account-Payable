@@ -31,4 +31,6 @@ totals:
     labels: []
 
 line_items:
-  enabled: false
+  enabled: true
+  columns: {}   # empty = use the built-in defaults (apmatch/parse/_table.py)
+  fallback: positional

@@ -63,6 +63,19 @@ def _currency_spec(d: dict | None) -> CurrencySpec:
     )
 
 
+def _line_items_spec(d: dict | None) -> LineItemsSpec:
+    d = d or {}
+    columns = {
+        str(col): tuple(str(a) for a in (aliases or ()))
+        for col, aliases in (d.get("columns") or {}).items()
+    }
+    return LineItemsSpec(
+        enabled=bool(d.get("enabled", False)),
+        columns=columns,
+        fallback=d.get("fallback", "positional"),
+    )
+
+
 def _totals_spec(d: dict | None) -> TotalsSpec:
     d = d or {}
     total = _field_spec(d.get("total"))
@@ -83,7 +96,7 @@ def _template_from_dict(d: dict) -> Template:
         vendor=_vendor_spec(d.get("vendor")),
         currency=_currency_spec(d.get("currency")),
         totals=_totals_spec(d.get("totals")),
-        line_items=LineItemsSpec(enabled=bool((d.get("line_items") or {}).get("enabled", False))),
+        line_items=_line_items_spec(d.get("line_items")),
     )
 
 

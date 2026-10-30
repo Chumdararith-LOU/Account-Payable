@@ -153,6 +153,20 @@ def test_find_vendor_heuristic_skips_buyer():
 
 
 def test_find_vendor_heuristic_returns_none_if_no_suffix():
-    # No legal suffix anywhere -> None (the caller falls back to None).
-    blocks = (_b("Sunshine Motors Service", 100, 50, 400, 90), _b("INVOICE", 100, 10, 300, 40))
+    # No legal suffix and no business-type noun anywhere -> None (the caller
+    # falls back to None).
+    blocks = (_b("John Smith", 100, 50, 400, 90), _b("INVOICE", 100, 10, 300, 40))
     assert find_vendor_heuristic(blocks) is None
+
+
+def test_find_vendor_heuristic_finds_business_type_name():
+    # PROD-B1c: us/in vendors carry no legal suffix, only a business-type noun
+    # ("Service", "Store"). The heuristic must still pick the top-zone name.
+    blocks = (
+        _b("INVOICE", 100, 10, 300, 40),
+        _b("Sunshine Motors Service", 100, 50, 400, 90),
+        _b("Coral Limo Service", 100, 800, 400, 840),  # buyer, below top 20%
+    )
+    found = find_vendor_heuristic(blocks)
+    assert found is not None
+    assert found.text == "Sunshine Motors Service"

@@ -22,7 +22,7 @@ VENDOR_VARIANTS = ("Delivered By (Vendor)", "Vendor", "Supplier")
 DATE_VARIANTS = ("Date",)
 
 
-def _line_items(ocr: OCRResult) -> tuple[LineItem, ...]:
+def _line_items_from_html(ocr: OCRResult) -> tuple[LineItem, ...]:
     """Line items from the first table (GRNI layout: #, Description,
     Qty Ordered, Qty Received, Condition). Quantity is the received
     quantity; 'Qty Received' is matched before bare 'Qty' so the ordered
@@ -58,6 +58,24 @@ def _line_items(ocr: OCRResult) -> tuple[LineItem, ...]:
             )
         )
     return tuple(items)
+
+
+def _line_items(ocr: OCRResult) -> tuple[LineItem, ...]:
+    """GRNI line items from the best available source.
+
+    Tries the PP-StructureV3 table (preferring 'Qty Received') and a
+    text-block rebuild, and returns the more complete one. The text-block path
+    covers borderless tables and transposed / shifted tables where the raw OCR
+    blocks are still clean.
+    """
+    from apmatch.parse._common import _completeness_score
+    from apmatch.parse._table import DEFAULT_COLUMNS, line_items_from_text_blocks
+
+    html_items = _line_items_from_html(ocr)
+    block_items = line_items_from_text_blocks(ocr.text_blocks, DEFAULT_COLUMNS)
+    if _completeness_score(html_items) >= _completeness_score(block_items):
+        return html_items
+    return block_items
 
 
 def extract_grni(ocr: OCRResult) -> GRNI:

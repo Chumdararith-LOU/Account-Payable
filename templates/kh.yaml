@@ -43,4 +43,10 @@ totals:
     exclude: ["Subtotal"]
 
 line_items:
-  enabled: false   # PROD-B1b handles line items
+  enabled: true
+  columns:
+    description: ["Description", "Item Description", "Item", "Product"]
+    quantity: ["Qty", "Quantity", "Units", "Count"]
+    price: ["Unit Price", "Item Rate", "Rate", "Price"]
+    amount: ["Amount", "Line Total", "Total", "Value"]
+  fallback: positional

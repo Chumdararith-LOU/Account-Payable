@@ -210,9 +210,16 @@ def value_after_label_with_validation(
     return None, None
 
 
+# Legal suffixes plus common business-type nouns. The us/in vendors in the
+# batch ("Sunshine Motors Service", "Kaveri Home Store") carry no legal suffix,
+# so the suffix-only heuristic returned None; the business-type words let it
+# still pick the top-zone company name.
 _COMPANY_SUFFIX_RE = re.compile(
     r"\b(LLC|Inc\.?|Co\.?|Ltd\.?|Limited|Corp\.?|Corporation|"
-    r"GmbH|AG|SA|SAS|SRL|Pvt\.?\s*Ltd\.?|Private Limited)\b",
+    r"GmbH|AG|SA|SAS|SRL|Pvt\.?\s*Ltd\.?|Private Limited|"
+    r"Store|Service|Motors|Traders|Enterprises|Industries|Dealers|"
+    r"Supplies|Mart|Hospital|Pharmacy|Foods|Garments|Textiles|"
+    r"Hardware|Electronics)\b",
     re.IGNORECASE,
 )
 
@@ -224,10 +231,12 @@ def find_vendor_heuristic(
     """Most likely vendor name from an unlabeled document.
 
     Heuristic: top 20% of the page, block containing a legal suffix (LLC,
-    Inc., Ltd., ...), largest by area. Rationale (PROD-B0.6): "Bill to" /
-    "BILL TO" are near-misses for "vendor" but label the BUYER; a label-based
-    approach grabs the wrong company. The suffix heuristic finds the company
-    that is actually selling.
+    Inc., Ltd., ...) or a business-type noun (Store, Service, Motors, ...),
+    largest by area. Rationale (PROD-B0.6): "Bill to" / "BILL TO" are
+    near-misses for "vendor" but label the BUYER; a label-based approach grabs
+    the wrong company. The suffix heuristic finds the company that is actually
+    selling. (PROD-B1c: business-type nouns added for us/in vendors that carry
+    no legal suffix.)
     """
     if page_height is None:
         page_height = max((b.bbox[3] for b in blocks), default=0)

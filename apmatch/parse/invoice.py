@@ -86,6 +86,11 @@ def _extract_date(blocks, date_spec):
         _parse,
         candidate_order=date_spec.candidate_order or None,
         position_fallback=date_spec.position_fallback,
+        # us/in header layouts put the date ~250px right of the label, beyond
+        # the 200px default; widen so the right search reaches it instead of
+        # falling through to the "below" search (which grabs the next label,
+        # e.g. "DUE DATE", that fails date parsing).
+        max_gap_px=400.0,
     )
     return parsed
 
@@ -105,7 +110,9 @@ def extract_invoice(ocr: OCRResult) -> Invoice:
     template = _select_template(blocks)
 
     inv_labels = template.invoice_number.labels or INVOICE_NUMBER_VARIANTS
-    invoice_number = parse_document_number(labeled_value(blocks, inv_labels))
+    # us/in header layouts put the number ~356px right of the label, beyond the
+    # 200px default; widen so the right search reaches it (PROD-B1c).
+    invoice_number = parse_document_number(labeled_value(blocks, inv_labels, max_gap_px=400.0))
 
     vendor_name = _extract_vendor(blocks, template.vendor)
 
@@ -113,7 +120,7 @@ def extract_invoice(ocr: OCRResult) -> Invoice:
 
     currency = _extract_currency(blocks, template.currency)
 
-    line_items = line_items_from_table(ocr)
+    line_items = line_items_from_table(ocr, template)
 
     subtotal = labeled_money(blocks, template.totals.subtotal.labels or SUBTOTAL_VARIANTS)
     tax_amount = labeled_money(blocks, template.totals.tax.labels or TAX_VARIANTS)

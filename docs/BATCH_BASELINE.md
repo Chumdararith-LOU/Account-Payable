@@ -163,3 +163,46 @@ PROD-B1a. The trajectory is still monotonic (it did not regress), but the next
 gain requires fixing line-item alignment, not adding more header labels.
 PROD-B1b should re-run the batch after the line-item fix; that is where the
 rate is expected to climb.
+
+## Post-line-item + header fix (PROD-B1c)
+
+After the line-item table-parser fix (D-105: header-driven column mapping +
+text-block fallback + completeness-score pick) and the header spatial/vendor
+fixes (D-106: widened the invoice number/date label→value gap to 400px; D-107:
+vendor heuristic matches business-type nouns), the batch re-runs. Full per-case
+report: `reports/batch-b1c-20261030.json`.
+
+- Total: 120 · Passed: 67 · Failed: 53 · **Rate: 55.8%** (was 50.8% at PROD-B1a)
+- **Hard errors: 0**
+- By style: kh 19/40 (47.5%) · us 25/40 (62.5%) · in 23/40 (57.5%)
+- By expected outcome: DISCREPANCY 61/61 · MATCH 3/54 · PENDING INFO 3/5
+
+### The line-item fix worked; the header fix cut missing-fields sharply
+
+The line-item table-parser fix (D-105) resolved the column mis-identification
+that PROD-B1b traced: line-item `MISSING_REQUIRED_FIELD` dropped from ~600 to
+115, and `NO_LINE_ITEMS` from 14 to 3. The header fixes (D-106/D-107) cut the
+header missing-field blockers sharply:
+
+| Header field     | PROD-B1a | PROD-B1c |
+|------------------|----------|----------|
+| invoice_date     | 80       | 27       |
+| invoice_number   | 35       | 14       |
+| vendor_name      | 49       | 9        |
+
+### Interpretation
+
+The pass rate climbed 50.8% → 55.8% (**+4 cases, zero regressions**). The header
+extraction genuinely improved, but the pass rate is now capped by **out-of-scope**
+issues: line-item `MISSING_REQUIRED_FIELD` (115), `LINE_AMOUNT_MISMATCH` (41), and
+`PARD_AMOUNT_MISMATCH` (22). Most cases whose header was fixed *also* carry one of
+these, so fixing the header alone does not unblock the route. 8 failing cases carry
+*only* header blockers (5 us `invoice_date`, 3 `vendor_name`) that the widened gap
+and business-type nouns did not reach — a different layout (value further than 400px,
+or a vendor name with no business-type word).
+
+**Consequence for the roadmap:** the remaining failures need (a) those 8 residual
+header cases and (b) the line-item/matching alignment issues. Both are **PROD-B1d**
+scope (template application to PO/GRN/PARD, vendor buyer-rejection, positional-
+fallback iteration, and the matching-engine alignment fixes). The trajectory is
+monotonic: PROD-B0 = 5.8% → B0.5 = 50.8% → B1a = 50.8% → **B1c = 55.8%**.
