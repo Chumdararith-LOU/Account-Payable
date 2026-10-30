@@ -62,7 +62,7 @@
 | PROD-B0.5 | None-guards in matching engine (unmask crash-dominated baseline) | done | (PROD-B0.5) |
 | PROD-B0.6 | Batch failure diagnostics (categorize the 59 failures) | done | (PROD-B0.6) |
 | PROD-B1a | YAML template system for header extraction (kh/us/in/generic) | done | (PROD-B1a) |
-| PROD-B1b | kh line-item alignment diagnostic + fix (the kh puzzle) | pending | |
+| PROD-B1b | Line-item alignment diagnostic (measurement; root cause = table column mis-id) | done | (PROD-B1b) |
 | PROD-B1c | Batch rerun + measure (confirm template gains) | pending | |
 | PROD-B | Customer-scoped templates | pending | |
 
