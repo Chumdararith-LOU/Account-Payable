@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!--
 DocuFlow AP – Enterprise 2.0, wired to the APMatch API.
-Open this file directly in a browser (file:// works; the API sends
-Access-Control-Allow-Origin: *). Set the API base URL, X-API-Key and
-customer_id in the header bar — they persist in localStorage.
+Hosted same-origin by the API itself: open http://<server>:8001/
+(the API base defaults to the page's own origin). Set the X-API-Key
+and customer_id in the header bar — they persist in localStorage.
 
 Endpoints used:
   GET  /healthz            (no auth)
@@ -181,7 +181,7 @@ const AL={AUTO_APPROVE:["g1","Auto-Approve"],HUMAN_REVIEW:["o1","Human_Review"],
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 /* ---- API settings (persisted) ---- */
-const CFG={base:localStorage.getItem("apm_base")||"http://100.88.94.91:8001",key:localStorage.getItem("apm_key")||"",cust:localStorage.getItem("apm_cust")||"default"};
+const CFG={base:localStorage.getItem("apm_base")||(location.protocol.startsWith("http")?location.origin:"http://100.88.94.91:8001"),key:localStorage.getItem("apm_key")||"",cust:localStorage.getItem("apm_cust")||"default"};
 $("#ib").value=CFG.base;$("#ik").value=CFG.key;$("#ic").value=CFG.cust;
 function applyCfg(){CFG.base=$("#ib").value.trim().replace(/\/+$/,"");CFG.key=$("#ik").value.trim();CFG.cust=$("#ic").value.trim()||"default";
  localStorage.setItem("apm_base",CFG.base);localStorage.setItem("apm_key",CFG.key);localStorage.setItem("apm_cust",CFG.cust);

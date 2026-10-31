@@ -25,6 +25,7 @@ from uuid import uuid4
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -323,3 +324,11 @@ def kpis_recent(
         )
         for r in recent_runs(session, limit, customer_id)
     ]
+
+
+# Browser frontend (frontend/index.html), served same-origin at / so the UI
+# and the API share one URL. Mounted LAST so every API route above wins; the
+# guard keeps the API working in trees/images without a frontend directory.
+_FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+if _FRONTEND_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")

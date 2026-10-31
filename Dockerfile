@@ -80,6 +80,9 @@ COPY alembic.ini ./alembic.ini
 # offline guarantee can be verified from inside the running container.
 COPY scripts/ ./scripts/
 
+# Browser frontend, served same-origin at / by apmatch.api.app
+COPY frontend/ ./frontend/
+
 # Copy the model cache. .dockerignore no longer excludes this.
 # Ownership matters — the non-root user must be able to read.
 COPY --chown=apmatch:apmatch models/ ./models/

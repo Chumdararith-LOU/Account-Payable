@@ -109,6 +109,9 @@ COPY alembic.ini ./alembic.ini
 # Ops scripts + entrypoint (Docker COPY preserves the exec bit)
 COPY scripts/ ./scripts/
 
+# Browser frontend, served same-origin at / by apmatch.api.app
+COPY frontend/ ./frontend/
+
 # Copy the model cache. Ownership matters — the non-root user must read it.
 COPY --chown=apmatch:apmatch models/ ./models/
 
