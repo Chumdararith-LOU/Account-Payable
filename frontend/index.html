@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<!--
+DocuFlow AP – Enterprise 2.0, wired to the APMatch API.
+Open this file directly in a browser (file:// works; the API sends
+Access-Control-Allow-Origin: *). Set the API base URL, X-API-Key and
+customer_id in the header bar — they persist in localStorage.
+
+Endpoints used:
+  GET  /healthz            (no auth)
+  GET  /kpis/routes        dashboard KPI cards
+  GET  /kpis/recent        audit table + review queue
+  GET  /audit/{run_id}     decision drawer (input_hash, failures, similarity)
+  POST /match              upload tab (multipart: invoice, po, grni, pard)
+The Suppliers and Templates tabs have no API backing yet and stay static.
+-->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DocuFlow AP – Document Intelligence</title>
+<style>
+:root{--bg:#F0F4F8;--pn:#fff;--tx:#222;--bd:#ccc;--tb:#dfe5eb;--z:#f4f6f8;--in:#fff;--yw:#FFF8D6;--mut:#666;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b222b;--pn:#252e39;--tx:#e6ebf0;--bd:#3c4856;--tb:#2f3946;--z:#2a3440;--in:#1d252e;--yw:#4a4220;--mut:#9aa7b5}}
+:root[data-theme="dark"]{--bg:#1b222b;--pn:#252e39;--tx:#e6ebf0;--bd:#3c4856;--tb:#2f3946;--z:#2a3440;--in:#1d252e;--yw:#4a4220;--mut:#9aa7b5}
+html{background:#1B3B5A;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;font:12px Tahoma,Verdana,Arial,sans-serif;color:var(--tx);background:var(--bg);padding-bottom:36px;min-height:100vh}
+#hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:linear-gradient(#2C5E8A,#1B3B5A);border-bottom:3px solid #12263b;color:#fff}
+.logo{font:bold 24px Verdana,sans-serif;letter-spacing:-1px;text-shadow:1px 1px 0 #000,-1px -1px 0 #4f86b8}
+.logo small{display:block;font:11px Tahoma;letter-spacing:0;text-shadow:none;opacity:.85}
+.cs{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid #0d1f33;padding:7px 10px;border-radius:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);flex-wrap:wrap}
+.cs label{font-weight:bold;font-size:11px}
+.cs input{font:12px Tahoma;padding:5px 8px;border:1px solid #0d1f33;border-radius:3px;background:linear-gradient(#fff,#cfd9e4);color:#1B3B5A}
+#ib{min-width:200px}#ik{min-width:140px}#ic{min-width:110px}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--bd)}
+.tabs a,.stabs a{padding:6px 14px;border:1px solid var(--bd);border-bottom:0;border-radius:5px 5px 0 0;background:linear-gradient(var(--z),var(--tb));color:var(--tx);text-decoration:none;font-weight:bold;margin-bottom:-1px;cursor:pointer}
+.tabs a.on,.stabs a.on{background:var(--pn);border-bottom:1px solid var(--pn)}
+.stabs{display:flex;gap:2px;border-bottom:1px solid var(--bd);margin-bottom:10px}
+main{padding:10px}.sc{display:none}.sc.on{display:block}
+.pan{background:var(--pn);border:1px solid var(--bd);margin-bottom:10px}
+.pan>h3{margin:0;padding:5px 8px;font-size:12px;background:linear-gradient(var(--z),var(--tb));border-bottom:1px solid var(--bd);text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.pb{padding:8px}
+.g{display:grid;gap:10px}.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:2fr 1fr}
+.k{border:1px solid var(--bd);border-radius:9px;padding:8px 12px;background:linear-gradient(rgba(255,255,255,.35) 50%,rgba(0,0,0,.02) 50%),var(--pn);box-shadow:inset 0 1px 0 #fff3,0 1px 3px rgba(0,0,0,.2)}
+.k b{display:block;font-size:32px;line-height:1.15}.k span{color:var(--mut)}
+.gr{color:#4CAF50}.or{color:#F57C00}.rd{color:#E53935}.bl{color:#2C5E8A}
+@media (prefers-color-scheme:dark){.bl{color:#7db3e6}}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--bd);padding:4px 7px;text-align:left}
+th{background:linear-gradient(var(--z),var(--tb));cursor:pointer;white-space:nowrap}
+tbody tr:nth-child(even){background:var(--z)}tbody tr.cl{cursor:pointer}tbody tr.cl:hover{background:#fff3b0;color:#222}
+.tw{overflow-x:auto}
+.pl{display:inline-block;border-radius:10px;padding:2px 8px;color:#fff;font-size:11px;font-weight:bold;white-space:nowrap}
+.pl.g1{background:#4CAF50}.pl.o1{background:#F57C00}.pl.r1{background:#E53935}.pl.b1{background:#2C5E8A}
+.btn{font:bold 12px Tahoma;color:#fff;padding:6px 14px;border:1px solid #12263b;border-radius:4px;cursor:pointer;text-shadow:0 -1px 0 rgba(0,0,0,.4);background:linear-gradient(#6ea4d4 0,#2C5E8A 50%,#1B3B5A 51%,#25527f 100%)}
+.btn.gn{border-color:#2a6a2d;font-size:14px;padding:9px 20px;background:linear-gradient(#8fdc93 0,#4CAF50 50%,#388E3C 51%,#43a047 100%)}
+.btn.re{border-color:#7f1d1d;background:linear-gradient(#f28b88 0,#E53935 50%,#b71c1c 51%,#cc2b27 100%)}
+.btn.sm{padding:3px 9px;font-size:11px}.btn:active{filter:brightness(.85)}
+.why{background:var(--yw);border:1px solid #d4b106;padding:8px 10px;margin-bottom:10px;display:flex;gap:8px;color:var(--tx)}
+.why b{color:#E53935}
+@media (prefers-color-scheme:dark){.why b{color:#ff8a80}}
+.ff{display:grid;grid-template-columns:110px 1fr;gap:6px 8px;align-items:center;margin-bottom:12px}
+input[type=text],input[type=password],select.f{font:12px Tahoma;padding:4px 6px;border:1px solid #999;background:var(--in);color:var(--tx);box-shadow:inset 1px 1px 3px rgba(0,0,0,.25);width:100%}
+input[type=file]{font:12px Tahoma;width:100%}
+input.bad{border-color:#E53935;background:#ffe9e9;color:#222}
+.bt{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mono{font-family:"Courier New",monospace}
+.sw input{display:none}.sw i{display:inline-block;width:46px;height:20px;border-radius:10px;background:#888;position:relative;vertical-align:middle;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);transition:.2s}
+.sw i:after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:linear-gradient(#fff,#ccc);transition:.2s}
+.sw input:checked+i{background:#4CAF50}.sw input:checked+i:after{left:28px}
+.two{display:flex;gap:10px}.nav{width:220px;flex:none;border:1px solid var(--bd);background:var(--pn);align-self:flex-start}
+.nav div{padding:7px 10px;border-bottom:1px solid var(--bd);cursor:pointer}.nav div.on{background:#2C5E8A;color:#fff}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;box-shadow:inset 0 -2px 2px rgba(0,0,0,.3)}.dot.u{background:#4CAF50}.dot.d{background:#E53935}.dot.w{background:#F57C00}
+.tree div{padding:3px 0}.tree .in{margin-left:22px}
+.split{display:flex;border:1px solid var(--bd);background:var(--pn)}
+.sl{width:60%;border-right:1px solid #888;display:flex;flex-direction:column}.sr{width:40%;padding:8px}
+.tb{padding:5px;display:flex;gap:4px;align-items:center;background:linear-gradient(var(--z),var(--tb));border-bottom:1px solid var(--bd)}
+.fr{background:#8a9099;min-height:400px;overflow:auto;padding:12px;border:2px inset #777}
+#pp{position:relative;width:480px;min-height:520px;background:#fff;color:#222;box-shadow:2px 2px 6px rgba(0,0,0,.5);font:12px Tahoma,sans-serif;padding:14px}
+#pp .t{position:absolute;white-space:nowrap}
+#dr{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100%;background:var(--pn);border:2px solid #1B3B5A;box-shadow:-4px 0 12px rgba(0,0,0,.4);transform:translateX(105%);transition:transform .25s;z-index:20;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#dr.on{transform:none}#dr h3{margin:0;padding:7px 10px;color:#fff;background:linear-gradient(#2C5E8A,#1B3B5A);display:flex;justify-content:space-between}
+#dr .bd{padding:10px;overflow:auto;flex:1}
+.hs{word-break:break-all;background:var(--z);border:1px solid var(--bd);padding:6px;margin:4px 0}
+.tl{border-left:2px solid #2C5E8A;margin:8px 0 0 6px;padding-left:14px}
+.tl div{position:relative;margin-bottom:12px}.tl div:before{content:"";position:absolute;left:-21px;top:2px;width:10px;height:10px;border-radius:50%;background:#2C5E8A;border:2px solid var(--pn)}
+.tl div:hover:after{content:attr(data-tip);position:absolute;left:0;top:100%;z-index:3;background:#222;color:#fff;padding:3px 6px;font-size:11px;white-space:nowrap}
+.fl{border:1px solid var(--bd);border-left:4px solid #E53935;background:var(--z);padding:6px 8px;margin-bottom:6px}
+.fl.ok{border-left-color:#4CAF50}
+.fl small{color:var(--mut)}
+#ft{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;justify-content:space-between;gap:10px;padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px));background:linear-gradient(#34475c,#1B3B5A);color:#dfe9f3;border-top:1px solid #0d1f33}
+#ft .mono{font-size:11px}
+#ld{position:fixed;inset:0;background:rgba(240,244,248,.75);z-index:30;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-weight:bold;color:#1B3B5A}
+#ld.on{display:flex}#ld i{width:40px;height:40px;border:5px solid #b9c7d6;border-top-color:#2C5E8A;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:820px){.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.split,.two{flex-direction:column}.sl,.sr,.nav{width:100%}#ft .mono{font-size:10px}}
+</style></head><body>
+<div id="hd">
+ <div class="logo">DocuFlow<span style="color:#9fd0ff">AP</span><small>Accounts Payable Document Intelligence</small></div>
+ <div class="cs"><label for="ib">🌐 API:</label><input type="text" id="ib">
+  <label for="ik">🔑 KEY:</label><input type="password" id="ik">
+  <label for="ic">🏢 CUSTOMER:</label><input type="text" id="ic">
+  <button class="btn sm" onclick="applyCfg()">Connect</button></div>
+</div>
+<nav class="tabs" id="tabs"></nav>
+<main>
+<section class="sc" id="s-dashboard">
+ <div class="g g4" id="kp"></div>
+ <div class="g g2" style="margin-top:10px">
+  <div class="pan"><h3>Document Volume Trend – Last 14 Days <small style="font-weight:normal">(mock — no time-series endpoint yet)</small></h3><div class="pb"><svg id="ch" viewBox="0 0 640 240" width="100%" style="display:block"></svg></div></div>
+  <div class="pan"><h3>Top Exception Codes <small style="font-weight:normal">(mock — no failure-code endpoint yet)</small></h3><div class="pb" id="ex"></div></div>
+ </div>
+</section>
+
+<section class="sc" id="s-upload">
+ <div class="pan"><h3>Run a Match <small style="font-weight:normal">POST /match — images only (PNG, JPG, TIFF, WEBP, BMP)</small></h3><div class="pb">
+  <div class="ff">
+   <label>Invoice *</label><input type="file" id="f_invoice" accept=".png,.jpg,.jpeg,.tiff,.tif,.webp,.bmp">
+   <label>Purchase Order</label><input type="file" id="f_po" accept=".png,.jpg,.jpeg,.tiff,.tif,.webp,.bmp">
+   <label>Goods Receipt</label><input type="file" id="f_grni" accept=".png,.jpg,.jpeg,.tiff,.tif,.webp,.bmp">
+   <label>Payment Advice</label><input type="file" id="f_pard" accept=".png,.jpg,.jpeg,.tiff,.tif,.webp,.bmp">
+  </div>
+  <div class="bt"><button class="btn gn" onclick="runMatch()">▶ Run Match</button><span id="mst" style="color:var(--mut)"></span></div>
+  <div id="mres" style="margin-top:10px"></div>
+ </div></div>
+</section>
+
+<section class="sc" id="s-review">
+ <div class="why" id="why"></div>
+ <div class="split">
+  <div class="sl">
+   <div class="tb"><b style="margin-left:6px">Document summary</b><span style="margin-left:auto"><button class="btn sm" onclick="mv(-1)">◀ K</button> <button class="btn sm" onclick="mv(1)">J ▶</button></span></div>
+   <div class="fr"><div id="pp"></div></div>
+  </div>
+  <div class="sr">
+   <div class="bt" style="justify-content:space-between;margin-bottom:10px"><b id="rh"></b></div>
+   <div id="fm" style="margin-bottom:12px"></div>
+   <div class="bt"><button class="btn gn" onclick="act('Approved with override')">Approve Override</button><button class="btn re" onclick="act('Rejected')">Reject</button></div>
+   <p style="color:var(--mut)">Decisions are local only — the API has no clerk-decision endpoint yet.</p>
+  </div>
+ </div>
+</section>
+
+<section class="sc" id="s-audit">
+ <div class="pan"><h3>Audit Trail – Document Explorer <small style="font-weight:normal">(click a column to sort, a row for details)</small></h3><div class="tw"><table><thead id="ah"></thead><tbody id="ab"></tbody></table></div></div>
+</section>
+
+<section class="sc" id="s-suppliers">
+ <div class="two">
+  <div class="nav" id="sn"></div>
+  <div class="pan" style="flex:1;margin:0"><h3 id="sh"></h3><div class="pb">
+   <div class="stabs" id="st"><a class="on" data-t="0">Overview</a><a data-t="1">Dispute History</a><a data-t="2">Rules</a></div>
+   <div id="sb"></div>
+  </div></div>
+ </div>
+</section>
+
+<section class="sc" id="s-templates">
+ <div class="g g2">
+  <div class="pan"><h3>Extraction Templates (YAML)</h3><div class="pb tree">
+   <div>📁 templates/</div>
+   <div class="in" style="margin-left:44px">📄 kh.yaml</div><div class="in" style="margin-left:44px">📄 us.yaml</div><div class="in" style="margin-left:44px">📄 in.yaml</div>
+  </div></div>
+  <div class="pan"><h3>Model Health</h3><div class="pb">
+   <table><tbody>
+    <tr><td><span class="dot u"></span>OCR Engine</td><td>PaddleOCR</td><td id="mh">checking…</td></tr>
+    <tr><td><span class="dot u"></span>Layout Classifier</td><td>PP-StructureV3</td><td>Healthy</td></tr>
+    <tr><td><span class="dot u"></span>Embedding Model</td><td id="mv">—</td><td>Deterministic</td></tr>
+   </tbody></table>
+  </div></div>
+ </div>
+</section>
+</main>
+
+<aside id="dr"><h3><span>Decision Detail</span><a href="#audit" onclick="dc();return false" style="color:#fff;text-decoration:none">✖</a></h3><div class="bd" id="db"></div></aside>
+<div id="ld"><i></i>Loading customer data…</div>
+<footer id="ft"><span id="fs">Ready.</span><span class="mono">J/K: Nav | Esc: Close</span></footer>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const st=t=>$("#fs").innerHTML=t;
+const AL={AUTO_APPROVE:["g1","Auto-Approve"],HUMAN_REVIEW:["o1","Human_Review"],REJECT:["r1","Reject"]};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---- API settings (persisted) ---- */
+const CFG={base:localStorage.getItem("apm_base")||"http://100.88.94.91:8001",key:localStorage.getItem("apm_key")||"",cust:localStorage.getItem("apm_cust")||"default"};
+$("#ib").value=CFG.base;$("#ik").value=CFG.key;$("#ic").value=CFG.cust;
+function applyCfg(){CFG.base=$("#ib").value.trim().replace(/\/+$/,"");CFG.key=$("#ik").value.trim();CFG.cust=$("#ic").value.trim()||"default";
+ localStorage.setItem("apm_base",CFG.base);localStorage.setItem("apm_key",CFG.key);localStorage.setItem("apm_cust",CFG.cust);
+ st("Settings saved. Reloading…");dash();loadReview();au();ping()}
+async function api(path,opts={}){
+ const h={"X-API-Key":CFG.key,...(opts.headers||{})};
+ const r=await fetch(CFG.base+path,{...opts,headers:h});
+ if(!r.ok){let d;try{d=await r.json()}catch(e){}throw new Error((d&&(d.detail||d.error_code))||("HTTP "+r.status))}
+ return r.json()}
+const q="?customer_id="+encodeURIComponent(CFG.cust);
+
+/* ---- Tabs ---- */
+const T=[["dashboard","Dashboard"],["upload","Upload & Match"],["review","Review Queue"],["audit","Audit Trail"],["suppliers","Suppliers"],["templates","Templates"]];
+$("#tabs").innerHTML=T.map(t=>`<a href="#${t[0]}" data-k="${t[0]}">${t[1]}</a>`).join("");
+function route(){let h=location.hash.slice(1);if(!T.some(t=>t[0]==h))h="dashboard";$$(".sc").forEach(s=>s.classList.toggle("on",s.id=="s-"+h));$$("#tabs a").forEach(a=>a.classList.toggle("on",a.dataset.k==h));dc()}
+addEventListener("hashchange",route);
+
+/* ---- Shared renderers ---- */
+function failHtml(fs,title){if(!fs||!fs.length)return"";
+ return `<h4 style="margin:10px 0 4px">${title}</h4>`+fs.map(f=>`<div class="fl"><b>${esc(f.code)}</b> <small>[${esc(f.severity)}] ${esc(f.location)}</small><br><small>expected: ${esc(f.expected)||"—"} · actual: ${esc(f.actual)||"—"}${f.delta?" · Δ "+esc(f.delta):""}</small></div>`).join("")}
+function simHtml(sms){if(!sms||!sms.length)return"";
+ return `<h4 style="margin:10px 0 4px">Similarity matches</h4>`+sms.map(s=>`<div class="fl ok"><b>${esc(s.band)}</b> <small>score ${esc(s.score)} (review ≥ ${esc(s.threshold_review)}, accept ≥ ${esc(s.threshold_accept)})</small><br><small>invoice: ${esc(s.invoice_text)}<br>counterpart: ${esc(s.counterpart_text)}</small></div>`).join("")}
+
+/* ---- Dashboard: KPI cards from /kpis/routes; chart + exceptions stay mock ---- */
+async function dash(){
+ try{
+  const k=await api("/kpis/routes"+q);
+  const rate=k.total?Math.round(100*k.auto_approve/k.total):0;
+  $("#kp").innerHTML=[["Auto-Approve Rate",rate+"%","gr",k.auto_approve+" of "+k.total+" runs"],["Review Queue",k.human_review,"or","items awaiting a clerk"],["Docs Processed",k.total.toLocaleString(),"bl","all-time, this customer"],["Rejected",k.reject,"rd","route = REJECT"]].map(x=>`<div class="k"><span>${x[0]}</span><b class="${x[2]}">${x[1]}</b><span>${x[3]}</span></div>`).join("");
+  $$("#tabs a")[2].textContent=`Review Queue (${k.human_review})`;
+ }catch(e){$("#kp").innerHTML=`<div class="k" style="grid-column:1/-1"><span>API error</span><b class="rd" style="font-size:16px">${esc(e.message)}</b><span>Check the API base URL and key in the header, then press Connect.</span></div>`}
+ const base=[60,72,65,80,95,88,70,92,105,98,110,102,118,124],v=base,a=v.map(x=>Math.round(x*0.7));
+ const mx=Math.ceil(Math.max(...v)/40)*40,X=i=>44+i*(580/13),Y=n=>210-n/mx*180,pts=d=>d.map((n,i)=>X(i)+","+Y(n)).join(" ");
+ let s="";for(let i=0;i<=4;i++){const y=30+i*45;s+=`<line x1="44" x2="624" y1="${y}" y2="${y}" stroke="#999" stroke-opacity=".4"/><text x="38" y="${y+4}" text-anchor="end" font-size="10" fill="currentColor">${Math.round(mx-i*mx/4)}</text>`}
+ s+=`<polyline points="${pts(v)}" fill="none" stroke="#2C5E8A" stroke-width="3.5"/><polyline points="${pts(a)}" fill="none" stroke="#4CAF50" stroke-width="3.5"/>`;
+ for(let i=0;i<14;i+=2)s+=`<text x="${X(i)}" y="228" text-anchor="middle" font-size="10" fill="currentColor">Oct ${i+17>31?i-14:i+17}</text>`;
+ s+=`<rect x="440" y="4" width="190" height="22" fill="none" stroke="#999"/><rect x="448" y="12" width="12" height="6" fill="#2C5E8A"/><text x="464" y="19" font-size="10" fill="currentColor">Volume</text><rect x="520" y="12" width="12" height="6" fill="#4CAF50"/><text x="536" y="19" font-size="10" fill="currentColor">Auto-approved</text>`;
+ $("#ch").innerHTML=s;$("#ch").style.color="var(--tx)";
+ $("#ex").innerHTML=[["LINE_AMOUNT_MISMATCH",38],["PO_NOT_FOUND",27],["DUPLICATE_INVOICE",19],["TAX_CODE_INVALID",11],["LOW_OCR_CONFIDENCE",5]].map(e=>`<div style="margin-bottom:9px"><span class="mono">${e[0]}</span> <b>${e[1]}%</b></div>`).join("")}
+
+/* ---- Upload: POST /match ---- */
+async function runMatch(){
+ const inv=$("#f_invoice").files[0];
+ if(!inv){st("Pick an invoice file first.");return}
+ const fd=new FormData();fd.append("invoice",inv);
+ for(const[id,name]of[["f_po","po"],["f_grni","grni"],["f_pard","pard"]]){const f=$(id).files[0];if(f)fd.append(name,f)}
+ $("#mst").textContent="Running pipeline (OCR → parse → validate → match)… this can take a minute.";
+ try{
+  const r=await api("/match"+q,{method:"POST",body:fd});
+  $("#mres").innerHTML=`<p><span class="pl ${AL[r.route][0]}">${AL[r.route][1]}</span> <b>score ${(r.score*100).toFixed(1)}%</b> <span class="mono" style="color:var(--mut)">${esc(r.run_id)}</span></p>
+   <p>${esc(r.remark)||""}</p>
+   ${failHtml(r.validation_failures,"Validation failures")}${failHtml(r.match_failures,"Match failures")}${simHtml(r.similarity_matches)}
+   <button class="btn sm" onclick="dopen('${esc(r.run_id)}')">View full audit →</button>`;
+  st(`Match complete: ${r.route} (${r.run_id})`);
+ }catch(e){$("#mst").textContent="";$("#mres").innerHTML=`<div class="fl">⚠️ <b>${esc(e.message)}</b></div>`}
+ $("#mst").textContent="";}
+
+/* ---- Review: HUMAN_REVIEW runs from /kpis/recent, detail from /audit ---- */
+let RQ=[],ri=0;
+async function loadReview(){
+ try{
+  const runs=await api("/kpis/recent?limit=50"+q);
+  RQ=runs.filter(r=>r.route==="HUMAN_REVIEW");ri=0;
+  if(RQ.length)rev();
+  else{$("#why").innerHTML="";$("#rh").textContent="Review queue is empty";$("#pp").innerHTML="<p style='color:#666'>No HUMAN_REVIEW runs in the last 50.</p>";$("#fm").innerHTML=""}
+ }catch(e){$("#why").innerHTML=`<div>⚠️ ${esc(e.message)}</div>`}
+}
+async function rev(){
+ const d=RQ[ri];if(!d)return;
+ $("#why").innerHTML=`<span style="font-size:20px">⚠️</span><div><b>${esc(d.route_reason)}</b><br><span style="color:var(--mut)">${esc(d.remark)||"Routed to human review."}</span></div>`;
+ $("#rh").textContent=`${d.run_id} (${ri+1} of ${RQ.length})`;
+ $("#pp").innerHTML="<p style='color:#666'>Loading…</p>";$("#fm").innerHTML="";
+ try{
+  const a=await api("/audit/"+d.run_id);
+  $("#pp").innerHTML=`<h4 style="margin-top:0">Extracted document numbers</h4>
+   <table><tbody>
+   <tr><th>Invoice</th><td class="mono">${esc(a.invoice_number)||"—"}</td></tr>
+   <tr><th>PO</th><td class="mono">${esc(a.po_number)||"—"}</td></tr>
+   <tr><th>GRN</th><td class="mono">${esc(a.grn_number)||"—"}</td></tr>
+   <tr><th>PARD ref</th><td class="mono">${esc(a.pard_ref)||"—"}</td></tr>
+   <tr><th>Score</th><td>${(a.score*100).toFixed(1)}%</td></tr>
+   <tr><th>Route reason</th><td>${esc(a.route_reason)}</td></tr>
+   <tr><th>Remark</th><td>${esc(a.remark)||"—"}</td></tr>
+   </tbody></table>
+   <p style="color:#666">The API does not return the scanned image or block coordinates, so there is no page preview — compare against the source documents in your ERP.</p>`;
+  const all=[...a.validation_failures,...a.match_failures];
+  $("#fm").innerHTML=all.length?failHtml(all,"Why it was routed to review"):simHtml(a.similarity_matches)||"<p style='color:var(--mut)'>No failures recorded.</p>";
+ }catch(e){$("#pp").innerHTML=`<div class="fl">⚠️ ${esc(e.message)}</div>`}
+}
+function mv(n){ri=(ri+n+RQ.length)%RQ.length;rev()}
+function act(m){st(`${RQ[ri]?RQ[ri].run_id:"?"}: ${m} (local only — no decision endpoint yet)`)}
+
+/* ---- Audit: /kpis/recent table, /audit/{run_id} drawer ---- */
+let A=[],sk=-1,sd=1;
+const AH=["Run","Invoice #","Decision","Score","Reason","Timestamp"];
+async function au(){
+ try{
+  A=await api("/kpis/recent?limit=50"+q);renderAu();
+ }catch(e){$("#ah").innerHTML="";$("#ab").innerHTML=`<tr><td colspan="6">${esc(e.message)}</td></tr>`}
+}
+function renderAu(){
+ const rows=A.map((r,i)=>[r,i]);
+ if(sk>=0)rows.sort((a,b)=>String(a[0][sk]??a[0].run_timestamp).localeCompare(String(b[0][sk]??b[0].run_timestamp),undefined,{numeric:true})*sd);
+ $("#ah").innerHTML="<tr>"+AH.map((h,i)=>`<th onclick="so(${i})">${h} ${sk==i?(sd>0?"▲":"▼"):"↕"}</th>`).join("")+"</tr>";
+ $("#ab").innerHTML=rows.map(([r])=>`<tr class="cl" onclick="dopen('${esc(r.run_id)}')"><td class="mono">${esc(r.run_id.slice(0,8))}</td><td>${esc(r.invoice_number)||"—"}</td><td><span class="pl ${AL[r.route][0]}">${AL[r.route][1]}</span></td><td>${(r.score*100).toFixed(1)}%</td><td class="mono">${esc(r.route_reason)}</td><td>${new Date(r.run_timestamp).toLocaleString()}</td></tr>`).join("")||"<tr><td colspan='6'>No runs yet.</td></tr>"}
+function so(i){const k=["run_id","invoice_number","route","score","route_reason","run_timestamp"][i];sd=sk==i?-sd:1;sk=i;
+ const rows=A.map((r,i)=>[r,i]);rows.sort((a,b)=>String(a[0][k]??a[0].run_timestamp).localeCompare(String(b[0][k]??b[0].run_timestamp),undefined,{numeric:true})*sd);
+ $("#ah").innerHTML="<tr>"+AH.map((h,j)=>`<th onclick="so(${j})">${h} ${sk==j?(sd>0?"▲":"▼"):"↕"}</th>`).join("")+"</tr>";
+ $("#ab").innerHTML=rows.map(([r])=>`<tr class="cl" onclick="dopen('${esc(r.run_id)}')"><td class="mono">${esc(r.run_id.slice(0,8))}</td><td>${esc(r.invoice_number)||"—"}</td><td><span class="pl ${AL[r.route][0]}">${AL[r.route][1]}</span></td><td>${(r.score*100).toFixed(1)}%</td><td class="mono">${esc(r.route_reason)}</td><td>${new Date(r.run_timestamp).toLocaleString()}</td></tr>`).join("")}
+async function dopen(runId){
+ $("#db").innerHTML="<p>Loading…</p>";$("#dr").classList.add("on");
+ try{
+  const a=await api("/audit/"+runId);
+  const ev=[["Received","customer_id "+a.customer_id],["Pipeline complete","score "+(a.score*100).toFixed(1)+"%"],["Decision: "+a.route,a.route_reason]];
+  if(a.route==="HUMAN_REVIEW")ev.push(["Awaiting clerk","In the review queue"]);
+  $("#db").innerHTML=`<p><b class="mono">${esc(a.run_id)}</b><br><span class="pl ${AL[a.route][0]}">${AL[a.route][1]}</span></p>
+   <b>input_hash (SHA-256)</b><div class="hs mono" id="hv">${esc(a.input_hash)}</div><button class="btn sm" onclick="cp()">Copy</button> <span id="cm"></span>
+   ${failHtml(a.validation_failures,"Validation failures")}${failHtml(a.match_failures,"Match failures")}${simHtml(a.similarity_matches)}
+   <h4>Timeline</h4><div class="tl">${ev.map(e=>`<div data-tip="${esc(e[1])}"><b>${esc(e[0])}</b><br><span style="color:var(--mut)">${new Date(a.run_timestamp).toLocaleString()}</span></div>`).join("")}</div>`;
+ }catch(e){$("#db").innerHTML=`<div class="fl">⚠️ ${esc(e.message)}</div>`}
+}
+function cp(){try{navigator.clipboard.writeText($("#hv").textContent)}catch(e){}$("#cm").textContent="Copied!"}
+function dc(){$("#dr").classList.remove("on")}
+
+/* ---- Suppliers (static mock — no API backing yet) ---- */
+const S=[["Northwind Steel",1,"Net 30","98.4%",3],["Apex Freight Ltd.",0,"Net 45","91.0%",7],["Summit Office Supply",0,"Net 30","95.2%",2],["Delta Packaging",1,"Net 60","88.7%",11],["Orion Chemicals",0,"Net 30","96.9%",1]];
+let si=0,sti=0;
+function sup(){$("#sn").innerHTML=S.map((s,i)=>`<div class="${i==si?"on":""}" onclick="si=${i};sup()">${s[0]}</div>`).join("");
+ const s=S[si];$("#sh").textContent=s[0];$$("#st a").forEach(a=>a.classList.toggle("on",+a.dataset.t==sti));
+ $("#sb").innerHTML=[`<table><tbody><tr><th>Payment terms</th><td>${s[2]}</td></tr><tr><th>Auto-approve rate</th><td>${s[3]}</td></tr><tr><th>Open disputes</th><td>${s[4]}</td></tr><tr><th>Template</th><td class="mono">${s[0].split(" ")[0].toLowerCase()}_v2.yaml</td></tr></tbody></table>`,
+ `<table><thead><tr><th>Date</th><th>Document</th><th>Issue</th><th>Status</th></tr></thead><tbody><tr><td>2026-10-21</td><td class="mono">INV-20812</td><td>Price differs from PO</td><td><span class="pl o1">Open</span></td></tr><tr><td>2026-09-30</td><td class="mono">INV-20511</td><td>Duplicate invoice</td><td><span class="pl g1">Resolved</span></td></tr></tbody></table>`,
+ `<label class="sw"><input type="checkbox" ${s[1]?"checked":""}><i></i> <b>Always route to human review</b></label><p style="color:var(--mut)">When on, every document from this supplier skips auto-approval.</p>`][sti]}
+$("#st").onclick=e=>{if(e.target.dataset.t){sti=+e.target.dataset.t;sup()}};
+
+/* ---- Health ---- */
+async function ping(){
+ try{const h=await fetch(CFG.base+"/healthz").then(r=>r.json());
+  $("#mh").textContent="Healthy";$("#mv").textContent="loaded";st(`API online: ${CFG.base} (v${h.version})`);
+ }catch(e){$("#mh").textContent="Down";st("API offline: "+e.message)}}
+
+addEventListener("keydown",e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||e.ctrlKey||e.metaKey)return;if(e.key=="Escape")dc();if(!$("#s-review").classList.contains("on"))return;const k=e.key.toLowerCase();if(k=="j")mv(1);else if(k=="k")mv(-1)});
+route();dash();loadReview();au();sup();ping();
+</script>
+</body></html>

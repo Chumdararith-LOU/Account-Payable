@@ -23,6 +23,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
 from sqlalchemy import create_engine
@@ -77,6 +78,16 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="APMatch", version="0.1.0", lifespan=lifespan)
+
+# Browser frontend (frontend/index.html) calls the API cross-origin, including
+# a preflight for the X-API-Key header. Auth is unchanged: every call still
+# needs a valid key.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.APMATCH_CORS_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(ApiError)

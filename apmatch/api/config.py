@@ -47,3 +47,8 @@ DATABASE_URL: str = _required("DATABASE_URL")
 APMATCH_LOG_LEVEL: str = os.environ.get("APMATCH_LOG_LEVEL", "INFO")
 APMATCH_OCR_DEBUG: bool = os.environ.get("APMATCH_OCR_DEBUG", "false").lower() in ("1", "true", "yes")
 APMATCH_MAX_UPLOAD_BYTES: int = int(os.environ.get("APMATCH_MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))
+
+# Comma-separated allowed origins for the browser frontend (frontend/index.html).
+# Default "*": the frontend is a local dev tool and every call still needs the
+# X-API-Key, so open origins do not weaken auth.
+APMATCH_CORS_ORIGINS: list[str] = [o.strip() for o in os.environ.get("APMATCH_CORS_ORIGINS", "*").split(",") if o.strip()]
