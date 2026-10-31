@@ -27,14 +27,17 @@ from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 
-from apmatch.embeddings.model import EmbeddingModel
-from apmatch.layout.structure import LayoutEngine
-from apmatch.matching.engine import MatchingEngine
-from apmatch.ocr.engine import OCRResult, to_prototype_json
-from apmatch.ocr.router import OCRRouter
-from apmatch.parse import dispatch
-from apmatch.validation.arithmetic import validate_invoice
-from scripts.run_batch import DOC_FIELDS, load_cases
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+
+from apmatch.embeddings.model import EmbeddingModel  # noqa: E402 — after sys.path.insert
+from apmatch.layout.structure import LayoutEngine  # noqa: E402
+from apmatch.matching.engine import MatchingEngine  # noqa: E402
+from apmatch.ocr.engine import OCRResult, to_prototype_json  # noqa: E402
+from apmatch.ocr.router import OCRRouter  # noqa: E402
+from apmatch.parse import dispatch  # noqa: E402
+from apmatch.validation.arithmetic import validate_invoice  # noqa: E402
+from scripts.run_batch import DOC_FIELDS, load_cases  # noqa: E402
 
 
 def load_clean_cases(
