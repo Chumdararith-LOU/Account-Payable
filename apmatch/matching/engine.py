@@ -55,7 +55,7 @@ from apmatch.matching.config import (
     UNIT_PRICE_TOLERANCE,
     UNIT_PRICE_TOLERANCE_REL,
 )
-from apmatch.matching.normalize import normalize_currency, normalize_text
+from apmatch.matching.normalize import normalize_currency, normalize_number_text, normalize_text
 from apmatch.matching.result import (
     MatchCode,
     MatchFailure,
@@ -386,6 +386,46 @@ class MatchingEngine:
                     "header",
                     str(invoice.invoice_date),
                     str(pard.payment_date),
+                    "",
+                )
+            )
+
+        # 5b. Sequence and reference sanity.
+        if (
+            invoice.invoice_date is not None
+            and po.po_date is not None
+            and invoice.invoice_date < po.po_date
+        ):
+            failures.append(
+                MatchFailure(
+                    MatchCode.INVOICE_BEFORE_PO,
+                    Severity.WARNING,
+                    "header (invoice vs PO)",
+                    str(po.po_date),
+                    str(invoice.invoice_date),
+                    "",
+                )
+            )
+        if pard.invoice_number is not None and invoice.invoice_number is not None:
+            if normalize_number_text(pard.invoice_number) != normalize_number_text(invoice.invoice_number):
+                failures.append(
+                    MatchFailure(
+                        MatchCode.PARD_INVOICE_MISMATCH,
+                        Severity.BLOCKER,
+                        "header (PARD vs invoice)",
+                        invoice.invoice_number,
+                        pard.invoice_number,
+                        "",
+                    )
+                )
+        if invoice.duplicate_of_run_id is not None:
+            failures.append(
+                MatchFailure(
+                    MatchCode.DUPLICATE_INVOICE,
+                    Severity.BLOCKER,
+                    "header",
+                    "no prior run",
+                    invoice.duplicate_of_run_id,
                     "",
                 )
             )

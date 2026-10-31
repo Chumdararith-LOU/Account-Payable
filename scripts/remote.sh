@@ -13,7 +13,7 @@ set -euo pipefail
 #   ./scripts/remote.sh 'alembic upgrade head'
 
 SERVER="${APMATCH_SERVER:-rith@100.88.94.91}"
-REMOTE_DIR="${APMATCH_REMOTE_DEV:-/opt/apmatch-dev}"
+REMOTE_DIR="${APMATCH_REMOTE_DEV:-/home/rith/apmatch-dev}"
 
 # Sync first
 "$(dirname "$0")/remote_sync.sh"

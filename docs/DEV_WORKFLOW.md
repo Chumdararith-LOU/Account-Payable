@@ -3,13 +3,18 @@
 ## Overview
 Source of truth: the Mac. Compute: the server.
 opencode runs on the Mac and edits files locally. Before any
-test, build, or Python/ruff/docker command, a wrapper syncs
-the tree to the server and runs the command there.
+test, build, or Python/ruff/docker command, a wrapper pushes the
+committed state to GitHub, pulls it on the server, and runs the
+command there. **Uncommitted local changes do not flow** — commit
+first (git is the transport; rsync was retired 2026-10-31).
 
 ## Prerequisites
 - SSH key auth to `rith@100.88.94.91` (no password prompt).
 - The server has `/opt/apmatch` (production deploy) and
-  `/opt/apmatch-dev` (dev mirror, synced by our scripts).
+  `/home/rith/apmatch-dev` (dev mirror, a git clone of the GitHub
+  repo; `git pull` brings it current). Untracked extras (batch data
+  under `documents/`, `.env.server`, `reports/`, `output/`) live only
+  on the server and are preserved across pulls.
 - Both directories have a `.env.server` file with real values.
 - The `apmatch:dev` image is built on the server.
 - A dedicated **test database** `apmatch_test` exists in the
@@ -60,7 +65,7 @@ expected to take more than ~10 minutes, detach **on the
 server side** so the run survives local disconnects:
 
     ./scripts/remote_sync.sh
-    ssh rith@100.88.94.91 'cd /opt/apmatch-dev && \
+    ssh rith@100.88.94.91 'cd /home/rith/apmatch-dev && \
       nohup docker compose -f docker-compose.yml \
         -f docker-compose.server.yml -f docker-compose.dev.yml \
         --env-file .env.server \
@@ -92,4 +97,4 @@ failure.
 
 ## Environment variables
 - `APMATCH_SERVER`      default `rith@100.88.94.91`
-- `APMATCH_REMOTE_DEV`  default `/opt/apmatch-dev`
+- `APMATCH_REMOTE_DEV`  default `/home/rith/apmatch-dev`

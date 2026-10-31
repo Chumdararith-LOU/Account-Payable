@@ -71,3 +71,43 @@ def test_same_documents_produce_same_input_hash(pg_session):
     entry2 = _build_entry(uuid4().hex, invoice, po, grni, pard, validation, match, decision, remark)
     assert entry1.input_hash == entry2.input_hash
     assert entry1.run_id != entry2.run_id
+
+
+def test_duplicate_invoice_flagged_on_second_run(pg_session):
+    # The /match endpoint passes its session into run_pipeline; a second run
+    # of the same invoice number must surface DUPLICATE_INVOICE. The OCR
+    # router/layout are faked (duck-typed) so the test stays fast and
+    # deterministic — the duplicate wiring is what is under test.
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from apmatch.api.pipeline import run_pipeline
+    from apmatch.audit.repository import AuditRepository
+    from apmatch.matching.result import MatchCode
+    from apmatch.ocr.engine import OCRResult, TextBlock
+
+    inv_blocks = (
+        TextBlock(text="Invoice No", bbox=(10.0, 10.0, 100.0, 30.0)),
+        TextBlock(text="INV-DUP-1", bbox=(110.0, 10.0, 220.0, 30.0)),
+    )
+
+    def recognize(path):
+        if path.name == "invoice.png":
+            return OCRResult(source_file=path.name, text_blocks=inv_blocks)
+        return OCRResult(source_file=path.name, text_blocks=())
+
+    router = SimpleNamespace(recognize=recognize)
+    layout = SimpleNamespace(extract=lambda path: ())
+
+    def _run():
+        match, _, _, entry = run_pipeline(
+            Path("invoice.png"), Path("po.png"), Path("grni.png"), Path("pard.png"),
+            router=router, layout=layout, session=pg_session,
+        )
+        return match, entry
+
+    match1, entry1 = _run()
+    assert MatchCode.DUPLICATE_INVOICE not in {f.code for f in match1.failures}
+    AuditRepository.append(pg_session, entry1)
+    match2, _ = _run()
+    assert MatchCode.DUPLICATE_INVOICE in {f.code for f in match2.failures}

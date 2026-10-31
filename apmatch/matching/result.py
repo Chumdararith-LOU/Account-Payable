@@ -44,6 +44,11 @@ class MatchCode(str, Enum):
     # payment advice vs invoice total
     PARD_AMOUNT_MISMATCH = "PARD_AMOUNT_MISMATCH"
 
+    # sequence and reference sanity
+    INVOICE_BEFORE_PO = "INVOICE_BEFORE_PO"
+    PARD_INVOICE_MISMATCH = "PARD_INVOICE_MISMATCH"
+    DUPLICATE_INVOICE = "DUPLICATE_INVOICE"
+
     # ordering sanity
     DATE_OUT_OF_ORDER = "DATE_OUT_OF_ORDER"
 

@@ -198,6 +198,43 @@ def test_line_amount_mismatch():
     assert MatchCode.LINE_AMOUNT_MISMATCH in _codes(r)
 
 
+# --- Sequence and reference sanity ------------------------------------------
+
+
+def test_invoice_before_po():
+    # Invoice dated 2026-08-10, PO dated 2026-08-15 -> invoice precedes PO.
+    r = ENGINE.match(_invoice(inv_date=date(2026, 8, 10)), _po(), _grni(), _pard())
+    f = [x for x in r.failures if x.code is MatchCode.INVOICE_BEFORE_PO]
+    assert f and f[0].severity is Severity.WARNING
+
+
+def test_invoice_after_po_is_fine():
+    r = ENGINE.match(_invoice(), _po(), _grni(), _pard())
+    assert MatchCode.INVOICE_BEFORE_PO not in _codes(r)
+
+
+def test_pard_invoice_mismatch():
+    # PARD references a different invoice number than the invoice itself.
+    pard = PaymentAdvice("PARD-1", "INV-999", Decimal("1100.00"), date(2026, 8, 25), "REF", None)
+    r = ENGINE.match(_invoice(), _po(), _grni(), pard)
+    f = [x for x in r.failures if x.code is MatchCode.PARD_INVOICE_MISMATCH]
+    assert f and f[0].severity is Severity.BLOCKER
+
+
+def test_pard_invoice_match_is_fine():
+    r = ENGINE.match(_invoice(), _po(), _grni(), _pard())
+    assert MatchCode.PARD_INVOICE_MISMATCH not in _codes(r)
+
+
+def test_duplicate_invoice():
+    import dataclasses
+
+    inv = dataclasses.replace(_invoice(), duplicate_of_run_id="run-abc123")
+    r = ENGINE.match(inv, _po(), _grni(), _pard())
+    f = [x for x in r.failures if x.code is MatchCode.DUPLICATE_INVOICE]
+    assert f and f[0].severity is Severity.BLOCKER
+
+
 # --- PARD ------------------------------------------------------------------
 
 

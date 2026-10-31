@@ -24,7 +24,8 @@ services:
       - ./tests:/app/tests:ro
       - ./scripts:/app/scripts:ro
       - ./documents:/app/documents:ro
-      - ./output:/app/output:ro
+      - ./output:/app/output  # rw: diagnostics dump output/ocr/*.json
+      - ./reports:/app/reports  # rw: diagnostics write reports/*.json
       - ./alembic:/app/alembic:ro
       - ./alembic.ini:/app/alembic.ini:ro
       - ./pytest.ini:/app/pytest.ini:ro
@@ -32,8 +33,8 @@ services:
       - ./ruff.toml:/app/ruff.toml:ro
 
 # Notes:
-#   - All mounts are read-only. The container never writes to
-#     the synced source.
+#   - Most mounts are read-only; ./output and ./reports are writable so
+#     diagnostics can dump OCR JSON and reports into the dev tree.
 #   - The mounts are NOT under models/ — models stay baked in
 #     the image.
 #   - We don't override entrypoint here; the caller supplies

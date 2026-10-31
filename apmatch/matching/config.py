@@ -64,6 +64,12 @@ MATCH_CODE_WEIGHTS: dict[MatchCode, Decimal] = {
     MatchCode.LINE_AMOUNT_MISMATCH: Decimal("0.3"),
     MatchCode.PARD_AMOUNT_MISMATCH: Decimal("0.2"),
     MatchCode.DATE_OUT_OF_ORDER: Decimal("0.1"),
+    # Sequence/reference sanity (scale mirrors the existing 0.1-0.5 range;
+    # relative order: DUPLICATE_INVOICE highest, PARD_INVOICE_MISMATCH below,
+    # INVOICE_BEFORE_PO low).
+    MatchCode.INVOICE_BEFORE_PO: Decimal("0.1"),
+    MatchCode.PARD_INVOICE_MISMATCH: Decimal("0.4"),
+    MatchCode.DUPLICATE_INVOICE: Decimal("0.5"),
     # Review-band similarity match: the line IS matched, but a human should
     # confirm. Softest penalty — it flags uncertainty, not a value mismatch.
     MatchCode.SIMILARITY_MATCH_REVIEW: Decimal("0.1"),

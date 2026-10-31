@@ -224,6 +224,17 @@ def main() -> None:
         "passed": passed,
         "failed": failed,
         "pass_rate": round(passed / len(results), 4) if results else 0.0,
+        "route_match_rate": round(passed / len(results), 4) if results else 0.0,
+        "auto_approve_rate": round(
+            by_expected.get("MATCH", {}).get("passed", 0)
+            / max(by_expected.get("MATCH", {}).get("total", 1), 1),
+            4,
+        ),
+        "defensive_rate": round(
+            by_expected.get("DISCREPANCY", {}).get("passed", 0)
+            / max(by_expected.get("DISCREPANCY", {}).get("total", 1), 1),
+            4,
+        ),
         "hard_errors": hard_errors,
         "by_style": by_style,
         "by_expected": by_expected,
@@ -246,6 +257,10 @@ def main() -> None:
     for e in sorted(by_expected):
         c = by_expected[e]
         print(f"  {e}: {c['passed']}/{c['total']}")
+    print(f"auto_approve_rate: {report['auto_approve_rate'] * 100:.1f}% "
+          f"(MATCH cases that routed AUTO_APPROVE)")
+    print(f"defensive_rate:    {report['defensive_rate'] * 100:.1f}% "
+          f"(DISCREPANCY cases that routed REJECT or HUMAN_REVIEW)")
     print(f"Report: {out_path}")
     sys.exit(0)
 

@@ -29,7 +29,7 @@ DEFAULT_COLUMNS: dict[str, tuple[str, ...]] = {
     "description": ("description", "item description", "item", "product"),
     "quantity": ("qty", "quantity", "units", "count"),
     "price": ("unit price", "item rate", "rate", "price"),
-    "amount": ("amount", "line total", "total", "value"),
+    "amount": ("amount", "line total", "total", "value", "taxable"),
 }
 
 # Canonical columns checked first (most conflict-prone first).
@@ -184,18 +184,61 @@ def _assign_to_clusters(row: list, clusters, types) -> dict[str, str]:
         by_cluster.setdefault(i, []).append(b)
 
     cells: dict[str, str] = {}
+    # A wrapped multi-line description puts one block per visual line in
+    # *different* x-clusters, so per-cluster assignment would let the last
+    # cluster overwrite the earlier ones. Collect all description blocks and
+    # join them in reading order (y ascending) instead.
+    desc_parts: list[tuple[float, str]] = []
     for i, cands in by_cluster.items():
         col = types[i]
         if col is None:
             continue
         if col == "description":
-            cells[col] = max(cands, key=lambda b: len(b.text)).text.strip()
+            best = max(cands, key=lambda b: len(b.text))
+            desc_parts.append((_ycenter(best), best.text.strip()))
             continue
         parser = parse_qty if col == "quantity" else parse_money
         numeric = [b for b in cands if parser(b.text) is not None]
         pool = numeric or cands
         cells[col] = min(pool, key=lambda b: abs(_center(b) - centers[i])).text.strip()
+    if desc_parts:
+        desc_parts.sort(key=lambda t: t[0])
+        cells["description"] = " ".join(t for _, t in desc_parts if t).strip()
     return cells
+
+
+def _row_has_number(row: list) -> bool:
+    """True if any block in the row parses as a quantity or money value."""
+    from apmatch.parse.coerce import parse_money, parse_qty
+    return any(parse_money(b.text) is not None or parse_qty(b.text) is not None for b in row)
+
+
+def _merge_continuation_rows(data_rows: list[list]) -> list[list]:
+    """Merge description-only rows into the nearest preceding row with numbers.
+
+    A multi-line product description is returned by OCR as separate rows: the
+    first line carries qty/price/amount, the continuation lines carry only
+    description text. ``line_items_from_text_blocks`` would otherwise drop
+    each continuation row (it skips any row with no qty/price/amount). This
+    pass walks the data rows in source order and merges any row that has no
+    parsable number into the previous row that does. If no such row exists
+    (continuation appears *before* the anchor row — rare layout), the row is
+    left untouched; Step 1's diagnostic will surface it if it occurs.
+    """
+    if not data_rows:
+        return []
+    merged = [list(data_rows[0])]
+    for row in data_rows[1:]:
+        if _row_has_number(row):
+            merged.append(list(row))
+            continue
+        for i in range(len(merged) - 1, -1, -1):
+            if _row_has_number(merged[i]):
+                merged[i] = sorted(merged[i] + list(row), key=lambda b: b.bbox[0])
+                break
+        else:
+            merged.append(list(row))
+    return merged
 
 
 def line_items_from_text_blocks(blocks, columns: dict[str, tuple[str, ...]] | None = None) -> tuple:
@@ -239,6 +282,7 @@ def line_items_from_text_blocks(blocks, columns: dict[str, tuple[str, ...]] | No
         data_rows.append(row)
     if not data_rows:
         return ()
+    data_rows = _merge_continuation_rows(data_rows)
 
     # Cluster all data blocks by x into columns; map clusters to header types.
     all_data = [b for row in data_rows for b in row]

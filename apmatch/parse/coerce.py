@@ -34,8 +34,16 @@ def parse_money(s: str | None) -> Decimal | None:
         return None
     # Strip a leading currency code / symbol.
     text = re.sub(r"^(USD|KHR|THB|VND|CNY|EUR|GBP|JPY|INR)\s*", "", text, flags=re.IGNORECASE)
-    text = text.replace("$", "").replace("₹", "").strip()
+    text = text.replace("$", "").replace("₹", "").replace("៛", "").strip()
     text = re.sub(r"^Rs\.?\s*", "", text, flags=re.IGNORECASE)
+    # Trailing currency code, e.g. "1,036,000.00 KHR" — without this, the
+    # "KHR" tail survives into Decimal() and the parse returns None.
+    text = re.sub(r"\s*(USD|KHR|THB|VND|CNY|EUR|GBP|JPY|INR)\s*$", "", text, flags=re.IGNORECASE).strip()
+    # Space used as a thousands separator ("1 036 000"). Very common when OCR
+    # splits a KHR amount across blocks. Only collapse when the pattern is
+    # unambiguous: every space is between digit groups of 3.
+    if re.fullmatch(r"\d{1,3}(\s\d{3})+", text):
+        text = text.replace(" ", "")
     # Ambiguous European format: a dot used as thousands separator followed by
     # a comma decimal (e.g. "1.000,00"). Reject rather than guess.
     if re.fullmatch(r"\d{1,3}(\.\d{3})+,\d{2}", text):
@@ -49,10 +57,13 @@ def parse_money(s: str | None) -> Decimal | None:
             return None
         text = text.replace(",", "")
     elif "," in text:
-        # commas only: treat as thousands separators if groups of 3, else reject.
-        _, _, tail = text.partition(",")
-        if tail and all(len(g) == 3 for g in re.findall(r"\d+", tail.replace(",", ""))) and re.fullmatch(r"\d{1,3}(,\d{3})*", text):
-            text = text.replace(",", "")
+        # Commas only: valid as 3-digit thousands groups ("1,036,000" — the
+        # KHR convention, no decimals). Anything else ("1,23", "12,34,567")
+        # is ambiguous -> reject. Trailing OCR noise after a well-formed
+        # thousands number ("13,595,000 s") is tolerated.
+        m = re.fullmatch(r"\d{1,3}(,\d{3})*", text) or re.match(r"\d{1,3}(,\d{3})+", text)
+        if m:
+            text = m.group(0).replace(",", "")
         else:
             logger.warning("parse_money: cannot disambiguate comma in %r", s)
             return None
@@ -87,15 +98,18 @@ def parse_date(s: str | None, formats: tuple[str, ...] | None = None) -> date | 
     """Parse a date string into a date.
 
     Default formats, tried in order:
+      "%d-%b-%y"   (17-Dec-25 — 2-digit year; kh_sme invoices)
       "%d-%b-%Y"   (15-Aug-2026 — the legacy format, unambiguous)
       "%Y-%m-%d"   (2026-08-15)
       "%d/%m/%Y"   (15/08/2026)
       "%m/%d/%Y"   (08/15/2026)
 
-    Ambiguity resolution: for slash dates, DD/MM is tried before MM/DD. The AP
-    corpus in Cambodia and the region is DD/MM, and the legacy DB used the
-    unambiguous %d-%b-%Y. So "03/04/2026" parses as 3 April 2026, not 4 March.
-    Returns None on failure.
+    %d-%b-%y is tried before %d-%b-%Y: strptime's %Y rejects 2-digit years,
+    and %y fails on 4-digit years (unconverted data), so each form only
+    accepts its own. Ambiguity resolution: for slash dates, DD/MM is tried
+    before MM/DD. The AP corpus in Cambodia and the region is DD/MM, and the
+    legacy DB used the unambiguous %d-%b-%Y. So "03/04/2026" parses as 3
+    April 2026, not 4 March. Returns None on failure.
     """
     if s is None:
         return None
@@ -103,7 +117,7 @@ def parse_date(s: str | None, formats: tuple[str, ...] | None = None) -> date | 
     if not text:
         return None
     if formats is None:
-        formats = ("%d-%b-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y")
+        formats = ("%d-%b-%y", "%d-%b-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y")
     for fmt in formats:
         try:
             return datetime.strptime(text, fmt).date()
@@ -116,7 +130,9 @@ def parse_document_number(s: str | None) -> str | None:
     """Clean a document number.
 
     Strips trailing punctuation, preserves the prefix (INV-, PO-, GRN-, PARD-),
-    strips internal whitespace. Returns None if empty after cleanup.
+    strips internal whitespace. Returns None if empty after cleanup, or if the
+    result carries no digit — a digitless "number" is a title or label
+    ("INVOICE", "Invoice Pvelec"), not a document number.
     """
     if s is None:
         return None
@@ -129,6 +145,8 @@ def parse_document_number(s: str | None) -> str | None:
     text = text.rstrip(".,:/-")
     if not text:
         return None
+    if not any(ch.isdigit() for ch in text):
+        return None
     return text
 
 
@@ -138,6 +156,8 @@ def detect_currency(blocks: tuple) -> str | None:
     Returns the first known currency code found (source order), or None.
     """
     for block in blocks:
+        if "៛" in block.text:
+            return "KHR"
         for m in _ISO_CURRENCY.finditer(block.text):
             code = m.group(1)
             if code in _KNOWN_CURRENCIES:

@@ -85,6 +85,7 @@ class Invoice:
     source_file: str | None = None
     tax_rate: Decimal | None = None  # fraction, e.g. Decimal("0.10") for 10%
     discount_rate: Decimal | None = None  # fraction, e.g. Decimal("0.05") for 5%
+    duplicate_of_run_id: str | None = None  # set by the pipeline when a prior run matched
 
 
 @dataclass(frozen=True)

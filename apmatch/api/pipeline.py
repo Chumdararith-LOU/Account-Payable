@@ -52,6 +52,7 @@ def run_pipeline(
     embedding_model=None,
     ocr_debug: bool = False,
     customer_id: str = "default",
+    session=None,
 ) -> tuple[MatchResult, ValidationResult, RoutingDecision, AuditEntry]:
     """Run the full deterministic chain over up to four document images.
 
@@ -68,6 +69,20 @@ def run_pipeline(
     po = _recognize_and_parse(router, layout, dispatch.DocumentKind.PURCHASE_ORDER, po_path, ocr_debug) if po_path else None
     grni = _recognize_and_parse(router, layout, dispatch.DocumentKind.GRNI, grni_path, ocr_debug) if grni_path else None
     pard = _recognize_and_parse(router, layout, dispatch.DocumentKind.PAYMENT_ADVICE, pard_path, ocr_debug) if pard_path else None
+
+    # Duplicate-invoice check (D-108): only when a session is provided (the
+    # API endpoint); batch runs and unit tests stay pure with session=None.
+    if session is not None and invoice.invoice_number:
+        from apmatch.audit.kpis import find_prior_invoice_run
+        prior = find_prior_invoice_run(
+            session,
+            vendor_tax_id=getattr(invoice, "vendor_tax_id", None),
+            invoice_number=invoice.invoice_number,
+            invoice_date=invoice.invoice_date,
+            total=invoice.total,
+        )
+        if prior is not None:
+            invoice = replace(invoice, duplicate_of_run_id=prior)
 
     validation = validate_invoice(invoice)
     match = MatchingEngine(embedding_model=embedding_model).match(invoice, po, grni, pard)

@@ -34,6 +34,31 @@ def test_parse_money_rejects_european_format():
     assert parse_money("1.000,00") is None
 
 
+def test_parse_money_khr_thousands():
+    # KHR amounts are whole riels with 3-digit thousands groups and no
+    # decimals ("1,036,000"). These must parse, not be rejected as ambiguous.
+    assert parse_money("1,036,000") == Decimal("1036000")
+    assert parse_money("14,844,500") == Decimal("14844500")
+    assert parse_money("KHR 13,495,000") == Decimal("13495000")
+    # Trailing OCR noise after a well-formed thousands number is tolerated.
+    assert parse_money("13,595,000 s") == Decimal("13595000")
+    # Still ambiguous -> reject (never guess).
+    assert parse_money("1,23") is None
+    assert parse_money("12,34,567") is None
+
+
+def test_parse_money_khr_variants():
+    from decimal import Decimal
+    from apmatch.parse.coerce import parse_money
+    assert parse_money("1,036,000") == Decimal("1036000")
+    assert parse_money("1,036,000 KHR") == Decimal("1036000")
+    assert parse_money("KHR 1,036,000") == Decimal("1036000")
+    assert parse_money("1,036,000.00 KHR") == Decimal("1036000.00")
+    assert parse_money("៛1,036,000") == Decimal("1036000")
+    assert parse_money("1,036,000.00 ៛") == Decimal("1036000.00")
+    assert parse_money("1 036 000") == Decimal("1036000")
+
+
 def test_parse_qty_happy():
     assert parse_qty("10") == Decimal("10")
     assert parse_qty("10.0") == Decimal("10.0")
@@ -62,6 +87,15 @@ def test_parse_date_failure():
     assert parse_date("n/a") is None
 
 
+def test_parse_date_two_digit_year():
+    # kh_sme invoices print 2-digit years ("17-Dec-25"). %d-%b-%y is tried
+    # before %d-%b-%Y; each form only accepts its own (strptime %Y rejects
+    # 2-digit years, %y leaves 4-digit years as unconverted data).
+    assert parse_date("17-Dec-25") == date(2025, 12, 17)
+    assert parse_date("20-Aug-2026") == date(2026, 8, 20)  # 4-digit still works
+    assert parse_date("17-Dec-2025") == date(2025, 12, 17)
+
+
 def test_parse_date_ambiguous_mm_dd_vs_dd_mm():
     # DD/MM is tried before MM/DD (D-043): the AP corpus in Cambodia and the
     # region is DD/MM. So 03/04/2026 is 3 April 2026, not 4 March.
@@ -79,3 +113,11 @@ def test_parse_document_number_happy():
 def test_parse_document_number_failure():
     assert parse_document_number("") is None
     assert parse_document_number(None) is None
+
+
+def test_parse_document_number_rejects_digitless_titles():
+    # A digitless "number" is a title or label, not a document number —
+    # the position fallback must be able to skip these.
+    assert parse_document_number("Invoice") is None
+    assert parse_document_number("Invoice Pvelec") is None
+    assert parse_document_number("TOTAL") is None

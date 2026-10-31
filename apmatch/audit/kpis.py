@@ -9,7 +9,7 @@ Python. No caching; correctness over throughput today. Functions never call
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -170,3 +170,31 @@ def top_discrepancy_invoices(
     if customer_id is not None:
         stmt = stmt.where(AuditLog.customer_id == customer_id)
     return tuple(_row_to_recent_run(row) for row in session.execute(stmt).scalars().all())
+
+
+def find_prior_invoice_run(
+    session: Session,
+    *,
+    vendor_tax_id: str | None,
+    invoice_number: str,
+    invoice_date: date | None,
+    total: Decimal | None,
+) -> str | None:
+    """Return the run_id of any prior run for the same invoice_number, or None.
+
+    Conservative MVP: matches on exact invoice_number only. Catches the most
+    common duplicate — an invoice that was processed once and is now
+    resubmitted — regardless of the prior run's route (a prior REJECT-then-
+    resubmit is exactly the pattern worth flagging). The other three
+    parameters are reserved for the supplier-aware extension that waits on
+    audit_log.vendor_tax_id (DECISIONS.md D-108); they are unused today.
+    Read-only; no commit; single-row response.
+    """
+    if not invoice_number:
+        return None
+    stmt = (
+        select(AuditLog.run_id)
+        .where(AuditLog.invoice_number == invoice_number)
+        .limit(1)
+    )
+    return session.execute(stmt).scalar_one_or_none()

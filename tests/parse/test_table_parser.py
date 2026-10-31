@@ -137,6 +137,30 @@ def test_invoice_extraction_uses_text_block_fallback():
     assert inv.line_items[0].quantity == Decimal("2.0000")
 
 
+def test_multiline_description_merges():
+    from apmatch.ocr.engine import TextBlock
+    from apmatch.parse._table import line_items_from_text_blocks
+    def tb(text, x0, y0, x1, y1):
+        return TextBlock(text=text, bbox=(x0, y0, x1, y1), conf=1.0)
+    blocks = (
+        # header
+        tb("Description", 10, 10, 90, 30),
+        tb("Qty", 200, 10, 230, 30),
+        tb("Amount", 300, 10, 360, 30),
+        # data row 1: description wraps to a second line
+        tb("Metal frame office chair, adjustable height", 10, 50, 180, 70),
+        tb("2", 200, 50, 220, 70),
+        tb("44.00", 300, 50, 340, 70),
+        tb("88.00", 350, 50, 400, 70),
+        tb("with armrests", 10, 75, 110, 95),
+    )
+    items = line_items_from_text_blocks(blocks)
+    assert len(items) == 1
+    assert items[0].description == "Metal frame office chair, adjustable height with armrests"
+    assert items[0].quantity is not None
+    assert items[0].amount is not None
+
+
 def test_garbage_table_falls_back_to_text_blocks():
     # A transposed / shifted HTML table (garbage) + clean text blocks: the
     # text-block result (real descriptions) wins over the HTML result (numeric

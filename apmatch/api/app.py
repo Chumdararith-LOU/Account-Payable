@@ -221,6 +221,7 @@ def match(
                 embedding_model=request.app.state.embedding_model,
                 ocr_debug=config.APMATCH_OCR_DEBUG,
                 customer_id=customer_id,
+                session=session,
             )
         except ApiError:
             raise

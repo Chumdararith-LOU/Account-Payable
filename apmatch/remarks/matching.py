@@ -61,6 +61,15 @@ MATCH_TEMPLATES: dict[MatchCode, str] = {
     MatchCode.SIMILARITY_MATCH_REVIEW: (
         "Similarity match at {location} requires human review: expected {expected}, actual {actual}."
     ),
+    MatchCode.INVOICE_BEFORE_PO: (
+        "Invoice date {actual} precedes PO date {expected}."
+    ),
+    MatchCode.PARD_INVOICE_MISMATCH: (
+        "Payment advice references {actual}, not invoice {expected}."
+    ),
+    MatchCode.DUPLICATE_INVOICE: (
+        "Duplicate invoice: same supplier, number, or total as run {actual}."
+    ),
 }
 
 

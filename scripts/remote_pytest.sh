@@ -12,7 +12,7 @@ set -euo pipefail
 #   ./scripts/remote_pytest.sh tests/validation/ -v -k "tax"
 
 SERVER="${APMATCH_SERVER:-rith@100.88.94.91}"
-REMOTE_DIR="${APMATCH_REMOTE_DEV:-/opt/apmatch-dev}"
+REMOTE_DIR="${APMATCH_REMOTE_DEV:-/home/rith/apmatch-dev}"
 
 # 1. Sync
 "$(dirname "$0")/remote_sync.sh"
