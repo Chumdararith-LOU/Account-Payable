@@ -4,6 +4,11 @@ Walks every ``.py`` file under ``apmatch/parse/``, parses it with ``ast``,
 collects the imported module names, and asserts none are on the blocklist
 (or contain "llm"). A /tmp sanity check proves the walker catches a
 synthetic bad import.
+
+Exception: ``vlm.py`` is the designated VLM boundary (the pivot backend).
+It may use httpx to call the LOCAL vLLM server, and it is always optional —
+any failure falls back to the deterministic OCR path. Every other module
+under apmatch/parse/ stays LLM/network-free.
 """
 
 import ast
@@ -12,6 +17,7 @@ from pathlib import Path
 PARSE_DIR = Path(__file__).resolve().parents[2] / "apmatch" / "parse"
 
 BLOCKLIST = {"anthropic", "openai", "requests", "httpx", "urllib", "socket", "transformers"}
+ALLOWED_NETWORK = {"vlm.py"}
 
 
 def _imported_names(path: Path) -> set[str]:
@@ -30,6 +36,8 @@ def test_no_llm_or_network_imports():
     py_files = sorted(PARSE_DIR.rglob("*.py"))
     assert py_files, f"no python files found under {PARSE_DIR}"
     for path in py_files:
+        if path.name in ALLOWED_NETWORK:
+            continue
         for name in _imported_names(path):
             assert name not in BLOCKLIST, f"{path.name} imports blocked module {name!r}"
             assert "llm" not in name.lower(), f"{path.name} imports module with 'llm' in name: {name!r}"
