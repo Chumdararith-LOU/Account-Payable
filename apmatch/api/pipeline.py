@@ -9,6 +9,7 @@ caller (the endpoint) owns the session and the commit.
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -22,6 +23,7 @@ from apmatch.matching.engine import MatchingEngine
 from apmatch.matching.result import MatchResult, Outcome
 from apmatch.ocr.router import OCRRouter
 from apmatch.parse import dispatch
+from apmatch.parse.vlm import extract_vlm
 from apmatch.remarks.matching import summarize_match
 from apmatch.remarks.templates import summarize
 from apmatch.scoring.result import RoutingDecision
@@ -33,6 +35,22 @@ logger = logging.getLogger("apmatch.api.pipeline")
 
 
 def _recognize_and_parse(router: OCRRouter, layout: LayoutEngine, kind, path: Path, ocr_debug: bool):
+    # 1. Try VLM if enabled (default)
+    if os.getenv("EXTRACTION_BACKEND", "vlm") == "vlm":
+        logger.info(f"Attempting VLM extraction for {path.name}...")
+        vlm_doc = extract_vlm(kind, path)
+
+        # Simple sanity check: did we get a valid document with the minimum required data?
+        if vlm_doc is not None:
+            # If the VLM missed a critical field entirely, we might still want to fall back.
+            # For now, trust the VLM if it returned an object.
+            logger.info(f"VLM extraction successful for {path.name}")
+            return vlm_doc
+        else:
+            logger.warning(f"VLM extraction failed/returned None for {path.name}. Falling back to OCR.")
+
+    # 2. Fallback to OCR + Heuristic
+    logger.info(f"Using heuristic extraction for {path.name}...")
     ocr_result = router.recognize(path)
     tables = layout.extract(path)
     ocr_result = replace(ocr_result, tables=tables)  # OCRResult is frozen
