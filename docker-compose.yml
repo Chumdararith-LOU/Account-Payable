@@ -39,6 +39,11 @@ services:
       # 5432 (the container's internal port, not the host-mapped 5433).
       APMATCH_API_KEY: "${APMATCH_API_KEY:?APMATCH_API_KEY must be set}"
       APMATCH_LOG_LEVEL: "${APMATCH_LOG_LEVEL:-INFO}"
+    volumes:
+      # Uploaded scans + extraction sidecars for the review UI. Seeded from
+      # the image's /app/storage (correct ownership); persists across
+      # container recreation.
+      - apmatch_storage:/app/storage
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
       interval: 30s
@@ -51,3 +56,4 @@ services:
 
 volumes:
   apmatch_pgdata:
+  apmatch_storage:

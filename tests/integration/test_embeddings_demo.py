@@ -45,7 +45,7 @@ def layout_engine():
 def _run(embedding_model=None, router=None, layout=None, customer_id="default"):
     from apmatch.api.pipeline import run_pipeline
 
-    return run_pipeline(
+    match, validation, decision, entry, _extracted = run_pipeline(
         invoice_path=DEMO / "invoice.png",
         po_path=DEMO / "po.png",
         grni_path=DEMO / "grn.png",
@@ -55,6 +55,7 @@ def _run(embedding_model=None, router=None, layout=None, customer_id="default"):
         layout=layout,
         customer_id=customer_id,
     )
+    return match, validation, decision, entry
 
 
 def test_demo_without_embeddings_produces_discrepancy(ocr_router, layout_engine):

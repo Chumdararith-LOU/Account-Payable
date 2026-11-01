@@ -48,6 +48,21 @@ def _canonical(obj):
     return obj
 
 
+def canonical_documents(
+    invoice: Invoice,
+    po: PurchaseOrder | None,
+    grni: GRNI | None,
+    pard: PaymentAdvice | None,
+) -> dict:
+    """JSON-safe canonical dict of the four documents (same rules as the hash)."""
+    return {
+        "invoice": _canonical(invoice),
+        "po": _canonical(po),
+        "grni": _canonical(grni),
+        "pard": _canonical(pard),
+    }
+
+
 def compute_input_hash(
     invoice: Invoice,
     po: PurchaseOrder | None,
@@ -59,11 +74,7 @@ def compute_input_hash(
     Canonical JSON: ``sort_keys=True``, ``separators=(",", ":")``, Decimals as
     strings, dates as ISO, None preserved, tuples as lists.
     """
-    payload = {
-        "invoice": _canonical(invoice),
-        "po": _canonical(po),
-        "grni": _canonical(grni),
-        "pard": _canonical(pard),
-    }
-    canonical_json = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    canonical_json = json.dumps(
+        canonical_documents(invoice, po, grni, pard), sort_keys=True, separators=(",", ":")
+    )
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()

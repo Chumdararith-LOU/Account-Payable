@@ -157,7 +157,7 @@ def main() -> None:
             }
         else:
             try:
-                _, validation, decision, entry = run_pipeline(
+                _, validation, decision, entry, _extracted = run_pipeline(
                     paths["invoice_path"], paths["po_path"],
                     paths["grni_path"], paths["pard_path"],
                     router=router, layout=layout,

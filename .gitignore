@@ -16,6 +16,7 @@ pgdata/
 *.log
 cloudflared-linux-amd64
 output/imgs/
+storage/
 erp_queue/
 pending_queue/
 review_queue/

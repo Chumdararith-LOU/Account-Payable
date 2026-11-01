@@ -100,7 +100,7 @@ def test_duplicate_invoice_flagged_on_second_run(pg_session):
     layout = SimpleNamespace(extract=lambda path: ())
 
     def _run():
-        match, _, _, entry = run_pipeline(
+        match, _, _, entry, _extracted = run_pipeline(
             Path("invoice.png"), Path("po.png"), Path("grni.png"), Path("pard.png"),
             router=router, layout=layout, session=pg_session,
         )

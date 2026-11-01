@@ -13,8 +13,11 @@ responses or logs.
 
 from __future__ import annotations
 
+import json
 import logging
+import mimetypes
 import re
+import shutil
 import tempfile
 import time
 from contextlib import asynccontextmanager
@@ -24,7 +27,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 from sqlalchemy import create_engine
@@ -41,6 +44,7 @@ from apmatch.api.schemas import (
     RecentRunOut,
     RouteCountsOut,
     SimilarityMatchOut,
+    TemplatesOut,
 )
 from apmatch.audit.entry import AuditEntry
 from apmatch.audit.kpis import count_by_route, recent_runs
@@ -165,6 +169,36 @@ def _similarity_out(sm) -> SimilarityMatchOut:
     )
 
 
+# The four /match upload fields; also the document names in storage.
+_DOC_NAMES = ("invoice", "po", "grni", "pard")
+_RUN_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+
+
+def _storage_dir() -> Path:
+    return Path(config.APMATCH_STORAGE_DIR)
+
+
+def _persist_run(entry: AuditEntry, paths: dict[str, Path], extracted: dict) -> None:
+    """Save the uploaded images + the extraction sidecar for the review UI.
+
+    Images: storage/images/{run_id}_{name}{suffix}; sidecar:
+    storage/runs/{run_id}.json. Failures here must not fail the match —
+    the decision is already made; the review UI just degrades to no image.
+    """
+    try:
+        img_dir = _storage_dir() / "images"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        for name, path in paths.items():
+            shutil.copyfile(path, img_dir / f"{entry.run_id}_{name}{path.suffix}")
+        runs_dir = _storage_dir() / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+        (runs_dir / f"{entry.run_id}.json").write_text(
+            json.dumps(extracted, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except Exception:
+        logger.warning("could not persist run artifacts for %s", entry.run_id, exc_info=True)
+
+
 def _validate_images(paths: dict[str, Path]) -> None:
     """Reject uploads PIL cannot decode (400 INVALID_IMAGE, not 500).
 
@@ -223,7 +257,7 @@ def match(
             paths[name] = path
         _validate_images(paths)  # malformed upload -> 400 INVALID_IMAGE, not 500
         try:
-            _, _, decision, entry = run_pipeline(
+            _, _, decision, entry, extracted = run_pipeline(
                 paths["invoice"],
                 paths.get("po"),
                 paths.get("grni"),
@@ -240,6 +274,8 @@ def match(
         except Exception:
             logger.exception("pipeline failed")
             raise ApiError(500, "PIPELINE_ERROR", "Pipeline failed; see server logs")
+        # Persist inside the with-block: the temp files vanish on exit.
+        _persist_run(entry, paths, extracted)
 
     AuditRepository.append(session, entry)
     session.commit()
@@ -272,6 +308,9 @@ def get_audit(run_id: str, session: Session = Depends(get_session)) -> AuditResp
 
 
 def _audit_response(entry: AuditEntry) -> AuditResponse:
+    # Extraction sidecar written by /match; absent for older runs.
+    sidecar = _storage_dir() / "runs" / f"{entry.run_id}.json"
+    extracted = json.loads(sidecar.read_text(encoding="utf-8")) if sidecar.is_file() else None
     return AuditResponse(
         run_id=entry.run_id,
         run_timestamp=entry.run_timestamp,
@@ -288,7 +327,26 @@ def _audit_response(entry: AuditEntry) -> AuditResponse:
         input_hash=entry.input_hash,
         similarity_matches=[_similarity_out(sm) for sm in entry.similarity_matches],
         customer_id=entry.customer_id,
+        extracted=extracted,
     )
+
+
+@app.get("/documents/{run_id}/{name}/image", dependencies=[Depends(require_api_key)])
+def document_image(run_id: str, name: str) -> FileResponse:
+    """The uploaded scan for one run, for the review UI's image viewer."""
+    if not _RUN_ID_RE.fullmatch(run_id) or name not in _DOC_NAMES:
+        raise ApiError(404, "DOCUMENT_NOT_FOUND", "No document image with that id")
+    for path in (_storage_dir() / "images").glob(f"{run_id}_{name}.*"):
+        media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        return FileResponse(path, media_type=media_type)
+    raise ApiError(404, "DOCUMENT_NOT_FOUND", "No document image with that id")
+
+
+@app.get("/templates", response_model=TemplatesOut, dependencies=[Depends(require_api_key)])
+def list_templates() -> TemplatesOut:
+    """The style templates shipped with the image (templates/*.yaml)."""
+    tdir = Path(__file__).resolve().parents[2] / "templates"
+    return TemplatesOut(templates=sorted(p.name for p in tdir.glob("*.yaml")) if tdir.is_dir() else [])
 
 
 @app.get("/kpis/routes", response_model=RouteCountsOut, dependencies=[Depends(require_api_key)])
@@ -326,9 +384,9 @@ def kpis_recent(
     ]
 
 
-# Browser frontend (frontend/index.html), served same-origin at / so the UI
+# Browser frontend (static/index.html), served same-origin at / so the UI
 # and the API share one URL. Mounted LAST so every API route above wins; the
 # guard keeps the API working in trees/images without a frontend directory.
-_FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+_FRONTEND_DIR = Path(__file__).resolve().parents[2] / "static"
 if _FRONTEND_DIR.is_dir():
     app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")

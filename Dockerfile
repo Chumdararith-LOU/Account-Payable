@@ -81,7 +81,7 @@ COPY alembic.ini ./alembic.ini
 COPY scripts/ ./scripts/
 
 # Browser frontend, served same-origin at / by apmatch.api.app
-COPY frontend/ ./frontend/
+COPY static/ ./static/
 
 # Copy the model cache. .dockerignore no longer excludes this.
 # Ownership matters — the non-root user must be able to read.
@@ -90,6 +90,10 @@ COPY --chown=apmatch:apmatch models/ ./models/
 # /app is created by WORKDIR (root-owned). PaddleX writes a cache dir
 # (/app/.paddlex) at startup, so the app user must own /app.
 RUN chown apmatch:apmatch /app
+
+# Run storage for uploaded scans + extraction sidecars (review UI).
+# The named volume apmatch_storage is seeded from this directory.
+RUN mkdir -p /app/storage && chown apmatch:apmatch /app/storage
 
 USER apmatch
 

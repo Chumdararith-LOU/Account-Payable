@@ -16,7 +16,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from apmatch.audit.entry import AuditEntry
-from apmatch.audit.hashing import compute_input_hash
+from apmatch.audit.hashing import canonical_documents, compute_input_hash
 from apmatch.layout.structure import LayoutEngine
 from apmatch.matching.engine import MatchingEngine
 from apmatch.matching.result import MatchResult, Outcome
@@ -53,7 +53,7 @@ def run_pipeline(
     ocr_debug: bool = False,
     customer_id: str = "default",
     session=None,
-) -> tuple[MatchResult, ValidationResult, RoutingDecision, AuditEntry]:
+) -> tuple[MatchResult, ValidationResult, RoutingDecision, AuditEntry, dict]:
     """Run the full deterministic chain over up to four document images.
 
     ``router``/``layout`` are heavy to construct; pass pre-built instances
@@ -61,6 +61,9 @@ def run_pipeline(
     here. ``embedding_model`` (duck-typed; needs .similarity() and
     .model_version) enables the similarity fallback in the matching engine;
     None keeps the exact-match-only behavior.
+
+    Returns the canonical extracted documents (5th element) so the caller
+    can persist them for the review UI — the pipeline itself stays pure.
     """
     router = router or OCRRouter()
     layout = layout or LayoutEngine()
@@ -111,4 +114,4 @@ def run_pipeline(
         similarity_matches=match.similarity_matches,
         customer_id=customer_id,
     )
-    return match, validation, decision, audit_entry
+    return match, validation, decision, audit_entry, canonical_documents(invoice, po, grni, pard)

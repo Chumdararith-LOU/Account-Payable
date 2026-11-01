@@ -9,9 +9,12 @@ Endpoints used:
   GET  /healthz            (no auth)
   GET  /kpis/routes        dashboard KPI cards
   GET  /kpis/recent        audit table + review queue
-  GET  /audit/{run_id}     decision drawer (input_hash, failures, similarity)
+  GET  /audit/{run_id}     decision drawer (input_hash, failures, similarity,
+                           extracted documents)
+  GET  /documents/{run_id}/{name}/image   the stored scan (review viewer)
+  GET  /templates          style template list
   POST /match              upload tab (multipart: invoice, po, grni, pard)
-The Suppliers and Templates tabs have no API backing yet and stay static.
+The Suppliers tab has no API backing yet and stays static.
 -->
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -127,7 +130,7 @@ input.bad{border-color:#E53935;background:#ffe9e9;color:#222}
  <div class="why" id="why"></div>
  <div class="split">
   <div class="sl">
-   <div class="tb"><b style="margin-left:6px">Document summary</b><span style="margin-left:auto"><button class="btn sm" onclick="mv(-1)">◀ K</button> <button class="btn sm" onclick="mv(1)">J ▶</button></span></div>
+   <div class="tb"><b style="margin-left:6px">Stored scan + extracted data</b><span style="margin-left:auto"><button class="btn sm" onclick="mv(-1)">◀ K</button> <button class="btn sm" onclick="mv(1)">J ▶</button></span></div>
    <div class="fr"><div id="pp"></div></div>
   </div>
   <div class="sr">
@@ -155,10 +158,7 @@ input.bad{border-color:#E53935;background:#ffe9e9;color:#222}
 
 <section class="sc" id="s-templates">
  <div class="g g2">
-  <div class="pan"><h3>Extraction Templates (YAML)</h3><div class="pb tree">
-   <div>📁 templates/</div>
-   <div class="in" style="margin-left:44px">📄 kh.yaml</div><div class="in" style="margin-left:44px">📄 us.yaml</div><div class="in" style="margin-left:44px">📄 in.yaml</div>
-  </div></div>
+  <div class="pan"><h3>Extraction Templates (YAML)</h3><div class="pb tree" id="ttree">Loading…</div></div>
   <div class="pan"><h3>Model Health</h3><div class="pb">
    <table><tbody>
     <tr><td><span class="dot u"></span>OCR Engine</td><td>PaddleOCR</td><td id="mh">checking…</td></tr>
@@ -256,21 +256,28 @@ async function rev(){
  $("#pp").innerHTML="<p style='color:#666'>Loading…</p>";$("#fm").innerHTML="";
  try{
   const a=await api("/audit/"+d.run_id);
-  $("#pp").innerHTML=`<h4 style="margin-top:0">Extracted document numbers</h4>
+  const ex=a.extracted||{},inv=ex.invoice||{};
+  const docs=[["invoice","Invoice"],["po","PO"],["grni","GRN"],["pard","PARD"]].filter(([k])=>ex[k]);
+  $("#pp").innerHTML=(docs.length
+   ?`<div class="bt" style="margin-bottom:8px">${docs.map(([k,l])=>`<button class="btn sm" onclick="showDoc('${k}')">${l}</button>`).join("")}</div>
+    <div id="docimg"><img src="/documents/${d.run_id}/invoice/image" style="width:100%;display:block"></div>`
+   :"<p style='color:#666'>No stored scan for this run (uploaded before image storage existed).</p>")
+   +`<h4 style="margin:12px 0 4px">Extracted invoice</h4>
    <table><tbody>
-   <tr><th>Invoice</th><td class="mono">${esc(a.invoice_number)||"—"}</td></tr>
-   <tr><th>PO</th><td class="mono">${esc(a.po_number)||"—"}</td></tr>
-   <tr><th>GRN</th><td class="mono">${esc(a.grn_number)||"—"}</td></tr>
-   <tr><th>PARD ref</th><td class="mono">${esc(a.pard_ref)||"—"}</td></tr>
-   <tr><th>Score</th><td>${(a.score*100).toFixed(1)}%</td></tr>
-   <tr><th>Route reason</th><td>${esc(a.route_reason)}</td></tr>
-   <tr><th>Remark</th><td>${esc(a.remark)||"—"}</td></tr>
+   <tr><th>Supplier</th><td>${esc(inv.vendor_name)||"—"}</td></tr>
+   <tr><th>Invoice #</th><td class="mono">${esc(inv.invoice_number)||"—"}</td></tr>
+   <tr><th>Date</th><td>${esc(inv.invoice_date)||"—"}</td></tr>
+   <tr><th>Currency</th><td>${esc(inv.currency)||"—"}</td></tr>
+   <tr><th>Subtotal</th><td>${esc(inv.subtotal)||"—"}</td></tr>
+   <tr><th>Tax</th><td>${esc(inv.tax_amount)||"—"}</td></tr>
+   <tr><th>Total</th><td><b>${esc(inv.total)||"—"}</b></td></tr>
    </tbody></table>
-   <p style="color:#666">The API does not return the scanned image or block coordinates, so there is no page preview — compare against the source documents in your ERP.</p>`;
+   ${(inv.line_items||[]).length?`<h4 style="margin:8px 0 4px">Line items</h4><table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>${inv.line_items.map(l=>`<tr><td>${l.line_no}</td><td>${esc(l.description)}</td><td>${esc(l.quantity)||"—"}</td><td>${esc(l.unit_price)||"—"}</td><td>${esc(l.amount)||"—"}</td></tr>`).join("")}</tbody></table>`:""}`;
   const all=[...a.validation_failures,...a.match_failures];
   $("#fm").innerHTML=all.length?failHtml(all,"Why it was routed to review"):simHtml(a.similarity_matches)||"<p style='color:var(--mut)'>No failures recorded.</p>";
  }catch(e){$("#pp").innerHTML=`<div class="fl">⚠️ ${esc(e.message)}</div>`}
 }
+function showDoc(k){$("#docimg").innerHTML=`<img src="/documents/${RQ[ri].run_id}/${k}/image" style="width:100%;display:block">`}
 function mv(n){ri=(ri+n+RQ.length)%RQ.length;rev()}
 function act(m){st(`${RQ[ri]?RQ[ri].run_id:"?"}: ${m} (local only — no decision endpoint yet)`)}
 
@@ -316,6 +323,14 @@ function sup(){$("#sn").innerHTML=S.map((s,i)=>`<div class="${i==si?"on":""}" on
  `<label class="sw"><input type="checkbox" ${s[1]?"checked":""}><i></i> <b>Always route to human review</b></label><p style="color:var(--mut)">When on, every document from this supplier skips auto-approval.</p>`][sti]}
 $("#st").onclick=e=>{if(e.target.dataset.t){sti=+e.target.dataset.t;sup()}};
 
+/* ---- Templates: real list from /templates ---- */
+async function loadTemplates(){
+ try{
+  const t=await api("/templates");
+  $("#ttree").innerHTML=`<div>📁 templates/</div>`+t.templates.map(n=>`<div class="in" style="margin-left:44px">📄 ${esc(n)}</div>`).join("")||"<p style='color:#666'>No templates found.</p>";
+ }catch(e){$("#ttree").innerHTML=`<div class="fl">${esc(e.message)}</div>`}
+}
+
 /* ---- Health ---- */
 async function ping(){
  try{const h=await fetch(CFG.base+"/healthz").then(r=>r.json());
@@ -323,6 +338,6 @@ async function ping(){
  }catch(e){$("#mh").textContent="Down";st("API offline: "+e.message)}}
 
 addEventListener("keydown",e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||e.ctrlKey||e.metaKey)return;if(e.key=="Escape")dc();if(!$("#s-review").classList.contains("on"))return;const k=e.key.toLowerCase();if(k=="j")mv(1);else if(k=="k")mv(-1)});
-route();dash();loadReview();au();sup();ping();
+route();dash();loadReview();au();sup();loadTemplates();ping();
 </script>
 </body></html>

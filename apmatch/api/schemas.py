@@ -80,6 +80,13 @@ class AuditResponse(BaseModel):
     similarity_matches: list[SimilarityMatchOut] = []
     # Multi-tenant tag (D-091).
     customer_id: str = "default"
+    # Canonical extracted documents (invoice/po/grni/pard) for the review UI.
+    # None for runs made before extraction persistence existed.
+    extracted: dict | None = None
+
+
+class TemplatesOut(BaseModel):
+    templates: list[str]
 
 
 class RouteCountsOut(BaseModel):
