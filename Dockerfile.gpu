@@ -112,6 +112,9 @@ COPY scripts/ ./scripts/
 # Browser frontend, served same-origin at / by apmatch.api.app
 COPY static/ ./static/
 
+# Style templates (GET /templates lists them; the parser reads them at runtime)
+COPY templates/ ./templates/
+
 # Copy the model cache. Ownership matters — the non-root user must read it.
 COPY --chown=apmatch:apmatch models/ ./models/
 

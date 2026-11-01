@@ -83,6 +83,9 @@ COPY scripts/ ./scripts/
 # Browser frontend, served same-origin at / by apmatch.api.app
 COPY static/ ./static/
 
+# Style templates (GET /templates lists them; the parser reads them at runtime)
+COPY templates/ ./templates/
+
 # Copy the model cache. .dockerignore no longer excludes this.
 # Ownership matters — the non-root user must be able to read.
 COPY --chown=apmatch:apmatch models/ ./models/
