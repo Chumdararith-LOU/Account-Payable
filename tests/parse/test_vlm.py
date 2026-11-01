@@ -17,7 +17,8 @@ class _Resp:
         pass
 
     def json(self):
-        return {"choices": [{"message": {"content": self._content}}]}
+        # native Ollama /api/chat response shape (no "choices" wrapper)
+        return {"message": {"role": "assistant", "content": self._content}}
 
 
 def _img(tmp_path):
@@ -62,12 +63,15 @@ def test_extract_invoice_success(monkeypatch, tmp_path):
     assert doc.total == Decimal("1036.00")
     assert doc.line_items[0].quantity == Decimal("1.0000")
     assert doc.po_number == "2456_2026"
-    # Ollama JSON mode + schema injected into the prompt (no grammar backend)
-    assert seen["payload"]["response_format"] == {"type": "json_object"}
-    prompt_text = seen["payload"]["messages"][0]["content"][0]["text"]
-    assert "JSON schema" in prompt_text and "invoice_number" in prompt_text
-    # image sent as OpenAI-compatible multimodal content (not native "images")
-    assert seen["payload"]["messages"][0]["content"][1]["type"] == "image_url"
+    # native Ollama /api/chat: JSON mode, 8192 context, images field, no stream
+    assert seen["url"].endswith("/api/chat")
+    assert seen["payload"]["format"] == "json"
+    assert seen["payload"]["options"]["num_ctx"] == 8192
+    assert seen["payload"]["stream"] is False
+    msg = seen["payload"]["messages"][0]
+    assert "images" in msg and len(msg["images"]) == 1
+    # schema injected into the prompt (no grammar backend)
+    assert "JSON schema" in msg["content"] and "invoice_number" in msg["content"]
 
 
 def test_extract_invoice_markdown_wrapped(monkeypatch, tmp_path):

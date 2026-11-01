@@ -1,8 +1,9 @@
 """VLM-based extraction using Qwen2.5-VL served by Ollama.
 
 The pivot backend: one vision model reads the whole document and emits JSON
-(schema injected into the prompt, JSON mode forced via response_format),
-which is deserialized through the same strict coercion boundaries as the OCR
+(schema injected into the prompt, JSON mode forced via the native
+format="json"), which is deserialized through the same strict coercion
+boundaries as the OCR
 path (parse_document_number, parse_date, to_money / to_qty / to_unit_price).
 Any failure — no server, HTTP error, bad JSON, coercion error — returns None
 so the caller falls back to OCR + heuristics. The VLM is an enhancement,
@@ -32,7 +33,10 @@ logger = logging.getLogger(__name__)
 # Ollama runs on the server host, bound to *:11434. The API runs in the
 # apmatch-api container, so "localhost" would be the container itself — use
 # the host's Tailscale IP (same pattern as the frontend's VITE_API_URL).
-VLM_BASE_URL = os.getenv("VLM_BASE_URL", "http://100.88.94.91:11434/v1")
+# NO /v1 suffix: the native /api/chat endpoint is used, because the
+# OpenAI-compatible /v1 layer silently ignores "options" (num_ctx stays
+# 4096 and a real invoice image + schema prompt overflows it).
+VLM_BASE_URL = os.getenv("VLM_BASE_URL", "http://100.88.94.91:11434")
 # Local Ollama model name (see `ollama list`).
 VLM_MODEL = os.getenv("VLM_MODEL", "qwen2.5vl:7b")
 # 7B Q4 on a 2080 Ti generates ~10-15 tok/s; a full invoice JSON is ~1K tokens.
@@ -167,28 +171,30 @@ def extract_vlm(kind: DocumentKind, image_path: Path) -> object | None:
     try:
         base64_img = _encode_image(image_path)
 
+        # NATIVE OLLAMA PAYLOAD — the /v1 OpenAI-compatible endpoint silently
+        # ignores "options" (num_ctx stays 4096 and real invoices overflow
+        # it), so the native /api/chat endpoint is the only reliable path.
         payload = {
             "model": VLM_MODEL,
             "messages": [
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "text", "text": _build_prompt(kind)},
-                        # OpenAI-compatible multimodal form (Ollama /v1). The
-                        # native /api/chat "images" field is NOT accepted here.
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}},
-                    ],
+                    "content": _build_prompt(kind),
+                    "images": [base64_img],
                 }
             ],
-            "temperature": 0.0,
-            # Ollama JSON mode (OpenAI-compatible form of native "format": "json").
-            "response_format": {"type": "json_object"},
+            "format": "json",
+            # Ollama's default context is 4096 tokens; a scanned invoice image
+            # alone can be ~3K tokens, so the schema prompt + image + output
+            # need a wider window.
+            "options": {"num_ctx": 8192, "temperature": 0.0},
+            "stream": False,
         }
 
-        response = httpx.post(f"{VLM_BASE_URL}/chat/completions", json=payload, timeout=VLM_TIMEOUT_S)
+        response = httpx.post(f"{VLM_BASE_URL}/api/chat", json=payload, timeout=VLM_TIMEOUT_S)
         response.raise_for_status()
 
-        content = response.json()["choices"][0]["message"]["content"]
+        content = response.json()["message"]["content"]
         # Handle potential markdown wrapping (Ollama sometimes adds ```json).
         if content.startswith("```json"):
             content = content[7:-3]
