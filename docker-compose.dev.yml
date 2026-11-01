@@ -19,6 +19,11 @@ services:
       #   -c "CREATE DATABASE apmatch_test"
       # The pg_engine fixture runs `alembic upgrade head` on first use.
       DATABASE_URL: "postgresql+psycopg://apmatch:${APMATCH_DB_PASSWORD}@postgres:5432/apmatch_test"
+      # The suite is a regression guard for the DETERMINISTIC engine: its
+      # fixtures are built on OCR output. Pin the OCR backend so results are
+      # identical whether or not the vLLM container happens to be up.
+      # (The live API keeps the default, EXTRACTION_BACKEND=vlm.)
+      EXTRACTION_BACKEND: "ocr"
     volumes:
       - ./apmatch:/app/apmatch:ro
       - ./tests:/app/tests:ro
