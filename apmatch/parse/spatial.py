@@ -199,12 +199,13 @@ def value_after_label_with_validation(
             if parsed is not None:
                 return parsed, cand
     if position_fallback:
-        fb = position_block(blocks, position_fallback)
-        if fb is not None:
+        # Try every block in the zone (largest first), not just the largest —
+        # the largest top-right block is often the document number, not the date.
+        for fb in position_blocks(blocks, position_fallback):
             try:
                 parsed = parse_fn(fb.text.strip())
             except (ValueError, TypeError):
-                parsed = None
+                continue
             if parsed is not None:
                 return parsed, fb.text.strip()
     return None, None
@@ -219,7 +220,7 @@ _COMPANY_SUFFIX_RE = re.compile(
     r"GmbH|AG|SA|SAS|SRL|Pvt\.?\s*Ltd\.?|Private Limited|"
     r"Store|Service|Motors|Traders|Enterprises|Industries|Dealers|"
     r"Supplies|Mart|Hospital|Pharmacy|Foods|Garments|Textiles|"
-    r"Hardware|Electronics)\b",
+    r"Hardware|Electronics|Distributors|Works|Repair)\b",
     re.IGNORECASE,
 )
 
@@ -252,23 +253,26 @@ def find_vendor_heuristic(
     )
 
 
-def position_block(
+def position_blocks(
     blocks: tuple[TextBlock, ...],
     position: str,
-) -> TextBlock | None:
-    """Largest block in a page corner zone ("top-right" / "top-left")."""
+) -> tuple[TextBlock, ...]:
+    """All blocks in a page corner zone, sorted by area descending.
+
+    Returns a tuple (not a single block) so callers can iterate until one
+    parses: the largest top-right block is often the document number, not the
+    date, so a single-block fallback misses the date that is also in the zone.
+    """
     if not blocks:
-        return None
+        return ()
     width = max(b.bbox[2] for b in blocks)
     height = max(b.bbox[3] for b in blocks)
     if width == 0 or height == 0:
-        return None
+        return ()
     if position == "top-right":
-        zone = [b for b in blocks if b.bbox[0] > width * 0.6 and b.bbox[1] < height * 0.2]
+        zone = [b for b in blocks if b.bbox[0] > width * 0.55 and b.bbox[1] < height * 0.25]
     elif position == "top-left":
-        zone = [b for b in blocks if b.bbox[0] < width * 0.4 and b.bbox[1] < height * 0.2]
+        zone = [b for b in blocks if b.bbox[0] < width * 0.45 and b.bbox[1] < height * 0.25]
     else:
-        return None
-    if not zone:
-        return None
-    return max(zone, key=lambda b: (b.bbox[2] - b.bbox[0]) * (b.bbox[3] - b.bbox[1]))
+        return ()
+    return tuple(sorted(zone, key=lambda b: -((b.bbox[2] - b.bbox[0]) * (b.bbox[3] - b.bbox[1]))))

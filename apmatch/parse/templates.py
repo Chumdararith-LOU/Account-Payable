@@ -61,9 +61,14 @@ class CurrencySpec(FieldSpec):
     symbol_map: (token, code) pairs, e.g. (("$", "USD"), ("₹", "INR")).
         Matched in source order; the first token found in any block wins.
         Empty = fall straight through to the ISO 4217 token detector.
+    default: currency code to assume when NO marker is found at all.
+        Khmer-style documents omit the code for local-currency (KHR) amounts
+        but always print "$" for USD, so "no marker" means KHR there.
+        None = fall back to the global DEFAULT_CURRENCY (USD).
     """
 
     symbol_map: tuple[tuple[str, str], ...] = ()
+    default: str | None = None
 
 
 @dataclass(frozen=True)

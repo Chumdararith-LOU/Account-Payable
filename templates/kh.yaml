@@ -14,6 +14,10 @@ invoice_number:
     - "Invoice Number"
     - "INV No"
     - "No."
+    # kh_sme invoices use "N°:" (degree sign, not the letter o) for the number.
+    - "N°"
+  # kh_sme invoices print the number as a bare top-right block with no label.
+  position_fallback: top-right
 
 invoice_date:
   labels:
@@ -32,10 +36,13 @@ currency:
     - ["$", "USD"]
     - ["USD", "USD"]
     - ["KHR", "KHR"]
+  # Khmer-style documents omit the currency code for local-currency (KHR)
+  # amounts but always print "$" for USD — so "no marker found" means KHR.
+  default: KHR
 
 totals:
   subtotal:
-    labels: ["Subtotal"]
+    labels: ["Subtotal", "Sub Total"]
   tax:
     labels: ["VAT", "Tax"]
   total:

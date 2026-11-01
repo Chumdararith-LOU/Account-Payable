@@ -54,12 +54,14 @@ def _vendor_spec(d: dict | None) -> VendorSpec:
 def _currency_spec(d: dict | None) -> CurrencySpec:
     d = d or {}
     symbol_map = tuple((str(tok), str(code)) for tok, code in (d.get("symbol_map") or ()))
+    default = d.get("default")
     return CurrencySpec(
         labels=(),
         candidate_order=(),
         formats=(),
         position_fallback=None,
         symbol_map=symbol_map,
+        default=str(default) if default else None,
     )
 
 

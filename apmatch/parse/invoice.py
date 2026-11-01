@@ -26,7 +26,12 @@ from apmatch.parse.coerce import (
     parse_date,
     parse_document_number,
 )
-from apmatch.parse.spatial import find_vendor_heuristic, value_after_label_with_validation
+from apmatch.parse.spatial import (
+    _COMPANY_SUFFIX_RE,
+    find_vendor_heuristic,
+    position_blocks,
+    value_after_label_with_validation,
+)
 from apmatch.parse.template_loader import templates_by_id
 from apmatch.parse.template_selector import select_template
 from apmatch.parse.templates import Template
@@ -45,6 +50,9 @@ DATE_VARIANTS = ("Date",)
 SUBTOTAL_VARIANTS = ("Subtotal",)
 TAX_VARIANTS = ("VAT", "Tax")
 DEFAULT_CURRENCY = "USD"  # documented default when no ISO 4217 token is found
+# Column headers that contain "total" but are NOT the document's total row.
+# Always excluded from find_total_label (merged with the template's list).
+_TOTAL_HEADER_NOISE = ("subtotal", "sub total", "total price", "line total")
 
 
 def _select_template(blocks) -> Template:
@@ -58,17 +66,46 @@ def _select_template(blocks) -> Template:
     return template
 
 
+_BUYER_MARKERS = ("bill to", "buyer", "paid by", "received by")
+
+
+def _looks_like_company(s: str) -> bool:
+    """True if s plausibly names a company (rejects 'China', 'No.', 'Bill To').
+
+    A company name either carries a legal suffix / business-type noun (the
+    shared _COMPANY_SUFFIX_RE) or is a multi-word title-cased phrase. A single
+    word like "China" or a label like "No." fails both tests.
+    """
+    if not s or len(s) < 4:
+        return False
+    if _COMPANY_SUFFIX_RE.search(s):
+        return True
+    words = s.split()
+    return len(words) >= 2 and all(w[:1].isupper() for w in words if w[:1].isalpha())
+
+
 def _extract_vendor(blocks, vendor_spec) -> str | None:
-    """Vendor by template strategy: labeled, heuristic, or labeled-then-heuristic."""
+    """Vendor by template strategy: labeled, heuristic, or labeled-then-heuristic.
+
+    The labeled result is validated with _looks_like_company and a buyer-marker
+    check, so a label that matches line-item text ("Imported from China") or a
+    buyer label falls through to the heuristic instead of returning garbage.
+    """
     labels = vendor_spec.labels or VENDOR_VARIANTS
+
+    def _ok(value: str) -> bool:
+        return _looks_like_company(value) and not any(b in value.lower() for b in _BUYER_MARKERS)
+
     if vendor_spec.strategy in ("labeled", "labeled_then_heuristic"):
         value = labeled_value(blocks, labels)
-        if value is not None:
+        if value is not None and _ok(value):
             return value
     if vendor_spec.strategy in ("heuristic", "labeled_then_heuristic"):
         block = find_vendor_heuristic(blocks)
         if block is not None:
-            return block.text.strip()
+            val = block.text.strip()
+            if _ok(val):
+                return val
     return None
 
 
@@ -96,13 +133,18 @@ def _extract_date(blocks, date_spec):
 
 
 def _extract_currency(blocks, currency_spec) -> str:
-    """Currency: template symbol/code map, then ISO token, then the default."""
+    """Currency: template symbol/code map, then ISO token, then the default.
+
+    The default is the template's ``currency.default`` when set (kh: no marker
+    means local currency — KHR invoices omit the code, USD always prints "$"),
+    else the global DEFAULT_CURRENCY.
+    """
     if currency_spec.symbol_map:
         for block in blocks:
             for token, code in currency_spec.symbol_map:
                 if token and token in block.text:
                     return code
-    return detect_currency(blocks) or DEFAULT_CURRENCY
+    return detect_currency(blocks) or currency_spec.default or DEFAULT_CURRENCY
 
 
 def extract_invoice(ocr: OCRResult) -> Invoice:
@@ -113,6 +155,21 @@ def extract_invoice(ocr: OCRResult) -> Invoice:
     # us/in header layouts put the number ~356px right of the label, beyond the
     # 200px default; widen so the right search reaches it (PROD-B1c).
     invoice_number = parse_document_number(labeled_value(blocks, inv_labels, max_gap_px=400.0))
+    # FIX: If the parser grabbed a date string, it's wrong. Reject it.
+    if invoice_number and ("date" in invoice_number.lower() or "-" not in invoice_number and len(invoice_number) > 10):
+        invoice_number = None
+    if invoice_number is None and template.invoice_number.position_fallback:
+        # Unlabeled number in a page corner (kh_sme layout). Try the zone's
+        # blocks largest-first, skipping dates; parse_document_number rejects
+        # digitless titles ("Invoice", "Invoice Pvelec").
+        for fb in position_blocks(blocks, template.invoice_number.position_fallback):
+            text = fb.text.strip()
+            if parse_date(text) is not None:
+                continue
+            candidate = parse_document_number(text)
+            if candidate is not None:
+                invoice_number = candidate
+                break
 
     vendor_name = _extract_vendor(blocks, template.vendor)
 
@@ -126,8 +183,11 @@ def extract_invoice(ocr: OCRResult) -> Invoice:
     tax_amount = labeled_money(blocks, template.totals.tax.labels or TAX_VARIANTS)
 
     total = None
+    # Base excludes (column headers like "Total Price") always apply; the
+    # template's list adds style-specific variants.
     total_label = find_total_label(
-        blocks, exclude=template.totals.total_exclude_labels or ("subtotal",)
+        blocks,
+        exclude=_TOTAL_HEADER_NOISE + tuple(template.totals.total_exclude_labels or ()),
     )
     if total_label is not None:
         total = labeled_money_at(blocks, total_label.bbox)

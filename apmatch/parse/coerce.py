@@ -139,6 +139,10 @@ def parse_document_number(s: str | None) -> str | None:
     text = s.strip()
     if not text:
         return None
+    # Document numbers never contain spaces; a spaced grab is a label+value
+    # pair ("Date: April 30, 2026"), not a number.
+    if " " in text:
+        return None
     # Strip internal whitespace.
     text = re.sub(r"\s+", "", text)
     # Strip trailing punctuation (periods, commas, slashes).

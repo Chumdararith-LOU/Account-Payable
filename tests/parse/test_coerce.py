@@ -106,13 +106,15 @@ def test_parse_date_ambiguous_mm_dd_vs_dd_mm():
 
 def test_parse_document_number_happy():
     assert parse_document_number("INV-2026-1123") == "INV-2026-1123"
-    assert parse_document_number("PO- 2026-0451") == "PO-2026-0451"
     assert parse_document_number("GRN-2026-0322.") == "GRN-2026-0322"
 
 
 def test_parse_document_number_failure():
     assert parse_document_number("") is None
     assert parse_document_number(None) is None
+    # Document numbers never contain spaces; a spaced grab is a label+value
+    # pair, not a number.
+    assert parse_document_number("PO- 2026-0451") is None
 
 
 def test_parse_document_number_rejects_digitless_titles():
