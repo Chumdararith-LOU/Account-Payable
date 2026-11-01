@@ -53,3 +53,8 @@ class AuditLog(Base):
         JSONB, nullable=False, server_default=text("'[]'::jsonb")
     )
     input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    # Which backend extracted the invoice (PROD-B2): "vlm" or "heuristic".
+    # server_default keeps pre-VLM rows readable.
+    extraction_source: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default="vlm"
+    )

@@ -80,6 +80,8 @@ class AuditResponse(BaseModel):
     similarity_matches: list[SimilarityMatchOut] = []
     # Multi-tenant tag (D-091).
     customer_id: str = "default"
+    # Which backend extracted the invoice (PROD-B2): "vlm" or "heuristic".
+    extraction_source: str = "vlm"
     # Canonical extracted documents (invoice/po/grni/pard) for the review UI.
     # None for runs made before extraction persistence existed.
     extracted: dict | None = None

@@ -327,6 +327,7 @@ def _audit_response(entry: AuditEntry) -> AuditResponse:
         input_hash=entry.input_hash,
         similarity_matches=[_similarity_out(sm) for sm in entry.similarity_matches],
         customer_id=entry.customer_id,
+        extraction_source=entry.extraction_source,
         extracted=extracted,
     )
 

@@ -35,28 +35,22 @@ logger = logging.getLogger("apmatch.api.pipeline")
 
 
 def _recognize_and_parse(router: OCRRouter, layout: LayoutEngine, kind, path: Path, ocr_debug: bool):
+    """Returns (document, extraction_source) where source is "vlm" or "heuristic"."""
     # 1. Try VLM if enabled (default)
     if os.getenv("EXTRACTION_BACKEND", "vlm") == "vlm":
-        logger.info(f"Attempting VLM extraction for {path.name}...")
         vlm_doc = extract_vlm(kind, path)
-
-        # Simple sanity check: did we get a valid document with the minimum required data?
         if vlm_doc is not None:
-            # If the VLM missed a critical field entirely, we might still want to fall back.
-            # For now, trust the VLM if it returned an object.
-            logger.info(f"VLM extraction successful for {path.name}")
-            return vlm_doc
-        else:
-            logger.warning(f"VLM extraction failed/returned None for {path.name}. Falling back to OCR.")
+            return vlm_doc, "vlm"
+        # Loud on purpose: a silent fallback hides VLM outages (PROD-B2).
+        logger.error(f"VLM FAILED for {path.name}. Falling back to OCR.")
 
     # 2. Fallback to OCR + Heuristic
-    logger.info(f"Using heuristic extraction for {path.name}...")
     ocr_result = router.recognize(path)
     tables = layout.extract(path)
     ocr_result = replace(ocr_result, tables=tables)  # OCRResult is frozen
     if ocr_debug:
         logger.info("ocr blocks=%d tables=%d", len(ocr_result.text_blocks), len(tables))
-    return dispatch.extract(kind, ocr_result)
+    return dispatch.extract(kind, ocr_result), "heuristic"
 
 
 def run_pipeline(
@@ -86,10 +80,10 @@ def run_pipeline(
     router = router or OCRRouter()
     layout = layout or LayoutEngine()
 
-    invoice = _recognize_and_parse(router, layout, dispatch.DocumentKind.INVOICE, invoice_path, ocr_debug)
-    po = _recognize_and_parse(router, layout, dispatch.DocumentKind.PURCHASE_ORDER, po_path, ocr_debug) if po_path else None
-    grni = _recognize_and_parse(router, layout, dispatch.DocumentKind.GRNI, grni_path, ocr_debug) if grni_path else None
-    pard = _recognize_and_parse(router, layout, dispatch.DocumentKind.PAYMENT_ADVICE, pard_path, ocr_debug) if pard_path else None
+    invoice, inv_source = _recognize_and_parse(router, layout, dispatch.DocumentKind.INVOICE, invoice_path, ocr_debug)
+    po, _ = _recognize_and_parse(router, layout, dispatch.DocumentKind.PURCHASE_ORDER, po_path, ocr_debug) if po_path else (None, None)
+    grni, _ = _recognize_and_parse(router, layout, dispatch.DocumentKind.GRNI, grni_path, ocr_debug) if grni_path else (None, None)
+    pard, _ = _recognize_and_parse(router, layout, dispatch.DocumentKind.PAYMENT_ADVICE, pard_path, ocr_debug) if pard_path else (None, None)
 
     # Duplicate-invoice check (D-108): only when a session is provided (the
     # API endpoint); batch runs and unit tests stay pure with session=None.
@@ -131,5 +125,6 @@ def run_pipeline(
         input_hash=compute_input_hash(invoice, po, grni, pard),
         similarity_matches=match.similarity_matches,
         customer_id=customer_id,
+        extraction_source=inv_source,
     )
     return match, validation, decision, audit_entry, canonical_documents(invoice, po, grni, pard)
