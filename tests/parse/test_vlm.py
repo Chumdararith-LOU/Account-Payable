@@ -62,9 +62,12 @@ def test_extract_invoice_success(monkeypatch, tmp_path):
     assert doc.total == Decimal("1036.00")
     assert doc.line_items[0].quantity == Decimal("1.0000")
     assert doc.po_number == "2456_2026"
-    # structured output requested (guided_json was removed in vLLM 0.12.0)
-    assert seen["payload"]["response_format"]["type"] == "json_schema"
-    assert seen["payload"]["response_format"]["json_schema"]["schema"] is vlm.SCHEMAS[DocumentKind.INVOICE]
+    # Ollama JSON mode + schema injected into the prompt (no grammar backend)
+    assert seen["payload"]["response_format"] == {"type": "json_object"}
+    prompt_text = seen["payload"]["messages"][0]["content"][0]["text"]
+    assert "JSON schema" in prompt_text and "invoice_number" in prompt_text
+    # image sent as OpenAI-compatible multimodal content (not native "images")
+    assert seen["payload"]["messages"][0]["content"][1]["type"] == "image_url"
 
 
 def test_extract_invoice_markdown_wrapped(monkeypatch, tmp_path):

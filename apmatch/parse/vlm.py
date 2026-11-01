@@ -1,14 +1,15 @@
-"""VLM-based extraction using Qwen2.5-VL and vLLM structured output.
+"""VLM-based extraction using Qwen2.5-VL served by Ollama.
 
-The pivot backend: one vision model reads the whole document and emits a
-schema-constrained JSON object, which is deserialized through the same strict
-coercion boundaries as the OCR path (parse_document_number, parse_date,
-to_money / to_qty / to_unit_price). Any failure — no server, HTTP error, bad
-JSON, coercion error — returns None so the caller falls back to OCR +
-heuristics. The VLM is an enhancement, never a hard dependency.
+The pivot backend: one vision model reads the whole document and emits JSON
+(schema injected into the prompt, JSON mode forced via response_format),
+which is deserialized through the same strict coercion boundaries as the OCR
+path (parse_document_number, parse_date, to_money / to_qty / to_unit_price).
+Any failure — no server, HTTP error, bad JSON, coercion error — returns None
+so the caller falls back to OCR + heuristics. The VLM is an enhancement,
+never a hard dependency.
 
-Network: the only call is to the local vLLM server (VLM_BASE_URL) on the
-compose network; no external endpoints.
+Network: the only call is to the local Ollama server (VLM_BASE_URL); no
+external endpoints.
 """
 
 from __future__ import annotations
@@ -28,16 +29,14 @@ from apmatch.schema.documents import GRNI, Invoice, LineItem, PaymentAdvice, Pur
 
 logger = logging.getLogger(__name__)
 
-# The API runs inside the apmatch-api container; vLLM runs in the apmatch-vlm
-# container on the same compose network (scripts/serve_vlm.sh). Override for
-# host-side runs (e.g. http://localhost:8002/v1).
-VLM_BASE_URL = os.getenv("VLM_BASE_URL", "http://apmatch-vlm:8000/v1")
-# Must match --served-model-name in scripts/serve_vlm.sh: the local model path
-# is hidden behind the served name, and the HF repo id would trigger a
-# download attempt (the pipeline must stay offline).
-VLM_MODEL = os.getenv("VLM_MODEL", "qwen2.5-vl-7b-awq")
-# 7B AWQ on a 2080 Ti generates ~10-20 tok/s; a full invoice JSON is ~1K tokens.
-VLM_TIMEOUT_S = float(os.getenv("VLM_TIMEOUT_S", "300"))
+# Ollama runs on the server host, bound to *:11434. The API runs in the
+# apmatch-api container, so "localhost" would be the container itself — use
+# the host's Tailscale IP (same pattern as the frontend's VITE_API_URL).
+VLM_BASE_URL = os.getenv("VLM_BASE_URL", "http://100.88.94.91:11434/v1")
+# Local Ollama model name (see `ollama list`).
+VLM_MODEL = os.getenv("VLM_MODEL", "qwen2.5vl:7b")
+# 7B Q4 on a 2080 Ti generates ~10-15 tok/s; a full invoice JSON is ~1K tokens.
+VLM_TIMEOUT_S = float(os.getenv("VLM_TIMEOUT_S", "120"))
 
 # Shared line-item properties (Invoice/PO carry price+amount; GRNI qty only).
 _LINE_ITEM_PROPS = {
@@ -48,8 +47,10 @@ _LINE_ITEM_PROPS = {
     "amount": {"type": ["string", "null"]},
 }
 
-# JSON Schemas for structured output — one per document kind, mirroring the
-# fields in apmatch/schema/documents.py.
+# JSON Schemas — one per document kind, mirroring the fields in
+# apmatch/schema/documents.py. Ollama has no grammar-constrained decoding, so
+# these are injected into the prompt (response_format only guarantees valid
+# JSON, not the schema).
 SCHEMAS: dict[DocumentKind, dict] = {
     DocumentKind.INVOICE: {
         "type": "object",
@@ -128,12 +129,19 @@ SCHEMAS: dict[DocumentKind, dict] = {
     },
 }
 
-PROMPT = (
-    "You are an AP document extraction system. Extract the following fields "
-    "from the image into JSON. Use exactly the JSON schema provided. Do not "
-    "invent data. If a field is missing, use null. For dates, use YYYY-MM-DD. "
-    "For numbers, use plain strings without commas (e.g. '1036000.00')."
-)
+
+def _build_prompt(kind: DocumentKind) -> str:
+    schema_str = json.dumps(SCHEMAS[kind], indent=2)
+    return f"""You are an AP document extraction system.
+Extract the fields from the image into JSON.
+You MUST strictly follow this JSON schema:
+{schema_str}
+
+Rules:
+- For dates, use YYYY-MM-DD.
+- For numbers, use strings without commas (e.g. '1036000.00').
+- If a field is missing, use null.
+- Return ONLY valid JSON."""
 
 
 def _encode_image(image_path: Path) -> str:
@@ -165,33 +173,27 @@ def extract_vlm(kind: DocumentKind, image_path: Path) -> object | None:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": PROMPT},
+                        {"type": "text", "text": _build_prompt(kind)},
+                        # OpenAI-compatible multimodal form (Ollama /v1). The
+                        # native /api/chat "images" field is NOT accepted here.
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}},
                     ],
                 }
             ],
             "temperature": 0.0,
-            # vLLM structured output (guided_json was removed in vLLM 0.12.0).
-            # strict=False: the schemas use ["string", "null"] unions, which
-            # strict JSON Schema forbids.
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": kind.value,
-                    "schema": SCHEMAS[kind],
-                    "strict": False,
-                },
-            },
+            # Ollama JSON mode (OpenAI-compatible form of native "format": "json").
+            "response_format": {"type": "json_object"},
         }
 
         response = httpx.post(f"{VLM_BASE_URL}/chat/completions", json=payload, timeout=VLM_TIMEOUT_S)
         response.raise_for_status()
 
         content = response.json()["choices"][0]["message"]["content"]
-        # Handle potential markdown wrapping (should not happen with
-        # structured output; kept as a guard).
+        # Handle potential markdown wrapping (Ollama sometimes adds ```json).
         if content.startswith("```json"):
             content = content[7:-3]
+        elif content.startswith("```"):
+            content = content[3:-3]
         data = json.loads(content)
 
         # Deserialize based on kind
