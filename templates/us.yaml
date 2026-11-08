@@ -1,11 +1,13 @@
-# US-style invoice template (from the PROD-B0.6 batch diagnostic).
+# US-style invoice template (from the PROD-B0.6 batch diagnostic + real
+# samples, PROD-B1d).
 #
-# Observed gaps the hardcoded lists missed:
-#   - invoice number labeled "INVOICE" / "INVOICE #" (not "Invoice No")
-#   - date labeled "INVOICE DATE", format "Mar 15, 2026" (%b %d, %Y)
-#   - vendor unlabeled (the doc labels the BUYER as "BILL TO"); the top
-#     company-suffix heuristic finds the seller
-#   - currency as a "$" symbol
+# Fixes vs PROD-B1c:
+#   - vendor: removed bare "From" / "Supplier" — they false-match line-item
+#     text ("Imported from China"). Replaced with multi-word safe labels; the
+#     _extract_vendor validation rejects garbage so the heuristic still fires
+#     on unlabeled documents (the common case).
+#   - invoice_date: position_fallback: top-right recovers the value when the
+#     label search fails.
 template_id: us
 style: us
 
@@ -26,20 +28,22 @@ invoice_date:
   candidate_order:
     - "Invoice Date"
     - "Date Issued"
-    - "Date"      # bare "Date" is last-resort (P.O.-block risk)
+    - "Date"
   formats:
     - "%b %d, %Y"    # Mar 15, 2026
     - "%B %d, %Y"    # February 10, 2025
     - "%m/%d/%Y"     # 02/10/2025
     - "%m-%d-%Y"
+  position_fallback: top-right
 
 vendor:
   strategy: labeled_then_heuristic
   labels:
-    - "From"
-    - "Vendor"
-    - "Supplier"
     - "Billed From"
+    - "Bill From"
+    - "Vendor Name"
+    - "Supplier Name"
+    - "Vendor"
   heuristic_fallback: top_company_suffix
 
 currency:

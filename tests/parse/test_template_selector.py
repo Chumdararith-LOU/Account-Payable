@@ -22,7 +22,9 @@ def test_selector_picks_kh_for_kh_document():
 
 
 def test_selector_picks_us_for_us_document():
-    blocks = (_b("INVOICE #"), _b("INVOICE DATE"), _b("From"))
+    # "Billed From" is the us-specific vendor label (single-word "From" was
+    # dropped in PROD-B1d because it false-matches line-item text).
+    blocks = (_b("INVOICE #"), _b("INVOICE DATE"), _b("Billed From"))
     template, _ = select_template(blocks, templates_by_id())
     assert template is not None
     assert template.style == "us"

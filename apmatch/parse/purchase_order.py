@@ -23,6 +23,9 @@ from apmatch.parse.coerce import (
     parse_date,
     parse_document_number,
 )
+from apmatch.parse.template_loader import templates_by_id
+from apmatch.parse.template_selector import select_template
+from apmatch.parse.templates import Template
 from apmatch.schema.coercion import to_money
 from apmatch.schema.documents import PurchaseOrder
 
@@ -31,12 +34,26 @@ VENDOR_VARIANTS = ("Vendor", "Supplier", "From")
 DATE_VARIANTS = ("Date",)
 
 
+def _select_template(blocks) -> Template:
+    """Pick the style template for these blocks; generic if none match."""
+    templates = templates_by_id()
+    if not templates:
+        return Template(template_id="generic", style="generic")
+    template, _ = select_template(blocks, templates)
+    if template is None:
+        return templates.get("generic") or Template(template_id="generic", style="generic")
+    return template
+
+
 def extract_purchase_order(ocr: OCRResult) -> PurchaseOrder:
     blocks = ocr.text_blocks
+    template = _select_template(blocks)
 
     po_number = parse_document_number(labeled_value(blocks, PO_NUMBER_VARIANTS))
 
-    vendor_name = labeled_value(blocks, VENDOR_VARIANTS)
+    # Vendor labels come from the style template (consistent with the invoice);
+    # the hardcoded VENDOR_VARIANTS is the fallback when the template has none.
+    vendor_name = labeled_value(blocks, template.vendor.labels or VENDOR_VARIANTS)
     if vendor_name is None:
         vendor_name = company_name_fallback(blocks)
 

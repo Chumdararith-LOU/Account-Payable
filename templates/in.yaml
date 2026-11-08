@@ -1,10 +1,13 @@
-# Indian-style invoice template (from the PROD-B0.6 batch diagnostic).
+# Indian-style invoice template (from the PROD-B0.6 batch diagnostic + real
+# INR samples, PROD-B1d).
 #
-# Observed gaps the hardcoded lists missed:
-#   - invoice number labeled "INVOICE #"
-#   - vendor labeled "Seller" (not "From (Vendor)")
-#   - currency as a "₹" / "Rs." symbol (INR)
-#   - GST as the tax label
+# Fixes vs PROD-B1c:
+#   - currency: added "Rs " (no period) — real Indian invoices often write
+#     "Rs 2,110.00" without the period.
+#   - vendor: multi-word safe labels; the _extract_vendor validation rejects
+#     garbage so the heuristic still fires on unlabeled documents.
+#   - invoice_number / invoice_date: position_fallback: top-right recovers the
+#     value when the label search fails.
 # Note: bare "INV" is deliberately absent — it substring-matches the invoice
 # NUMBER value (e.g. "INV-2026-1123") and would mis-select this template.
 template_id: in
@@ -14,6 +17,8 @@ invoice_number:
   labels:
     - "INVOICE #"
     - "Invoice No"
+    - "Invoice No."
+    - "Invoice Number"
     - "Inv No"
   position_fallback: top-right
 
@@ -28,14 +33,22 @@ invoice_date:
     - "%d/%m/%Y"
     - "%d-%m-%Y"
     - "%d-%b-%Y"
+    # Month-name formats (us-style "Jul 12, 2026"): the selector ties us/in
+    # when the vendor label is missing and picks "in" alphabetically, so the
+    # in template must still parse us-style dates.
+    - "%b %d, %Y"
+    - "%B %d, %Y"
+  position_fallback: top-right
 
 vendor:
   strategy: labeled_then_heuristic
-  # "Seller" is the in-style vendor label and the selector's distinguishing
-  # signal vs the us template (which uses "From"). Bare "From" is kept out so
-  # the two styles don't score identically.
   labels:
-    - "Seller"
+    - "Seller Name"
+    - "Sold By"
+    - "Vendor Name"
+    - "Delivered By (Vendor)"
+    - "Paid To"
+    - "Vendor"
   heuristic_fallback: top_company_suffix
 
 currency:
@@ -43,6 +56,7 @@ currency:
     - ["₹", "INR"]
     - ["INR", "INR"]
     - ["Rs.", "INR"]
+    - ["Rs ", "INR"]
 
 totals:
   subtotal:
@@ -57,8 +71,7 @@ line_items:
   enabled: true
   columns:
     description: ["Description", "Item Description", "Item", "Product"]
-    quantity: ["Qty", "Quantity", "Units", "Count"]
-    # in-style invoices label the price column "Item Rate" / "Rate".
-    price: ["Item Rate", "Rate", "Unit Price", "Price"]
-    amount: ["Amount", "Line Total", "Total", "Value"]
+    quantity: ["Qty", "Quantity", "Units", "Count", "Qty Received", "Qty Ordered"]
+    price: ["Item Rate", "Rate (INR)", "Rate", "Unit Price", "Price"]
+    amount: ["Taxable (INR)", "Taxable", "Amount", "Line Total", "Total", "Value"]
   fallback: positional

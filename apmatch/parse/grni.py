@@ -14,12 +14,26 @@ from apmatch.ocr.engine import OCRResult
 from apmatch.parse._common import company_name_fallback, labeled_value
 from apmatch.parse._table import find_column, parse_table_rows
 from apmatch.parse.coerce import parse_date, parse_document_number, parse_qty
+from apmatch.parse.template_loader import templates_by_id
+from apmatch.parse.template_selector import select_template
+from apmatch.parse.templates import Template
 from apmatch.schema.coercion import to_qty
 from apmatch.schema.documents import GRNI, LineItem
 
 GRN_NUMBER_VARIANTS = ("GRN No", "GRNI No", "Delivery No", "No.")
 VENDOR_VARIANTS = ("Delivered By (Vendor)", "Vendor", "Supplier")
 DATE_VARIANTS = ("Date",)
+
+
+def _select_template(blocks) -> Template:
+    """Pick the style template for these blocks; generic if none match."""
+    templates = templates_by_id()
+    if not templates:
+        return Template(template_id="generic", style="generic")
+    template, _ = select_template(blocks, templates)
+    if template is None:
+        return templates.get("generic") or Template(template_id="generic", style="generic")
+    return template
 
 
 def _line_items_from_html(ocr: OCRResult) -> tuple[LineItem, ...]:
@@ -80,10 +94,13 @@ def _line_items(ocr: OCRResult) -> tuple[LineItem, ...]:
 
 def extract_grni(ocr: OCRResult) -> GRNI:
     blocks = ocr.text_blocks
+    template = _select_template(blocks)
 
     grn_number = parse_document_number(labeled_value(blocks, GRN_NUMBER_VARIANTS))
 
-    vendor_name = labeled_value(blocks, VENDOR_VARIANTS)
+    # Vendor labels come from the style template (consistent with the invoice);
+    # the hardcoded VENDOR_VARIANTS is the fallback when the template has none.
+    vendor_name = labeled_value(blocks, template.vendor.labels or VENDOR_VARIANTS)
     if vendor_name is None:
         vendor_name = company_name_fallback(blocks)
 

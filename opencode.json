@@ -21,7 +21,7 @@
         "type": "local",
         "command": ["bunx", "@tterrasson/mcp-searxng"],
         "environment": {
-          "SEARXNG_URL": "http://100.127.105.9:8888"
+          "SEARXNG_URL": "http://100.76.126.16:8888"
         }
       }
     }

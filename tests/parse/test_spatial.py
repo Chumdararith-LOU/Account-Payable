@@ -68,6 +68,17 @@ def test_find_total_label_skips_subtotal():
     assert find_total_label(blocks).text == "TOTAL / NJU"  # the disambiguation
 
 
+def test_find_total_label_skips_column_headers():
+    # "Total Price" / "Sub Total" are line-item column headers (or the
+    # two-word subtotal label), not the document total row. They appear
+    # before the real total in source order and must be skipped.
+    header = _b("Total Price", 100, 100, 300, 140)
+    sub = _b("Sub Total", 100, 200, 200, 240)
+    total = _b("Grand Total", 100, 300, 250, 340)
+    blocks = (header, sub, total)
+    assert find_total_label(blocks).text == "Grand Total"
+
+
 def test_value_after_label_right_first():
     label = _b("Total", 100, 100, 200, 140)
     right = _b("USD 500.00", 250, 110, 400, 150)
@@ -170,3 +181,24 @@ def test_find_vendor_heuristic_finds_business_type_name():
     found = find_vendor_heuristic(blocks)
     assert found is not None
     assert found.text == "Sunshine Motors Service"
+
+
+def test_find_vendor_heuristic_finds_works_and_repair():
+    # batch-200 us vendors: "Redwood Cycle Works", "Lakeside Bike & Repair".
+    blocks = (
+        _b("INVOICE", 100, 10, 300, 40),
+        _b("Redwood Cycle Works", 100, 50, 400, 90),
+        _b("Coral Limo Service", 100, 800, 400, 840),  # buyer, below top 20%
+    )
+    found = find_vendor_heuristic(blocks)
+    assert found is not None
+    assert found.text == "Redwood Cycle Works"
+
+    blocks2 = (
+        _b("INVOICE", 100, 10, 300, 40),
+        _b("Lakeside Bike & Repair", 100, 50, 400, 90),
+        _b("Coral Limo Service", 100, 800, 400, 840),
+    )
+    found2 = find_vendor_heuristic(blocks2)
+    assert found2 is not None
+    assert found2.text == "Lakeside Bike & Repair"

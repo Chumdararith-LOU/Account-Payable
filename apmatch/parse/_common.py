@@ -77,13 +77,15 @@ def labeled_money_at(
 
 def find_total_label(
     blocks: tuple[TextBlock, ...],
-    exclude: tuple[str, ...] = ("subtotal",),
+    exclude: tuple[str, ...] = ("subtotal", "sub total", "total price", "line total"),
 ) -> TextBlock | None:
     """First block containing 'total' but none of the ``exclude`` substrings.
 
     'Subtotal' contains 'total' as a substring, so a plain find_label for
-    ('Total',) would return the subtotal row. Templates can extend the
-    exclusion list (e.g. "Sub Total") via ``exclude``.
+    ('Total',) would return the subtotal row. Column headers ("Total Price",
+    "Line Total") are excluded by default — they sit above the first data row,
+    so the value lookup would grab a line amount, not the document total.
+    Templates can extend the exclusion list via ``exclude``.
     """
     for block in blocks:
         text = _normalize(block.text)
