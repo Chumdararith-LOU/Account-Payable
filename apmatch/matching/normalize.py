@@ -14,6 +14,7 @@ patterns like 'P/N 12345'.
 
 from __future__ import annotations
 
+import difflib
 import re
 import unicodedata
 
@@ -89,3 +90,50 @@ def normalize_currency(s: str) -> str:
     if re.fullmatch(r"[A-Z]{3}", s):
         return s
     return ""
+
+
+# --- Company names ----------------------------------------------------------
+
+# Legal-form and filler tokens that do not identify a company. Removed before
+# comparing vendor names, so "Mekong Supplies Co., Ltd." == "MEKONG SUPPLIES LTD".
+_LEGAL_TOKENS = frozenset({
+    "co", "company", "ltd", "limited", "llc", "llp", "inc", "incorporated", "corp",
+    "corporation", "plc", "pvt", "private", "pte", "gmbh", "sa", "sarl", "the",
+})
+_NON_WORD_RE = re.compile(r"[^\w]+", re.UNICODE)
+
+# Character-level similarity above which two normalized company names are the
+# same company read with minor OCR/VLM noise ("Suplies" vs "Supplies").
+COMPANY_SIMILARITY_MIN = 0.92
+
+
+def normalize_company(s: str | None) -> str:
+    """Canonical company name: casefold, punctuation-free, legal forms dropped."""
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFKC", s).casefold().replace("&", " and ")
+    s = _strip_ocr_suffix(s)
+    tokens = [t for t in _NON_WORD_RE.sub(" ", s).split() if t not in _LEGAL_TOKENS]
+    return " ".join(tokens)
+
+
+def vendor_names_match(a: str | None, b: str | None) -> bool:
+    """True when two vendor names identify the same company.
+
+    Deterministic. Same company when, after ``normalize_company``: the strings
+    are equal; or one name's tokens are all contained in the other's and the
+    shorter has at least two tokens ("Bayon Office Solutions" vs "Bayon Office
+    Solutions Cambodia"); or their character similarity is at least
+    COMPANY_SIMILARITY_MIN. Two empty names match (nothing to compare); one
+    empty name does not.
+    """
+    na, nb = normalize_company(a), normalize_company(b)
+    if na == nb:
+        return True
+    if not na or not nb:
+        return False
+    ta, tb = set(na.split()), set(nb.split())
+    small, big = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
+    if len(small) >= 2 and small <= big:
+        return True
+    return difflib.SequenceMatcher(None, na, nb).ratio() >= COMPANY_SIMILARITY_MIN

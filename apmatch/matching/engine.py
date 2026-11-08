@@ -4,7 +4,7 @@ Pure, no I/O, no LLM, no network. Consumes the schema dataclasses
 (``Invoice``, ``PurchaseOrder``, ``GRNI``, ``PaymentAdvice``) and produces a
 ``MatchResult``.
 
-Matching strategy: vendor name via ``normalize_text``; currency via
+Matching strategy: vendor name via ``vendor_names_match``; currency via
 ``normalize_currency``; line items joined on ``normalize_text(description)``
 with quantity/price/amount tolerance checks.
 
@@ -55,7 +55,12 @@ from apmatch.matching.config import (
     UNIT_PRICE_TOLERANCE,
     UNIT_PRICE_TOLERANCE_REL,
 )
-from apmatch.matching.normalize import normalize_currency, normalize_number_text, normalize_text
+from apmatch.matching.normalize import (
+    normalize_currency,
+    normalize_number_text,
+    normalize_text,
+    vendor_names_match,
+)
 from apmatch.matching.result import (
     MatchCode,
     MatchFailure,
@@ -186,7 +191,9 @@ class MatchingEngine:
         assert po is not None and grni is not None and pard is not None
 
         # 2. Header checks.
-        if normalize_text(invoice.vendor_name) != normalize_text(po.vendor_name):
+        # Vendor: same company despite punctuation / legal-form / minor
+        # reading differences ("Co., Ltd." vs "Ltd") — see vendor_names_match.
+        if not vendor_names_match(invoice.vendor_name, po.vendor_name):
             failures.append(
                 MatchFailure(
                     MatchCode.VENDOR_MISMATCH,

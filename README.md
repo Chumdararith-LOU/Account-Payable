@@ -104,8 +104,8 @@ Dev tools (ruff): `pip install -r requirements-dev.txt`.
 
 | Principle | What it means |
 |---|---|
-| **Fully offline at runtime** | No network calls, no external APIs. All model weights are vendored locally under `models/` (gitignored) and loaded from disk. One-time network use is allowed *only* to download the models. |
-| **No generative model in the decision path** | OCR is PaddleOCR (PP-OCRv6 + PP-StructureV3); the only learned component in matching is a small deterministic sentence-embedding model (MiniLM-L12-v2) used as a similarity fallback for line-item descriptions. No LLM anywhere. |
+| **Fully offline at runtime** | No external APIs. The only runtime network call is to the local VLM server (`VLM_BASE_URL`, Ollama). All other weights are vendored under `models/` (gitignored). One-time network use is allowed *only* to download models. |
+| **The model reads, code decides** (D-109) | A vision-language model (Qwen2.5-VL via local Ollama) transcribes each document; PaddleOCR + heuristics are the fallback. Deterministic code parses every value, then validation, matching, scoring and routing run as pure code — no model ever makes a decision. The only learned component in matching is a small sentence-embedding model (MiniLM-L12-v2) used as a similarity fallback for line-item descriptions. |
 | **Deterministic** | Pinned weights, greedy decoding, fixed seeds. The same inputs produce the same decision. |
 | **Money is `decimal.Decimal`** | End to end. Never `float`. |
 | **Auditable** | Every run writes one append-only audit row: the decision, every failed check with expected/actual/delta, and a SHA-256 hash of the input documents. No update, no delete. |

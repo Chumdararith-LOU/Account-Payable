@@ -1,8 +1,11 @@
 # AGENTS.md — operating rules for any agent working in this repo
 
 ## Hard rules (do not violate)
-- No generative model anywhere in the decision path. No LLM calls at runtime.
-- No external network calls at runtime. The pipeline must run fully offline.
+- A generative model may only EXTRACT (apmatch/parse/vlm.py, D-109). It never
+  decides: validation, matching, scoring and routing stay pure code with no
+  model calls (enforced by the tests/*/test_no_llm.py guards).
+- No external network calls at runtime. The only allowed call is to the local
+  VLM server (VLM_BASE_URL).
 - All money arithmetic uses `decimal.Decimal`. Never `float` for currency.
 - Every new module ships with a matching test file under `tests/`.
 - If a version in `requirements.txt` is unavailable, STOP and report.
@@ -58,3 +61,11 @@ Exceptions (run locally):
     3. Commit hash + message
     4. Anything you were unsure about or stubbed
     5. Any TODO left in code
+
+## Applying a handoff packet (from the planner)
+Some tasks arrive as a "handoff packet": a patch file plus numbered steps.
+- Apply the patch exactly as given (`git am <file>.patch`). Do not edit,
+  reformat, or "improve" the code it contains unless a step says so.
+- Run each command exactly as written, in order.
+- If a step fails, STOP. Paste the full raw output back. Do not try to fix it.
+- Copy result files (reports/*.json) back exactly as produced.

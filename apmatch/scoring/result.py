@@ -32,6 +32,7 @@ class RouteReason(str, Enum):
     MATCH_PENDING_INFO = "MATCH_PENDING_INFO"
     LOW_OCR_CONFIDENCE = "LOW_OCR_CONFIDENCE"
     LOW_OVERALL_SCORE = "LOW_OVERALL_SCORE"
+    UNREADABLE_FIELD = "UNREADABLE_FIELD"  # a required field could not be read (D-110)
 
 
 @dataclass(frozen=True)

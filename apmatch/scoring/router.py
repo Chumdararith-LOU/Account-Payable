@@ -2,8 +2,15 @@
 
 No I/O, no LLM, no network. Consumes a ``ValidationResult`` and ``MatchResult``
 (and an optional OCR confidence) and produces a ``RoutingDecision``. The
-decision order is fixed and part of the contract: REJECT (validation blocker)
-first, then the HUMAN_REVIEW branches, then AUTO_APPROVE.
+decision order is fixed and part of the contract: REJECT (a validation blocker
+that is a real document defect) first, then the HUMAN_REVIEW branches (an
+unreadable required field, missing documents, discrepancies, low confidence,
+low score), then AUTO_APPROVE.
+
+"Could not read it" is not "the document is wrong" (D-110): a blocker caused
+only by a field the extractor could not read (MISSING_REQUIRED_FIELD,
+NO_LINE_ITEMS) routes to HUMAN_REVIEW with reason UNREADABLE_FIELD, so a person
+types the value in. Only arithmetic and other real defects REJECT.
 
 CLI:
     python -m apmatch.scoring.router <match_result.json> [<validation_result.json>] [--ocr=0.92]
@@ -33,6 +40,10 @@ from apmatch.scoring.config import (
 from apmatch.scoring.result import Route, RouteReason, RoutingDecision
 from apmatch.validation.result import CheckCode, CheckFailure, Severity, ValidationResult
 
+# Blocker codes that mean "the extractor could not read it", not "the
+# document is defective". These route to a human, never to REJECT (D-110).
+UNREADABLE_CODES = frozenset({CheckCode.MISSING_REQUIRED_FIELD, CheckCode.NO_LINE_ITEMS})
+
 
 def decide(
     validation: ValidationResult,
@@ -40,13 +51,17 @@ def decide(
     ocr_confidence: float | None = None,
 ) -> RoutingDecision:
     """Route a (validation, match, ocr_confidence) triple. Deterministic."""
-    # 1. A validation BLOCKER always rejects, regardless of the match.
-    if REJECT_REQUIRES_BLOCKER and validation.has_blocker:
-        score = combined_score(validation, match, ocr_confidence)
-        return RoutingDecision(Route.REJECT, RouteReason.VALIDATION_BLOCKER, score)
-
-    # 2. Compute the combined score once.
     score = combined_score(validation, match, ocr_confidence)
+
+    if validation.has_blocker:
+        blockers = [f for f in validation.checks_failed if f.severity is Severity.BLOCKER]
+        defects = [f for f in blockers if f.code not in UNREADABLE_CODES]
+        # 1. A real document defect rejects, regardless of the match.
+        if REJECT_REQUIRES_BLOCKER and defects:
+            return RoutingDecision(Route.REJECT, RouteReason.VALIDATION_BLOCKER, score)
+        # 1b. Only unreadable fields: a person fills them in.
+        if not defects:
+            return RoutingDecision(Route.HUMAN_REVIEW, RouteReason.UNREADABLE_FIELD, score)
 
     # 3. Missing documents need a human.
     if match.outcome is Outcome.PENDING_INFO:

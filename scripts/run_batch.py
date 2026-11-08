@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 """
 Run the labeled batch through the pipeline and produce a structured
-pass/fail report.
+pass/fail report — the accuracy test (D-098, D-112).
 
-Usage:
+Usage (on the GPU server, repo root, inside the apmatch:dev-gpu image):
   python scripts/run_batch.py \
       --batch-dir <path> \
       --csv <path>/labels.csv \
-      --out reports/batch-<date>.json \
-      [--style kh|us|in] \
-      [--limit N] \
-      [--resume]
+      --out reports/batch-<name>.json \
+      [--backend vlm|ocr]          # default vlm (VLM first, OCR fallback)
+      [--cache-dir <dir>]          # cache extractions; re-runs skip OCR/VLM
+      [--style kh|us|in] [--cases CASE-0001,CASE-0007] [--limit N] [--resume]
 
-Runs on the GPU server (inside the apmatch:dev-gpu image). Uses
-run_pipeline() per case — no HTTP, no DB. The heavy engines (OCR router,
-layout, embedding model) are loaded ONCE and shared across cases.
+Every case in the report carries the extracted documents and the extraction
+diagnostics (source, VLM model/digest/prompt version, raw model output, field
+errors), so failures can be diagnosed — and re-scored offline with
+scripts/rematch_report.py — without re-running OCR or the VLM.
 
-Stdlib only for file/CLI/json (json, csv, argparse, pathlib, time, datetime).
-The apmatch pipeline imports are the legitimate heavy dependencies.
+Uses run_pipeline() per case — no HTTP, no DB. The embedding model is loaded
+once; the OCR engines are loaded lazily, only if some document falls back to
+the OCR path.
 """
 
 from __future__ import annotations
@@ -25,20 +27,16 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-# Route mapping (fixed, documented):
-#   expected MATCH        -> pass if route == AUTO_APPROVE
-#   expected DISCREPANCY  -> pass if route in (HUMAN_REVIEW, REJECT)
-#   expected PENDING INFO -> pass if route == HUMAN_REVIEW
-PASS_ROUTES = {
-    "MATCH": {"AUTO_APPROVE"},
-    "DISCREPANCY": {"HUMAN_REVIEW", "REJECT"},
-    "PENDING INFO": {"HUMAN_REVIEW"},
-}
+# Make `apmatch` importable when run as `python scripts/run_batch.py`.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from apmatch.evaluation import case_passed, format_summary, summarize
 
 # CSV column -> run_pipeline kwarg.
 DOC_FIELDS = {
@@ -50,24 +48,26 @@ DOC_FIELDS = {
 
 
 def _serialize_failures(failures) -> list[dict]:
-    out = []
-    for f in failures:
-        out.append({
+    return [
+        {
             "code": f.code.value,
             "severity": f.severity.value,
             "location": f.location,
             "expected": f.expected,
             "actual": f.actual,
             "delta": f.delta,
-        })
-    return out
+        }
+        for f in failures
+    ]
 
 
-def load_cases(csv_path: Path, style: str | None, limit: int | None) -> list[dict]:
+def load_cases(csv_path: Path, style: str | None, cases: set[str] | None, limit: int | None) -> list[dict]:
     with csv_path.open(newline="") as fh:
         rows = list(csv.DictReader(fh))
     if style:
         rows = [r for r in rows if r.get("style") == style]
+    if cases:
+        rows = [r for r in rows if r.get("case_id") in cases]
     rows.sort(key=lambda r: r.get("case_id", ""))
     if limit is not None:
         rows = rows[:limit]
@@ -79,22 +79,27 @@ def main() -> None:
     ap.add_argument("--batch-dir", required=True)
     ap.add_argument("--csv", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--backend", choices=("vlm", "ocr"), default="vlm")
+    ap.add_argument("--cache-dir", default=None)
     ap.add_argument("--style", default=None)
+    ap.add_argument("--cases", default=None, help="comma-separated case ids")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--resume", action="store_true")
     args = ap.parse_args()
 
-    batch_dir = Path(args.batch_dir)
-    csv_path = Path(args.csv)
-    out_path = Path(args.out)
-    progress_path = out_path.parent / ".run_batch_progress.json"
+    # The pipeline reads the backend from the environment at call time.
+    os.environ["EXTRACTION_BACKEND"] = args.backend
 
-    cases = load_cases(csv_path, args.style, args.limit)
+    batch_dir = Path(args.batch_dir)
+    out_path = Path(args.out)
+    progress_path = out_path.parent / f".{out_path.stem}.progress.json"
+    case_filter = {c.strip() for c in args.cases.split(",")} if args.cases else None
+
+    cases = load_cases(Path(args.csv), args.style, case_filter, args.limit)
     if not cases:
         print("error: no cases matched the filter", file=sys.stderr)
         sys.exit(2)
 
-    # Resume: load already-completed case results.
     done: dict[str, dict] = {}
     if args.resume and progress_path.is_file():
         try:
@@ -103,23 +108,21 @@ def main() -> None:
             done = {}
         print(f"[resume] {len(done)} cases already done, skipping them")
 
-    # Load the heavy engines ONCE.
-    print("[init] loading OCR router, layout engine, embedding model ...", flush=True)
+    print(f"[init] backend={args.backend} cache={args.cache_dir or 'off'}; loading embedding model ...",
+          flush=True)
     t0 = time.time()
-    from apmatch.api.pipeline import run_pipeline
+    from apmatch.api.pipeline import lazy_ocr_engines, run_pipeline
     from apmatch.embeddings.model import EmbeddingModel
-    from apmatch.layout.structure import LayoutEngine
-    from apmatch.ocr.router import OCRRouter
+    from apmatch.parse import vlm
 
-    router = OCRRouter()
-    layout = LayoutEngine()
+    router, layout = lazy_ocr_engines()
     embedding_model = EmbeddingModel()
-    print(f"[init] engines ready in {time.time() - t0:.1f}s "
-          f"(embedding version {embedding_model.model_version[:12]}...)", flush=True)
+    print(f"[init] ready in {time.time() - t0:.1f}s (embedding {embedding_model.model_version[:12]}..., "
+          f"vlm model {vlm.VLM_MODEL} prompt {vlm.PROMPT_VERSION})", flush=True)
 
     results: list[dict] = []
     hard_errors = 0
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     run_start = time.time()
 
     for i, row in enumerate(cases, start=1):
@@ -132,86 +135,73 @@ def main() -> None:
         expected = row.get("expected_status", "").strip()
         customer_id = f"batch_{style}" if style else "batch"
 
-        # Build absolute paths; empty/missing doc -> None.
         paths: dict[str, Path | None] = {}
         missing_invoice = False
         for col, kwarg in DOC_FIELDS.items():
             rel = (row.get(col) or "").strip()
-            if not rel:
-                paths[kwarg] = None
-                if kwarg == "invoice_path":
-                    missing_invoice = True
-            else:
-                p = batch_dir / rel
-                paths[kwarg] = p if p.is_file() else None
-                if kwarg == "invoice_path" and not p.is_file():
-                    missing_invoice = True
+            p = batch_dir / rel if rel else None
+            paths[kwarg] = p if p is not None and p.is_file() else None
+            if kwarg == "invoice_path" and paths[kwarg] is None:
+                missing_invoice = True
 
         t_case = time.time()
+        base = {"case_id": case_id, "style": style, "expected": expected}
         if missing_invoice:
-            result = {
-                "case_id": case_id, "style": style, "expected": expected,
-                "actual_route": "ERROR", "actual_reason": "file_missing",
-                "passed": False, "duration_seconds": round(time.time() - t_case, 3),
-                "failures": [], "run_id": None,
-            }
+            result = dict(base, actual_route="ERROR", actual_reason="file_missing", passed=False,
+                          failures=[], run_id=None)
         else:
             try:
-                _, validation, decision, entry, _extracted = run_pipeline(
-                    paths["invoice_path"], paths["po_path"],
-                    paths["grni_path"], paths["pard_path"],
+                match, validation, decision, entry, extracted = run_pipeline(
+                    paths["invoice_path"], paths["po_path"], paths["grni_path"], paths["pard_path"],
                     router=router, layout=layout,
                     embedding_model=embedding_model,
                     customer_id=customer_id,
+                    extraction_cache_dir=args.cache_dir,
                 )
                 route = decision.route.value
-                passed = route in PASS_ROUTES.get(expected, set())
-                failures = _serialize_failures(validation.checks_failed) + \
-                    _serialize_failures(entry.match_failures)
-                result = {
-                    "case_id": case_id, "style": style, "expected": expected,
-                    "actual_route": route, "actual_reason": decision.reason.value,
-                    "passed": passed,
-                    "duration_seconds": round(time.time() - t_case, 3),
-                    "failures": failures, "run_id": entry.run_id,
-                }
+                extraction = extracted.pop("_extraction", {})
+                result = dict(
+                    base,
+                    actual_route=route,
+                    actual_reason=decision.reason.value,
+                    passed=case_passed(expected, route),
+                    match_outcome=match.outcome.value,
+                    score=decision.score.value,
+                    failures=_serialize_failures(validation.checks_failed)
+                    + _serialize_failures(entry.match_failures),
+                    similarity_matches=[
+                        {"location": s.location, "invoice_text": s.invoice_text,
+                         "counterpart_text": s.counterpart_text, "score": str(s.score), "band": s.band}
+                        for s in match.similarity_matches
+                    ],
+                    run_id=entry.run_id,
+                    documents=extracted,
+                    extraction=extraction,
+                )
             except Exception as e:  # keep going on a per-case crash
                 hard_errors += 1
-                result = {
-                    "case_id": case_id, "style": style, "expected": expected,
-                    "actual_route": "ERROR", "actual_reason": f"{type(e).__name__}: {str(e)[:200]}",
-                    "passed": False, "duration_seconds": round(time.time() - t_case, 3),
-                    "failures": [], "run_id": None,
-                }
+                result = dict(base, actual_route="ERROR",
+                              actual_reason=f"{type(e).__name__}: {str(e)[:200]}",
+                              passed=False, failures=[], run_id=None)
+        result["duration_seconds"] = round(time.time() - t_case, 3)
 
         results.append(result)
         done[case_id] = result
+        sources = ",".join(
+            f"{k}:{str((v or {}).get('source') or '-')[:1]}" for k, v in (result.get("extraction") or {}).items() if v
+        )
         line = (f"[{i}/{len(cases)}] {case_id} {expected} -> {result['actual_route']} "
-                f"({'PASS' if result['passed'] else 'FAIL'}) {result['duration_seconds']}s")
+                f"({'PASS' if result['passed'] else 'FAIL'}) {result['duration_seconds']}s {sources}")
         if result["actual_route"] == "ERROR":
             line += f"  [{result['actual_reason']}]"
         print(line, flush=True)
 
-        # Checkpoint every 10 cases.
         if i % 10 == 0:
-            progress_path.write_text(json.dumps({"completed": done}, indent=2))
+            progress_path.write_text(json.dumps({"completed": done}))
 
-    # Finalize.
-    finished_at = datetime.now(timezone.utc)
+    finished_at = datetime.now(UTC)
     duration = time.time() - run_start
-    passed = sum(1 for r in results if r["passed"])
-    failed = len(results) - passed
-
-    by_style: dict[str, dict] = {}
-    by_expected: dict[str, dict] = {}
-    for r in results:
-        for key, bucket in ((r["style"], by_style), (r["expected"], by_expected)):
-            b = bucket.setdefault(key, {"total": 0, "passed": 0, "failed": 0})
-            b["total"] += 1
-            if r["passed"]:
-                b["passed"] += 1
-            else:
-                b["failed"] += 1
+    summary = summarize(results)
 
     report = {
         "batch_id": started_at.strftime("%Y%m%dT%H%M%SZ"),
@@ -219,49 +209,29 @@ def main() -> None:
         "finished_at": finished_at.isoformat(),
         "duration_seconds": round(duration, 1),
         "batch_dir": str(batch_dir),
-        "csv": str(csv_path),
-        "total": len(results),
-        "passed": passed,
-        "failed": failed,
-        "pass_rate": round(passed / len(results), 4) if results else 0.0,
-        "route_match_rate": round(passed / len(results), 4) if results else 0.0,
-        "auto_approve_rate": round(
-            by_expected.get("MATCH", {}).get("passed", 0)
-            / max(by_expected.get("MATCH", {}).get("total", 1), 1),
-            4,
-        ),
-        "defensive_rate": round(
-            by_expected.get("DISCREPANCY", {}).get("passed", 0)
-            / max(by_expected.get("DISCREPANCY", {}).get("total", 1), 1),
-            4,
-        ),
+        "csv": str(args.csv),
+        "backend": args.backend,
+        "vlm_model": vlm.VLM_MODEL,
+        "prompt_version": vlm.PROMPT_VERSION,
         "hard_errors": hard_errors,
-        "by_style": by_style,
-        "by_expected": by_expected,
+        # Legacy top-level fields kept for older tooling.
+        "total": summary["total"],
+        "passed": summary["passed"],
+        "failed": summary["failed"],
+        "pass_rate": summary["pass_rate"],
+        "by_style": summary["by_style"],
+        "by_expected": summary["by_expected"],
+        "summary": summary,
         "cases": results,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(report, indent=2))
-    progress_path.write_text(json.dumps({"completed": done}, indent=2))
+    out_path.write_text(json.dumps(report, indent=1, ensure_ascii=False))
+    progress_path.write_text(json.dumps({"completed": done}))
 
-    # Summary table.
-    print("\n" + "=" * 60)
-    print(f"Total: {len(results)}  Passed: {passed}  Failed: {failed}  "
-          f"Rate: {report['pass_rate'] * 100:.1f}%  Hard errors: {hard_errors}")
-    print(f"Duration: {duration / 60:.1f} min")
-    print("By style:")
-    for s in sorted(by_style):
-        c = by_style[s]
-        print(f"  {s}: {c['passed']}/{c['total']}")
-    print("By expected:")
-    for e in sorted(by_expected):
-        c = by_expected[e]
-        print(f"  {e}: {c['passed']}/{c['total']}")
-    print(f"auto_approve_rate: {report['auto_approve_rate'] * 100:.1f}% "
-          f"(MATCH cases that routed AUTO_APPROVE)")
-    print(f"defensive_rate:    {report['defensive_rate'] * 100:.1f}% "
-          f"(DISCREPANCY cases that routed REJECT or HUMAN_REVIEW)")
-    print(f"Report: {out_path}")
+    print()
+    print(format_summary(summary))
+    print(f"hard errors: {hard_errors}   duration: {duration / 60:.1f} min")
+    print(f"report: {out_path}")
     sys.exit(0)
 
 

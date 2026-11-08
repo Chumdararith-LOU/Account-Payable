@@ -1,13 +1,17 @@
-"""Pipeline orchestrator: images -> OCR -> parse -> validate -> match -> score -> audit entry.
+"""Pipeline orchestrator: images -> extract -> derive -> validate -> match -> score -> audit entry.
 
-Shared by the /match endpoint and the full-stack smoke test. Deterministic
-except ``run_id`` (UUID4) and ``run_timestamp`` (wall clock) — both are audit
-metadata, never decision inputs. This function does NOT write to the DB; the
+Extraction is the only non-deterministic step (a VLM reads the document, with
+the OCR heuristics as fallback). Its output is recorded (``_extraction`` in the
+returned sidecar), and everything after it is pure code (D-109): given the same
+extracted documents, the decision is always the same. ``run_id`` (UUID4) and
+``run_timestamp`` (wall clock) are audit metadata, never decision inputs. This function does NOT write to the DB; the
 caller (the endpoint) owns the session and the commit.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import os
 from dataclasses import replace
@@ -17,15 +21,15 @@ from pathlib import Path
 from uuid import uuid4
 
 from apmatch.audit.entry import AuditEntry
-from apmatch.audit.hashing import canonical_documents, compute_input_hash
-from apmatch.layout.structure import LayoutEngine
+from apmatch.audit.hashing import _canonical, canonical_documents, compute_input_hash
 from apmatch.matching.engine import MatchingEngine
 from apmatch.matching.result import MatchResult, Outcome
-from apmatch.ocr.router import OCRRouter
 from apmatch.parse import dispatch
-from apmatch.parse.vlm import extract_vlm
+from apmatch.parse import vlm as vlm_module
+from apmatch.parse.derive import derive
 from apmatch.remarks.matching import summarize_match
 from apmatch.remarks.templates import summarize
+from apmatch.schema.serialize import document_from_dict
 from apmatch.scoring.result import RoutingDecision
 from apmatch.scoring.router import decide
 from apmatch.validation.arithmetic import validate_invoice
@@ -33,24 +37,154 @@ from apmatch.validation.result import ValidationResult
 
 logger = logging.getLogger("apmatch.api.pipeline")
 
+# DocumentKind -> key used by canonical_documents() / the audit sidecar.
+_DOC_KEY = {
+    dispatch.DocumentKind.INVOICE: "invoice",
+    dispatch.DocumentKind.PURCHASE_ORDER: "po",
+    dispatch.DocumentKind.GRNI: "grni",
+    dispatch.DocumentKind.PAYMENT_ADVICE: "pard",
+}
 
-def _recognize_and_parse(router: OCRRouter, layout: LayoutEngine, kind, path: Path, ocr_debug: bool):
-    """Returns (document, extraction_source) where source is "vlm" or "heuristic"."""
-    # 1. Try VLM if enabled (default)
-    if os.getenv("EXTRACTION_BACKEND", "vlm") == "vlm":
-        vlm_doc = extract_vlm(kind, path)
-        if vlm_doc is not None:
-            return vlm_doc, "vlm"
-        # Loud on purpose: a silent fallback hides VLM outages (PROD-B2).
-        logger.error(f"VLM FAILED for {path.name}. Falling back to OCR.")
+# Bump when the OCR-heuristic extractors change in a way that should
+# invalidate cached heuristic extractions.
+HEURISTIC_VERSION = "2026-11-08.1"
 
-    # 2. Fallback to OCR + Heuristic
-    ocr_result = router.recognize(path)
-    tables = layout.extract(path)
+
+def extraction_backend() -> str:
+    """'vlm' (default: VLM first, OCR heuristics as fallback) or 'ocr' (heuristics only)."""
+    value = os.getenv("EXTRACTION_BACKEND", "vlm").strip().lower()
+    return "ocr" if value in ("ocr", "heuristic") else "vlm"
+
+
+class _Engines:
+    """OCR router + layout engine, built only if the heuristic path is needed."""
+
+    def __init__(self, router=None, layout=None):
+        self._router = router
+        self._layout = layout
+
+    @property
+    def router(self):
+        if self._router is None:
+            from apmatch.ocr.router import OCRRouter
+
+            self._router = OCRRouter()
+        return self._router
+
+    @property
+    def layout(self):
+        if self._layout is None:
+            from apmatch.layout.structure import LayoutEngine
+
+            self._layout = LayoutEngine()
+        return self._layout
+
+
+def _heuristic(engines: _Engines, kind, path: Path, ocr_debug: bool):
+    ocr_result = engines.router.recognize(path)
+    tables = engines.layout.extract(path)
     ocr_result = replace(ocr_result, tables=tables)  # OCRResult is frozen
     if ocr_debug:
         logger.info("ocr blocks=%d tables=%d", len(ocr_result.text_blocks), len(tables))
-    return dispatch.extract(kind, ocr_result), "heuristic"
+    return dispatch.extract(kind, ocr_result)
+
+
+def _cache_path(cache_dir: Path, kind, path: Path, backend: str) -> Path:
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if backend == "vlm":
+        version = f"vlm|{vlm_module.VLM_MODEL}|{vlm_module.PROMPT_VERSION}"
+    else:
+        version = f"ocr|{HEURISTIC_VERSION}"
+    key = hashlib.sha256(f"{digest}|{kind.value}|{version}".encode()).hexdigest()[:32]
+    return cache_dir / f"{key}.json"
+
+
+def _recognize_and_parse(engines: _Engines, kind, path: Path, ocr_debug: bool, cache_dir: Path | None = None):
+    """Returns (document, info). info["source"] is "vlm" or "heuristic".
+
+    The returned document is the RAW extraction (before derivation); the
+    caller applies ``derive``. With ``cache_dir`` set, extractions are cached
+    per (file content, kind, backend, model, prompt version) so a batch can be
+    re-scored after a logic change without re-running OCR or the VLM.
+    """
+    backend = extraction_backend()
+    cache_file = _cache_path(cache_dir, kind, path, backend) if cache_dir else None
+    if cache_file is not None and cache_file.is_file():
+        cached = json.loads(cache_file.read_text(encoding="utf-8"))
+        info = dict(cached["info"], cache="hit")
+        return document_from_dict(_DOC_KEY[kind], cached["document"]), info
+
+    info: dict = {"source": None, "vlm": None, "cache": "miss" if cache_file else None}
+    doc = None
+    if backend == "vlm":
+        result = vlm_module.extract_vlm_detailed(kind, path)
+        info["vlm"] = result.summary()
+        if result.document is not None:
+            doc = result.document
+            info["source"] = "vlm"
+        else:
+            # Loud on purpose: a silent fallback hides VLM outages (PROD-B2).
+            logger.error("VLM FAILED for %s (%s). Falling back to OCR.", path.name, result.error)
+    if doc is None:
+        doc = _heuristic(engines, kind, path, ocr_debug)
+        info["source"] = "heuristic"
+
+    if cache_file is not None:
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(
+            json.dumps({"document": _canonical(doc), "info": info}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    return doc, info
+
+
+class _Lazy:
+    """Proxy that builds the wrapped engine on first attribute access."""
+
+    def __init__(self, factory):
+        self._factory = factory
+        self._obj = None
+
+    def __getattr__(self, name):
+        if self._obj is None:
+            self._obj = self._factory()
+        return getattr(self._obj, name)
+
+
+def lazy_ocr_engines():
+    """(router, layout) proxies for batch runs: Paddle loads only if a document
+    actually falls back to the OCR path, and then only once."""
+
+    def _router():
+        from apmatch.ocr.router import OCRRouter
+
+        return OCRRouter()
+
+    def _layout():
+        from apmatch.layout.structure import LayoutEngine
+
+        return LayoutEngine()
+
+    return _Lazy(_router), _Lazy(_layout)
+
+
+def decide_documents(invoice, po, grni, pard, embedding_model=None):
+    """The deterministic half of the pipeline: validate -> match -> route.
+
+    Pure given its inputs. Shared by ``run_pipeline`` and
+    ``scripts/rematch_report.py`` (which re-scores stored extractions).
+    """
+    validation = validate_invoice(invoice)
+    match = MatchingEngine(embedding_model=embedding_model).match(invoice, po, grni, pard)
+    decision = decide(validation, match, ocr_confidence=None)
+    return validation, match, decision
+
+
+def _summarize_sources(infos: dict) -> str:
+    sources = {i["source"] for i in infos.values() if i}
+    if len(sources) == 1:
+        return sources.pop()
+    return "mixed"
 
 
 def run_pipeline(
@@ -59,31 +193,51 @@ def run_pipeline(
     grni_path: Path | None = None,
     pard_path: Path | None = None,
     *,
-    router: OCRRouter | None = None,
-    layout: LayoutEngine | None = None,
+    router=None,
+    layout=None,
     embedding_model=None,
     ocr_debug: bool = False,
     customer_id: str = "default",
     session=None,
+    extraction_cache_dir: Path | None = None,
 ) -> tuple[MatchResult, ValidationResult, RoutingDecision, AuditEntry, dict]:
-    """Run the full deterministic chain over up to four document images.
+    """Run the full chain over up to four document images.
+
+    Extraction: the VLM reads each document (EXTRACTION_BACKEND=vlm, the
+    default) with the OCR heuristics as per-document fallback; with
+    EXTRACTION_BACKEND=ocr only the heuristics run. Everything after
+    extraction (derivation, validation, matching, scoring) is deterministic.
 
     ``router``/``layout`` are heavy to construct; pass pre-built instances
-    (the endpoint builds them once at startup). If omitted, they are built
-    here. ``embedding_model`` (duck-typed; needs .similarity() and
-    .model_version) enables the similarity fallback in the matching engine;
-    None keeps the exact-match-only behavior.
+    (the endpoint builds them once at startup). If omitted they are built
+    lazily, only when a document actually needs the OCR path.
+    ``embedding_model`` (duck-typed; needs .similarity() and .model_version)
+    enables the similarity fallback in the matching engine.
 
-    Returns the canonical extracted documents (5th element) so the caller
-    can persist them for the review UI — the pipeline itself stays pure.
+    Returns the canonical extracted documents (5th element) so the caller can
+    persist them for the review UI. That dict also carries ``_extraction``:
+    per-document source and VLM diagnostics (model digest, prompt version,
+    raw output, field errors).
     """
-    router = router or OCRRouter()
-    layout = layout or LayoutEngine()
+    engines = _Engines(router, layout)
+    cache_dir = Path(extraction_cache_dir) if extraction_cache_dir else None
 
-    invoice, inv_source = _recognize_and_parse(router, layout, dispatch.DocumentKind.INVOICE, invoice_path, ocr_debug)
-    po, _ = _recognize_and_parse(router, layout, dispatch.DocumentKind.PURCHASE_ORDER, po_path, ocr_debug) if po_path else (None, None)
-    grni, _ = _recognize_and_parse(router, layout, dispatch.DocumentKind.GRNI, grni_path, ocr_debug) if grni_path else (None, None)
-    pard, _ = _recognize_and_parse(router, layout, dispatch.DocumentKind.PAYMENT_ADVICE, pard_path, ocr_debug) if pard_path else (None, None)
+    infos: dict[str, dict | None] = {"invoice": None, "po": None, "grni": None, "pard": None}
+    docs: dict[str, object | None] = {"invoice": None, "po": None, "grni": None, "pard": None}
+    for kind, path in (
+        (dispatch.DocumentKind.INVOICE, invoice_path),
+        (dispatch.DocumentKind.PURCHASE_ORDER, po_path),
+        (dispatch.DocumentKind.GRNI, grni_path),
+        (dispatch.DocumentKind.PAYMENT_ADVICE, pard_path),
+    ):
+        if path is None:
+            continue
+        doc, info = _recognize_and_parse(engines, kind, Path(path), ocr_debug, cache_dir)
+        key = _DOC_KEY[kind]
+        docs[key] = derive(doc)
+        infos[key] = info
+
+    invoice, po, grni, pard = docs["invoice"], docs["po"], docs["grni"], docs["pard"]
 
     # Duplicate-invoice check (D-108): only when a session is provided (the
     # API endpoint); batch runs and unit tests stay pure with session=None.
@@ -99,9 +253,7 @@ def run_pipeline(
         if prior is not None:
             invoice = replace(invoice, duplicate_of_run_id=prior)
 
-    validation = validate_invoice(invoice)
-    match = MatchingEngine(embedding_model=embedding_model).match(invoice, po, grni, pard)
-    decision = decide(validation, match, ocr_confidence=None)
+    validation, match, decision = decide_documents(invoice, po, grni, pard, embedding_model)
 
     # Reviewer-facing remark rule (D-052): for a MATCH outcome the
     # validation summary is what the reviewer needs (the match is clean);
@@ -125,6 +277,8 @@ def run_pipeline(
         input_hash=compute_input_hash(invoice, po, grni, pard),
         similarity_matches=match.similarity_matches,
         customer_id=customer_id,
-        extraction_source=inv_source,
+        extraction_source=_summarize_sources(infos),
     )
-    return match, validation, decision, audit_entry, canonical_documents(invoice, po, grni, pard)
+    extracted = canonical_documents(invoice, po, grni, pard)
+    extracted["_extraction"] = infos
+    return match, validation, decision, audit_entry, extracted

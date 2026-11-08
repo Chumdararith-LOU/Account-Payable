@@ -46,6 +46,30 @@ def test_reject_when_validation_has_blocker():
     assert d.reason is RouteReason.VALIDATION_BLOCKER
 
 
+def test_unreadable_field_routes_to_human_not_reject():
+    v = _validation(_failure(CheckCode.MISSING_REQUIRED_FIELD, Severity.BLOCKER))
+    d = decide(v, _match_ok(), None)
+    assert d.route is Route.HUMAN_REVIEW
+    assert d.reason is RouteReason.UNREADABLE_FIELD
+
+
+def test_no_line_items_routes_to_human():
+    v = _validation(_failure(CheckCode.NO_LINE_ITEMS, Severity.BLOCKER))
+    d = decide(v, _pending_match(), None)
+    assert d.route is Route.HUMAN_REVIEW
+    assert d.reason is RouteReason.UNREADABLE_FIELD
+
+
+def test_real_defect_still_rejects_even_with_unreadable_fields():
+    v = _validation(
+        _failure(CheckCode.MISSING_REQUIRED_FIELD, Severity.BLOCKER),
+        _failure(CheckCode.TOTAL_MISMATCH, Severity.BLOCKER),
+    )
+    d = decide(v, _match_ok(), None)
+    assert d.route is Route.REJECT
+    assert d.reason is RouteReason.VALIDATION_BLOCKER
+
+
 def test_pending_info_routes_to_human():
     d = decide(_ok_validation(), _pending_match(), None)
     assert d.route is Route.HUMAN_REVIEW
@@ -98,6 +122,7 @@ def test_route_reason_pair_is_valid():
         (Route.HUMAN_REVIEW, RouteReason.MATCH_DISCREPANCY),
         (Route.HUMAN_REVIEW, RouteReason.LOW_OCR_CONFIDENCE),
         (Route.HUMAN_REVIEW, RouteReason.LOW_OVERALL_SCORE),
+        (Route.HUMAN_REVIEW, RouteReason.UNREADABLE_FIELD),
     }
     cases = [
         (_ok_validation(), _match_ok(), 0.95),

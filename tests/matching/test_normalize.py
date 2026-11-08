@@ -145,3 +145,44 @@ def test_normalize_text_deterministic_across_calls():
 def test_normalize_number_deterministic_across_calls():
     s = "po 2026 0451"
     assert normalize_number_text(s) == normalize_number_text(s)
+
+
+# --- vendor names (D-111) ----------------------------------------------------
+
+import pytest  # noqa: E402
+
+from apmatch.matching.normalize import normalize_company, vendor_names_match  # noqa: E402
+
+
+def test_normalize_company_drops_punctuation_and_legal_forms():
+    assert normalize_company("Mekong Supplies Co., Ltd.") == "mekong supplies"
+    assert normalize_company("MEKONG SUPPLIES LTD") == "mekong supplies"
+    assert normalize_company("Angkor Food & Beverage Pvt. Ltd") == "angkor food and beverage"
+    assert normalize_company(None) == ""
+
+
+@pytest.mark.parametrize(
+    ("a", "b"),
+    [
+        ("Mekong Supplies Co., Ltd.", "Mekong Supplies Co.,Ltd"),
+        ("Mekong Supplies Co., Ltd.", "MEKONG SUPPLIES LTD"),
+        ("Bayon Office Solutions", "Bayon Office Solutions Cambodia Co., Ltd."),
+        ("Sunshine Motors Service", "Sunshine Motor Service"),
+        (None, None),
+    ],
+)
+def test_same_vendor(a, b):
+    assert vendor_names_match(a, b)
+
+
+@pytest.mark.parametrize(
+    ("a", "b"),
+    [
+        ("Mekong Supplies Co., Ltd.", "Bayon Office Solutions Co., Ltd."),
+        ("Kaveri Home Store", "Coral Limo Service"),
+        ("Mekong Supplies", None),
+        ("Mekong Co., Ltd.", "Mekong Trading Co., Ltd."),  # one-token subset is not enough
+    ],
+)
+def test_different_vendor(a, b):
+    assert not vendor_names_match(a, b)
