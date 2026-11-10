@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-[#222] font-sans antialiased text-[12px] m-0 p-0;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-panel border border-border;
+  }
+  .panel-header {
+    @apply bg-win7-panel border-b border-border font-bold p-1 px-2 text-[12px] text-[#222];
+  }
+  .btn {
+    @apply bg-win7-btn text-white font-bold text-[12px] px-3 py-1.5 border border-navy-dark rounded-[3px] cursor-pointer shadow-retro-btn active:translate-y-[1px] active:shadow-none transition-all;
+  }
+  .input-retro {
+    @apply border border-gray-400 bg-white text-[#222] px-1 py-0.5 shadow-inset-input focus:outline-none;
+  }
+}
