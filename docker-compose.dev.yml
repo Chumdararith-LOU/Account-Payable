@@ -36,6 +36,9 @@ services:
       - ./pytest.ini:/app/pytest.ini:ro
       - ./requirements.txt:/app/requirements.txt:ro
       - ./ruff.toml:/app/ruff.toml:ro
+      # Templates are data the code reads at runtime: mount them like the code,
+      # so tests never see a stale copy baked into the image (e.g. in.yaml, D-115).
+      - ./templates:/app/templates:ro
 
 # Notes:
 #   - Most mounts are read-only; ./output and ./reports are writable so
