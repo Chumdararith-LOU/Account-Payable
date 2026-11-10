@@ -129,6 +129,7 @@ class AuditRepository:
                 extraction_source=entry.extraction_source,
                 case_id=entry.case_id,  # NULL = its own case (queries coalesce with run_id)
                 decided_by=entry.decided_by,
+                reviewer=entry.reviewer,
                 po_number=entry.po_number,
                 grn_number=entry.grn_number,
                 pard_ref=entry.pard_ref,
@@ -154,6 +155,7 @@ class AuditRepository:
             extraction_source=row.extraction_source,
             case_id=row.case_id,
             decided_by=row.decided_by,
+            reviewer=row.reviewer,
             po_number=row.po_number,
             grn_number=row.grn_number,
             pard_ref=row.pard_ref,

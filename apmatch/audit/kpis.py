@@ -48,6 +48,7 @@ class RecentRun:
     case_id: str | None = None
     customer_id: str = "default"
     decided_by: str = "system"
+    reviewer: str | None = None
 
 
 @dataclass(frozen=True)
@@ -78,6 +79,7 @@ def _row_to_recent_run(row: AuditLog) -> RecentRun:
         case_id=row.case_id or row.run_id,
         customer_id=row.customer_id,
         decided_by=row.decided_by,
+        reviewer=row.reviewer,
     )
 
 

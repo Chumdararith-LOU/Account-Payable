@@ -133,7 +133,7 @@ export default function UploadBatch() {
                   className="hidden"
                   ref={fileInputRef}
                   onChange={onFileChange}
-                  accept="image/*"
+                  accept="image/*,application/pdf,.pdf"
                 />
               </div>
               <input
@@ -156,7 +156,7 @@ export default function UploadBatch() {
                   <li>File names start with <code className="bg-gray-200 px-1">INV</code>, <code className="bg-gray-200 px-1">PO</code>, <code className="bg-gray-200 px-1">GRN</code> or <code className="bg-gray-200 px-1">PARD</code>.</li>
                   <li>Choosing a folder: every sub-folder is one case (e.g. <code className="bg-gray-200 px-1">CASE-0001/</code>).</li>
                   <li>Up to four loose files form one case; more are grouped by the number in the name (<code className="bg-gray-200 px-1">INV-123.png</code> + <code className="bg-gray-200 px-1">PO-123.png</code>).</li>
-                  <li>Images only (PNG, JPG). PDF support is coming.</li>
+                  <li>PNG, JPG or PDF (up to 4 pages per document).</li>
                 </ul>
               </div>
             </div>

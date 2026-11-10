@@ -23,6 +23,7 @@ export interface RecentRun {
   case_id: string | null;
   customer_id: string;
   decided_by: string;
+  reviewer: string | null;
 }
 
 export interface LineItem {
@@ -64,6 +65,7 @@ export interface AuditDetail {
   extracted: Documents | null;
   case_id: string | null;
   decided_by: string;
+  reviewer: string | null;
   history: RecentRun[];
 }
 

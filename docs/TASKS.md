@@ -71,7 +71,8 @@
 | UI-1 | Review workflow: review queue, case review (correct + re-check, approve/reject with note), case KPIs; frontend on the API (D-117) | done | (UI-1) |
 | PROD-B7 | Held-out accuracy check on unseen documents (real customer sample) | pending | |
 | PROD-B | Customer-scoped templates | pending | |
-| UI-2 | Per-user login (replace the shared browser API key; reviewer name on decisions); PDF upload | pending | |
+| UI-2 | Per-user login (accounts, sessions, reviewer name on decisions), PDF upload, UI served by nginx on the server (D-118) | done | (UI-2) |
+| UI-3 | Per-customer access for users; HTTPS if the UI leaves the Tailscale network | pending | |
 
 ## Deferred
 

@@ -115,6 +115,13 @@ export default function AuditTrail() {
                     </div>
                   </div>
 
+                  {runDetails.reviewer && (
+                    <div className="mb-4">
+                      <div className="text-[11px] text-gray-500 font-bold uppercase mb-1">Person</div>
+                      <div className="font-bold text-sm">{runDetails.reviewer}</div>
+                    </div>
+                  )}
+
                   <div className="mb-6">
                     <div className="text-[11px] text-gray-500 font-bold uppercase mb-1">Input Hash (SHA-256)</div>
                     <div className="bg-gray-100 p-2 border border-gray-300 font-mono text-[10px] break-all text-gray-700">

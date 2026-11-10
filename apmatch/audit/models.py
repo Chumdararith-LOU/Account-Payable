@@ -62,3 +62,5 @@ class AuditLog(Base):
     # run's run_id); decided_by is "system" or "reviewer".
     case_id: Mapped[str | None] = mapped_column(String(32), index=True)
     decided_by: Mapped[str] = mapped_column(String(16), nullable=False, server_default="system")
+    # Username of the person who corrected or decided (D-118); NULL for the system.
+    reviewer: Mapped[str | None] = mapped_column(String(64))

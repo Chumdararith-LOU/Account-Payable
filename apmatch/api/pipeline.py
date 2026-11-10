@@ -228,7 +228,7 @@ def check_duplicate(invoice, seen: dict, run_id: str):
 def build_audit_entry(
     invoice, po, grni, pard, validation, match, decision, *,
     run_id: str, customer_id: str, extraction_source: str,
-    case_id: str | None = None, decided_by: str = "system",
+    case_id: str | None = None, decided_by: str = "system", reviewer: str | None = None,
 ) -> AuditEntry:
     # Reviewer-facing remark rule (D-052): for a MATCH outcome the validation
     # summary is what the reviewer needs; for non-MATCH the match summary
@@ -253,6 +253,7 @@ def build_audit_entry(
         extraction_source=extraction_source,
         case_id=case_id,
         decided_by=decided_by,
+        reviewer=reviewer,
     )
 
 
@@ -263,6 +264,7 @@ def recheck_documents(
     case_id: str,
     session=None,
     embedding_model=None,
+    reviewer: str | None = None,
 ):
     """Re-decide a case from documents a reviewer corrected (review workflow).
 
@@ -298,6 +300,7 @@ def recheck_documents(
     entry = build_audit_entry(
         invoice, po, grni, pard, validation, match, decision,
         run_id=uuid4().hex, customer_id=customer_id, extraction_source="reviewer", case_id=case_id,
+        reviewer=reviewer,
     )
     extracted = canonical_documents(invoice, po, grni, pard)
     extracted["_extraction"] = {k: ({"source": "reviewer"} if docs[k] is not None else None) for k in DOC_KEYS}

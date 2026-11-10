@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 
 import apmatch.audit.models  # noqa: F401  (registers audit_log in the shared metadata)
+import apmatch.auth.models  # noqa: F401  (registers app_user, user_session)
 from alembic import context
 from apmatch.store import models
 

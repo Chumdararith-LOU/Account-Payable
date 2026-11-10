@@ -47,3 +47,4 @@ class AuditEntry:
     # decisions are new rows with the same case_id. None = its own run_id.
     case_id: str | None = None
     decided_by: str = "system"  # "system" or "reviewer"
+    reviewer: str | None = None  # username of the person (D-118)

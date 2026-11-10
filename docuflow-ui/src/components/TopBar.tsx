@@ -1,13 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Building2, Plus, UserRound } from 'lucide-react';
 import api from '../api/client';
+import Brand from './Brand';
+import { useAuth } from '../auth';
 import { CUSTOMER_ID_RE, useCustomer } from '../customer';
 
 export default function TopBar() {
   const { customer, setCustomer } = useCustomer();
+  const { user, logout } = useAuth();
+  const ready = !!user && !user.must_change_password;
   const { data: customers } = useQuery<string[]>({
     queryKey: ['customers'],
     queryFn: () => api.get('/customers').then((res) => res.data),
+    enabled: ready,
   });
   const options = Array.from(new Set(['default', customer, ...(customers ?? [])])).sort();
 
@@ -24,14 +30,10 @@ export default function TopBar() {
 
   return (
     <header className="bg-win7 border-b-[3px] border-navy-dark text-white flex justify-between items-center p-2 px-4 shadow-md">
-      <div className="flex flex-col">
-        <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-[1px_1px_0_#000]">
-          DocuFlow<span className="text-[#9fd0ff]">AP</span>
-        </h1>
-        <span className="text-[11px] opacity-85">Accounts Payable Document Intelligence</span>
-      </div>
+      <Brand />
 
       <div className="flex items-center gap-4">
+        {ready && (
         <div className="flex items-center gap-2 bg-black/30 border border-navy-dark px-2 py-1 rounded-[4px] shadow-inner">
           <Building2 size={14} className="text-gray-300" />
           <label htmlFor="customer" className="font-bold text-[11px] uppercase tracking-wider text-gray-200">Customer:</label>
@@ -49,6 +51,22 @@ export default function TopBar() {
             <Plus size={16} />
           </button>
         </div>
+        )}
+        {user && (
+          <div className="flex items-center gap-2 bg-black/30 border border-navy-dark px-2 py-1 rounded-[4px] shadow-inner text-[11px]">
+            <UserRound size={14} className="text-gray-300" />
+            <span className="font-bold text-white" title={user.username}>{user.display_name}</span>
+            <span className="text-gray-300">({user.role === 'admin' ? 'Admin' : 'Reviewer'})</span>
+            {ready && (
+              <>
+                <span className="text-gray-400">|</span>
+                <Link to="/account" className="text-[#9fd0ff] hover:underline">Password</Link>
+              </>
+            )}
+            <span className="text-gray-400">|</span>
+            <button onClick={() => logout()} className="text-[#9fd0ff] hover:underline">Sign out</button>
+          </div>
+        )}
       </div>
     </header>
   );

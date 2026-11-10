@@ -91,6 +91,7 @@ class AuditResponse(BaseModel):
     # every run of the case (oldest first).
     case_id: str | None = None
     decided_by: str = "system"
+    reviewer: str | None = None
     history: list[RecentRunOut] = []
 
 
@@ -116,6 +117,7 @@ class RecentRunOut(BaseModel):
     case_id: str | None = None
     customer_id: str = "default"
     decided_by: str = "system"
+    reviewer: str | None = None
 
 
 class CodeCountOut(BaseModel):
@@ -132,6 +134,48 @@ class RecheckRequest(BaseModel):
 class DecisionRequest(BaseModel):
     decision: Literal["approve", "reject"]
     note: str = Field(min_length=1, max_length=500)
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=256)
+
+
+class UserOut(BaseModel):
+    username: str
+    display_name: str
+    role: str
+    active: bool = True
+    must_change_password: bool = False
+
+
+class LoginResponse(BaseModel):
+    token: str
+    expires_in: int  # seconds
+    user: UserOut
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=1, max_length=256)
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    display_name: str = Field(min_length=1, max_length=128)
+    role: Literal["admin", "reviewer"] = "reviewer"
+
+
+class UserCreated(BaseModel):
+    user: UserOut
+    temporary_password: str  # shown once; the person must change it at first sign-in
+
+
+class UserUpdate(BaseModel):
+    display_name: str | None = Field(None, min_length=1, max_length=128)
+    role: Literal["admin", "reviewer"] | None = None
+    active: bool | None = None
+    reset_password: bool = False
 
 
 class ErrorResponse(BaseModel):

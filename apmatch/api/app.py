@@ -5,14 +5,17 @@ FastAPI app wiring the full deterministic pipeline:
 
 Run on the host: ``uvicorn apmatch.api:app`` (containerization is P1-12c).
 
-Auth: X-API-Key header validated against the APMATCH_API_KEY env var
-(fail-fast at config import; no default key). Errors are enum-coded via
+Auth (D-118): people sign in (POST /auth/login) and send
+``Authorization: Bearer <token>``; machines (scripts, batch jobs) send the
+X-API-Key header, validated against APMATCH_API_KEY (fail-fast at config
+import; no default key). Errors are enum-coded via
 ErrorResponse — no stack traces, no document content, no file names in
 responses or logs.
 """
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import mimetypes
@@ -39,15 +42,21 @@ from apmatch.api.schemas import (
     AuditResponse,
     CodeCountOut,
     DecisionRequest,
-    ErrorResponse,
     FailureOut,
     HealthResponse,
+    LoginRequest,
+    LoginResponse,
     MatchResponse,
+    PasswordChange,
     RecentRunOut,
     RecheckRequest,
     RouteCountsOut,
     SimilarityMatchOut,
     TemplatesOut,
+    UserCreate,
+    UserCreated,
+    UserOut,
+    UserUpdate,
 )
 from apmatch.audit.entry import AuditEntry
 from apmatch.audit.kpis import (
@@ -60,6 +69,9 @@ from apmatch.audit.kpis import (
     review_queue,
 )
 from apmatch.audit.repository import AuditEntryNotFound, AuditRepository
+from apmatch.auth import service as accounts
+from apmatch.auth.passwords import WeakPassword, temporary_password
+from apmatch.ingest.pdf import PdfError, is_pdf, pdf_to_png
 from apmatch.matching.result import MatchFailure
 from apmatch.remarks.matching import remark_for_match
 from apmatch.remarks.templates import remark_for
@@ -134,16 +146,67 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-async def require_api_key(x_api_key: str | None = Header(None)) -> None:
-    if not x_api_key:
-        raise ApiError(401, "AUTH_MISSING", "X-API-Key header required")
-    if x_api_key != config.APMATCH_API_KEY:
-        raise ApiError(401, "AUTH_INVALID", "Invalid API key")
-
-
 def get_session(request: Request):
     with Session(request.app.state.db_engine) as session:
         yield session
+
+
+class Principal:
+    """Who is calling: a signed-in person (``user`` set) or a machine with the API key."""
+
+    def __init__(self, user: accounts.CurrentUser | None = None, token: str | None = None) -> None:
+        self.user = user
+        self.token = token
+
+    @property
+    def reviewer(self) -> str | None:
+        return self.user.username if self.user else None
+
+
+# Paths a person may use before choosing their own password.
+_PASSWORD_CHANGE_PATHS = {"/auth/me", "/auth/password", "/auth/logout"}
+_LOGIN_THROTTLE = accounts.LoginThrottle()
+
+
+def _bearer_token(authorization: str | None) -> str | None:
+    if not authorization:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    return token.strip() if scheme.lower() == "bearer" and token.strip() else None
+
+
+def require_auth(
+    request: Request,
+    x_api_key: str | None = Header(None),
+    authorization: str | None = Header(None),
+    session: Session = Depends(get_session),
+) -> Principal:
+    token = _bearer_token(authorization)
+    if token:
+        user = accounts.user_for_token(session, token)
+        if user is None:
+            raise ApiError(401, "SESSION_INVALID", "Please sign in again")
+        if user.must_change_password and request.url.path not in _PASSWORD_CHANGE_PATHS:
+            raise ApiError(403, "PASSWORD_CHANGE_REQUIRED", "Choose a new password first")
+        return Principal(user, token)
+    if not x_api_key:
+        raise ApiError(401, "AUTH_MISSING", "Sign in, or send the X-API-Key header")
+    if not hmac.compare_digest(x_api_key.encode(), config.APMATCH_API_KEY.encode()):
+        raise ApiError(401, "AUTH_INVALID", "Invalid API key")
+    return Principal()
+
+
+def require_person(principal: Principal = Depends(require_auth)) -> Principal:
+    """Decisions are made by a named person, never by the shared machine key."""
+    if principal.user is None:
+        raise ApiError(403, "USER_REQUIRED", "Sign in as a person to do this")
+    return principal
+
+
+def require_admin(principal: Principal = Depends(require_person)) -> Principal:
+    if not principal.user.is_admin:
+        raise ApiError(403, "ADMIN_REQUIRED", "Only an admin can do this")
+    return principal
 
 
 # PaddleOCR dispatches on the file suffix; an unknown/missing one makes
@@ -191,6 +254,7 @@ def _recent_out(r) -> RecentRunOut:
         case_id=r.case_id,
         customer_id=r.customer_id,
         decided_by=r.decided_by,
+        reviewer=r.reviewer,
     )
 
 
@@ -259,7 +323,7 @@ async def healthz() -> HealthResponse:
     return HealthResponse(status="ok", version=app.version)
 
 
-@app.post("/match", response_model=MatchResponse, dependencies=[Depends(require_api_key)])
+@app.post("/match", response_model=MatchResponse, dependencies=[Depends(require_auth)])
 def match(
     request: Request,
     invoice: UploadFile = File(...),
@@ -269,7 +333,7 @@ def match(
     customer_id: str = Query("default"),
     session: Session = Depends(get_session),
 ) -> MatchResponse:
-    """Full pipeline: up to 4 images in -> decision + one audit_log row.
+    """Full pipeline: up to 4 images or PDFs in -> decision + one audit_log row.
 
     Sync on purpose: the OCR pipeline is blocking, so FastAPI runs this in
     its threadpool instead of stalling the event loop.
@@ -285,6 +349,12 @@ def match(
         data = upload.file.read()
         if len(data) > config.APMATCH_MAX_UPLOAD_BYTES:
             raise ApiError(400, "UPLOAD_TOO_LARGE", f"field {name} exceeds the maximum upload size")
+        if is_pdf(data):  # suppliers mostly send PDFs; the pipeline reads images
+            try:
+                contents[name] = (pdf_to_png(data), ".png")
+            except PdfError as e:
+                raise ApiError(400, e.code, str(e)) from None
+            continue
         contents[name] = (data, _suffix_for(upload))
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -336,7 +406,7 @@ def match(
     )
 
 
-@app.get("/audit/{run_id}", response_model=AuditResponse, dependencies=[Depends(require_api_key)])
+@app.get("/audit/{run_id}", response_model=AuditResponse, dependencies=[Depends(require_auth)])
 def get_audit(run_id: str, session: Session = Depends(get_session)) -> AuditResponse:
     try:
         entry = AuditRepository.get(session, run_id)
@@ -386,11 +456,12 @@ def _audit_response(entry: AuditEntry, session: Session | None = None) -> AuditR
         extracted=extracted,
         case_id=case_id,
         decided_by=entry.decided_by,
+        reviewer=entry.reviewer,
         history=history,
     )
 
 
-@app.get("/documents/{run_id}/{name}/image", dependencies=[Depends(require_api_key)])
+@app.get("/documents/{run_id}/{name}/image", dependencies=[Depends(require_auth)])
 def document_image(run_id: str, name: str, session: Session = Depends(get_session)) -> FileResponse:
     """The uploaded scan for one run, for the review UI's image viewer.
 
@@ -409,14 +480,14 @@ def document_image(run_id: str, name: str, session: Session = Depends(get_sessio
     raise ApiError(404, "DOCUMENT_NOT_FOUND", "No document image with that id")
 
 
-@app.get("/templates", response_model=TemplatesOut, dependencies=[Depends(require_api_key)])
+@app.get("/templates", response_model=TemplatesOut, dependencies=[Depends(require_auth)])
 def list_templates() -> TemplatesOut:
     """The style templates shipped with the image (templates/*.yaml)."""
     tdir = Path(__file__).resolve().parents[2] / "templates"
     return TemplatesOut(templates=sorted(p.name for p in tdir.glob("*.yaml")) if tdir.is_dir() else [])
 
 
-@app.get("/kpis/routes", response_model=RouteCountsOut, dependencies=[Depends(require_api_key)])
+@app.get("/kpis/routes", response_model=RouteCountsOut, dependencies=[Depends(require_auth)])
 def kpis_routes(
     since: datetime | None = None,
     customer_id: str | None = None,
@@ -431,7 +502,7 @@ def kpis_routes(
     )
 
 
-@app.get("/kpis/recent", response_model=list[RecentRunOut], dependencies=[Depends(require_api_key)])
+@app.get("/kpis/recent", response_model=list[RecentRunOut], dependencies=[Depends(require_auth)])
 def kpis_recent(
     limit: int = 50,
     customer_id: str | None = None,
@@ -471,9 +542,13 @@ def _require_open_case(session: Session, entry: AuditEntry) -> str:
     return case_id
 
 
-@app.post("/runs/{run_id}/recheck", response_model=AuditResponse, dependencies=[Depends(require_api_key)])
+@app.post("/runs/{run_id}/recheck", response_model=AuditResponse)
 def recheck_run(
-    run_id: str, body: RecheckRequest, request: Request, session: Session = Depends(get_session)
+    run_id: str,
+    body: RecheckRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+    principal: Principal = Depends(require_person),
 ) -> AuditResponse:
     """Re-decide a case from the documents a reviewer corrected. No OCR, no VLM."""
     original = _load_entry(session, run_id)
@@ -485,6 +560,7 @@ def recheck_run(
             case_id=case_id,
             session=session,
             embedding_model=getattr(request.app.state, "embedding_model", None),
+            reviewer=principal.reviewer,
         )
     except (ValueError, TypeError, ArithmeticError, KeyError):
         raise ApiError(400, "INVALID_DOCUMENT", "A corrected value could not be read") from None
@@ -495,8 +571,13 @@ def recheck_run(
     return _audit_response(entry, session)
 
 
-@app.post("/runs/{run_id}/decision", response_model=AuditResponse, dependencies=[Depends(require_api_key)])
-def decide_run(run_id: str, body: DecisionRequest, session: Session = Depends(get_session)) -> AuditResponse:
+@app.post("/runs/{run_id}/decision", response_model=AuditResponse)
+def decide_run(
+    run_id: str,
+    body: DecisionRequest,
+    session: Session = Depends(get_session),
+    principal: Principal = Depends(require_person),
+) -> AuditResponse:
     """Record a reviewer's final decision (approve / reject) with a note."""
     original = _load_entry(session, run_id)
     case_id = _require_open_case(session, original)
@@ -520,15 +601,18 @@ def decide_run(run_id: str, body: DecisionRequest, session: Session = Depends(ge
         extraction_source=original.extraction_source,
         case_id=case_id,
         decided_by="reviewer",
+        reviewer=principal.reviewer,
     )
     AuditRepository.append(session, entry)
     session.commit()
     _write_sidecar(entry.run_id, _read_sidecar(original.run_id))
-    logger.info("decision case=%s run_id=%s route=%s", entry.case_id, entry.run_id, entry.route.value)
+    logger.info(
+        "decision case=%s run_id=%s route=%s by=%s", entry.case_id, entry.run_id, entry.route.value, principal.reviewer
+    )
     return _audit_response(entry, session)
 
 
-@app.get("/review-queue", response_model=list[RecentRunOut], dependencies=[Depends(require_api_key)])
+@app.get("/review-queue", response_model=list[RecentRunOut], dependencies=[Depends(require_auth)])
 def get_review_queue(
     customer_id: str | None = None, limit: int = 200, session: Session = Depends(get_session)
 ) -> list[RecentRunOut]:
@@ -538,14 +622,14 @@ def get_review_queue(
     return [_recent_out(r) for r in review_queue(session, customer_id, limit)]
 
 
-@app.get("/kpis/cases", response_model=RouteCountsOut, dependencies=[Depends(require_api_key)])
+@app.get("/kpis/cases", response_model=RouteCountsOut, dependencies=[Depends(require_auth)])
 def kpis_cases(customer_id: str | None = None, session: Session = Depends(get_session)) -> RouteCountsOut:
     """Route counts per CASE (latest run of each submission)."""
     c = count_cases_by_route(session, customer_id)
     return RouteCountsOut(auto_approve=c.auto_approve, human_review=c.human_review, reject=c.reject, total=c.total)
 
 
-@app.get("/kpis/failure-codes", response_model=list[CodeCountOut], dependencies=[Depends(require_api_key)])
+@app.get("/kpis/failure-codes", response_model=list[CodeCountOut], dependencies=[Depends(require_auth)])
 def kpis_failure_codes(
     customer_id: str | None = None, limit: int = 8, session: Session = Depends(get_session)
 ) -> list[CodeCountOut]:
@@ -554,9 +638,118 @@ def kpis_failure_codes(
     return [CodeCountOut(code=c.code, count=c.count) for c in failure_code_counts(session, customer_id, limit)]
 
 
-@app.get("/customers", response_model=list[str], dependencies=[Depends(require_api_key)])
+@app.get("/customers", response_model=list[str], dependencies=[Depends(require_auth)])
 def get_customers(session: Session = Depends(get_session)) -> list[str]:
     return list(list_customers(session))
+
+
+# --- Accounts (D-118) ---------------------------------------------------------
+
+
+def _user_out(user) -> UserOut:
+    return UserOut(
+        username=user.username,
+        display_name=user.display_name,
+        role=user.role,
+        active=getattr(user, "active", True),
+        must_change_password=user.must_change_password,
+    )
+
+
+def _account_error(e: Exception) -> ApiError:
+    if isinstance(e, WeakPassword):
+        return ApiError(400, "WEAK_PASSWORD", str(e))
+    if isinstance(e, accounts.LoginLocked):
+        return ApiError(429, e.code, str(e))
+    if isinstance(e, accounts.InvalidLogin):
+        return ApiError(401, e.code, str(e))
+    if isinstance(e, accounts.UserNotFound):
+        return ApiError(404, e.code, str(e))
+    if isinstance(e, accounts.UserExists):
+        return ApiError(409, e.code, str(e))
+    if isinstance(e, accounts.AuthError):
+        return ApiError(400, e.code, str(e))
+    raise e
+
+
+@app.post("/auth/login", response_model=LoginResponse)
+def auth_login(body: LoginRequest, session: Session = Depends(get_session)) -> LoginResponse:
+    try:
+        token, user = accounts.login(session, body.username, body.password, _LOGIN_THROTTLE)
+    except accounts.AuthError as e:
+        raise _account_error(e) from None
+    session.commit()
+    logger.info("login user=%s", user.username)
+    return LoginResponse(token=token, expires_in=accounts.SESSION_HOURS * 3600, user=_user_out(user))
+
+
+@app.get("/auth/me", response_model=UserOut)
+def auth_me(principal: Principal = Depends(require_person)) -> UserOut:
+    return _user_out(principal.user)
+
+
+@app.post("/auth/logout", status_code=204)
+def auth_logout(session: Session = Depends(get_session), principal: Principal = Depends(require_person)) -> None:
+    accounts.logout(session, principal.token)
+    session.commit()
+
+
+@app.post("/auth/password", response_model=LoginResponse)
+def auth_change_password(
+    body: PasswordChange, session: Session = Depends(get_session), principal: Principal = Depends(require_person)
+) -> LoginResponse:
+    """Change your own password. Signs out every session and returns a fresh one."""
+    user = accounts.get_user(session, principal.user.username)
+    if not accounts.verify_password(body.current_password, user.password_hash):
+        raise ApiError(400, "PASSWORD_WRONG", "The current password is wrong")
+    if body.new_password == body.current_password:
+        raise ApiError(400, "WEAK_PASSWORD", "Choose a password different from the current one")
+    try:
+        accounts.set_password(session, user, body.new_password, must_change=False)
+        token, current = accounts.login(session, user.username, body.new_password, _LOGIN_THROTTLE)
+    except (accounts.AuthError, WeakPassword) as e:
+        raise _account_error(e) from None
+    session.commit()
+    return LoginResponse(token=token, expires_in=accounts.SESSION_HOURS * 3600, user=_user_out(current))
+
+
+@app.get("/users", response_model=list[UserOut], dependencies=[Depends(require_admin)])
+def users_list(session: Session = Depends(get_session)) -> list[UserOut]:
+    return [_user_out(u) for u in accounts.list_users(session)]
+
+
+@app.post("/users", response_model=UserCreated, status_code=201, dependencies=[Depends(require_admin)])
+def users_create(body: UserCreate, session: Session = Depends(get_session)) -> UserCreated:
+    password = temporary_password()
+    try:
+        user = accounts.create_user(session, body.username, body.display_name, password, role=body.role)
+    except (accounts.AuthError, WeakPassword) as e:
+        raise _account_error(e) from None
+    session.commit()
+    return UserCreated(user=_user_out(user), temporary_password=password)
+
+
+@app.patch("/users/{username}", response_model=UserCreated | UserOut)
+def users_update(
+    username: str,
+    body: UserUpdate,
+    session: Session = Depends(get_session),
+    principal: Principal = Depends(require_admin),
+) -> UserCreated | UserOut:
+    try:
+        user = accounts.get_user(session, username)
+        accounts.update_user(session, user, display_name=body.display_name, role=body.role, active=body.active)
+        password = None
+        if body.reset_password:
+            password = temporary_password()
+            accounts.set_password(session, user, password, must_change=True)
+    except (accounts.AuthError, WeakPassword) as e:
+        raise _account_error(e) from None
+    session.commit()
+    logger.info("user updated user=%s by=%s", user.username, principal.reviewer)
+    if password is not None:
+        return UserCreated(user=_user_out(user), temporary_password=password)
+    return _user_out(user)
 
 
 # Browser frontend (static/index.html), served same-origin at / so the UI

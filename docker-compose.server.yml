@@ -30,3 +30,17 @@ services:
       DATABASE_URL: "postgresql+psycopg://apmatch:${APMATCH_DB_PASSWORD}@postgres:5432/apmatch"
       APMATCH_API_KEY: "${APMATCH_API_KEY:?APMATCH_API_KEY must be set}"
       APMATCH_LOG_LEVEL: "${APMATCH_LOG_LEVEL:-INFO}"
+
+  # Review UI (UI-2). nginx serves the built app and forwards /api/* to the
+  # api service, so the browser needs no API URL or key. Open
+  # http://<server>:8090 on the Tailscale network.
+  ui:
+    build:
+      context: ./docuflow-ui
+    image: docuflow-ui:latest
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${DOCUFLOW_UI_PORT:-8090}:80"
+

@@ -197,8 +197,13 @@ export default function CaseReview() {
             <RouteChip route={data.route} />
             <div className="mt-1">{reasonLabel(data.route_reason)}</div>
             <div className="text-[11px] text-gray-500 mt-1">
-              by {data.decided_by === 'reviewer' ? 'a reviewer' : 'the system'}
-              {data.extraction_source === 'reviewer' ? ' (on corrected values)' : ''}
+              {data.decided_by === 'reviewer' ? (
+                <>by <b>{data.reviewer ?? 'a reviewer'}</b></>
+              ) : data.extraction_source === 'reviewer' ? (
+                <>by the system, on values corrected by <b>{data.reviewer ?? 'a reviewer'}</b></>
+              ) : (
+                'by the system'
+              )}
             </div>
           </div>
           <div className="flex-1">
@@ -210,7 +215,7 @@ export default function CaseReview() {
             <ul className="border border-gray-300 bg-white max-h-24 overflow-y-auto">
               {data.history.map((h) => (
                 <li key={h.run_id} className={`px-2 py-0.5 border-b border-gray-200 text-[11px] flex justify-between ${h.run_id === data.run_id ? 'bg-blue-50 font-bold' : ''}`}>
-                  <Link to={`/case/${h.run_id}`} className="text-blue-600 hover:underline">{new Date(h.run_timestamp).toLocaleString()}</Link>
+                  <Link to={`/case/${h.run_id}`} className="text-blue-600 hover:underline" title={h.reviewer ? `by ${h.reviewer}` : 'by the system'}>{new Date(h.run_timestamp).toLocaleString()}</Link>
                   <RouteChip route={h.route} />
                 </li>
               ))}
@@ -350,7 +355,7 @@ export default function CaseReview() {
         {isLatest && closed ? (
           <div className="p-3 flex items-center gap-2 text-[12px]">
             <Lock size={14} className="text-gray-500" />
-            This case is closed: it was {data.route === 'AUTO_APPROVE' ? 'approved' : 'rejected'} by {data.decided_by === 'reviewer' ? 'a reviewer' : 'the system'}.
+            This case is closed: it was {data.route === 'AUTO_APPROVE' ? 'approved' : 'rejected'} by {data.reviewer ?? (data.decided_by === 'reviewer' ? 'a reviewer' : 'the system')}.
             A final decision cannot be changed here; the history above keeps every step.
           </div>
         ) : (
