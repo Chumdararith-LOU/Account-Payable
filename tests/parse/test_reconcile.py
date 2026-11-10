@@ -65,3 +65,13 @@ def test_misread_unit_price_repaired_only_when_amount_agrees_with_po():
     # Price as on the PO but amount wrong: a real error, left for validation.
     kept = reconcile({"invoice": inv_with("13.80", "250.00"), "po": po, "grni": None, "pard": None})
     assert kept["invoice"].line_items[0].unit_price == D("13.80")
+
+
+def test_dropped_digit_in_price_is_repaired():
+    from apmatch.schema.documents import LineItem
+
+    line = LineItem(1, "Coolant (gal)", D("3"), D("9.90"), D("59.70"))
+    inv = Invoice("INV-1", "V", None, "USD", D("1"), D("0"), D("1"), (line,))
+    po = PurchaseOrder("PO-1", "V", None, D("1"), (LineItem(1, "Coolant (gal)", D("3"), D("19.90"), None),))
+    out = reconcile({"invoice": inv, "po": po, "grni": None, "pard": None})
+    assert out["invoice"].line_items[0].unit_price == D("19.9000")

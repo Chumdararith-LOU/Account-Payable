@@ -17,7 +17,8 @@ overrides a value the document states unambiguously.
 
 3. Misread unit price. When an invoice line's qty x price does not give its
    amount, but amount / qty equals the price of the same item on the PO AND
-   differs from the price read by exactly one digit ("12.80" vs "13.80"),
+   differs from the price read by exactly one digit — changed, dropped or
+   added ("12.80" vs "13.80", "9.90" vs "19.90"),
    the price was misread: use amount / qty. A real pricing error (price as
    on the PO, amount wrong) is never "repaired", because then amount / qty
    does not equal the PO price.
@@ -95,8 +96,16 @@ def fill_currency(docs: dict) -> dict:
 
 
 def _one_digit_apart(a: Decimal, b: Decimal) -> bool:
+    """One digit changed, dropped or added: "12.80"/"13.80", "9.90"/"19.90"."""
     sa, sb = f"{a:.2f}", f"{b:.2f}"
-    return len(sa) == len(sb) and sum(x != y for x, y in zip(sa, sb, strict=True)) == 1
+    if sa == sb:
+        return False
+    if len(sa) == len(sb):
+        return sum(x != y for x, y in zip(sa, sb, strict=True)) == 1
+    short, long_ = (sa, sb) if len(sa) < len(sb) else (sb, sa)
+    if len(long_) - len(short) != 1:
+        return False
+    return any(long_[:i] + long_[i + 1 :] == short for i in range(len(long_)))
 
 
 def repair_misread_prices(docs: dict) -> dict:
