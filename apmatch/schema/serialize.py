@@ -77,6 +77,8 @@ def invoice_from_dict(d: dict) -> Invoice:
         tax_rate=_dec(d.get("tax_rate")),
         discount_rate=_dec(d.get("discount_rate")),
         duplicate_of_run_id=d.get("duplicate_of_run_id"),
+        exchange_rate=_dec(d.get("exchange_rate")),
+        total_khr=_money(d.get("total_khr")),
     )
 
 
@@ -88,6 +90,7 @@ def po_from_dict(d: dict) -> PurchaseOrder:
         total=_money(d.get("total")),
         line_items=_lines(d.get("line_items")),
         currency=d.get("currency"),
+        vendor_tax_id=d.get("vendor_tax_id"),
     )
 
 

@@ -86,6 +86,9 @@ class Invoice:
     tax_rate: Decimal | None = None  # fraction, e.g. Decimal("0.10") for 10%
     discount_rate: Decimal | None = None  # fraction, e.g. Decimal("0.05") for 5%
     duplicate_of_run_id: str | None = None  # set by the pipeline when a prior run matched
+    # USD invoices in Cambodia often restate the grand total in riel (D-116).
+    exchange_rate: Decimal | None = None  # KHR per 1 USD, as printed
+    total_khr: Money | None = None  # the grand total in KHR, as printed
 
 
 @dataclass(frozen=True)
@@ -98,6 +101,7 @@ class PurchaseOrder:
     total: Money
     line_items: tuple[LineItem, ...]
     currency: str | None = None  # ISO 4217; optional — see module docstring
+    vendor_tax_id: str | None = None  # the supplier's TIN as stated on the PO (D-116)
 
 
 # GRNI records quantities only — it has no monetary values, so currency does

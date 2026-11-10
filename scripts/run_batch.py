@@ -111,7 +111,7 @@ def main() -> None:
     print(f"[init] backend={args.backend} cache={args.cache_dir or 'off'}; loading embedding model ...",
           flush=True)
     t0 = time.time()
-    from apmatch.api.pipeline import lazy_ocr_engines, run_pipeline
+    from apmatch.api.pipeline import invoice_key, lazy_ocr_engines, run_pipeline
     from apmatch.embeddings.model import EmbeddingModel
     from apmatch.parse import vlm
 
@@ -119,6 +119,18 @@ def main() -> None:
     embedding_model = EmbeddingModel()
     print(f"[init] ready in {time.time() - t0:.1f}s (embedding {embedding_model.model_version[:12]}..., "
           f"vlm model {vlm.VLM_MODEL} prompt {vlm.PROMPT_VERSION})", flush=True)
+
+    # Duplicate check across the batch (D-116): supplier + invoice number seen
+    # in an earlier case. Rebuilt from completed cases when resuming.
+    from apmatch.schema.serialize import invoice_from_dict
+
+    seen_invoices: dict = {}
+    for prev in sorted(done.values(), key=lambda r: r["case_id"]):
+        inv_doc = (prev.get("documents") or {}).get("invoice")
+        if inv_doc and prev.get("run_id"):
+            key = invoice_key(invoice_from_dict(inv_doc))
+            if key is not None:
+                seen_invoices.setdefault(key, prev["run_id"])
 
     results: list[dict] = []
     hard_errors = 0
@@ -157,6 +169,7 @@ def main() -> None:
                     embedding_model=embedding_model,
                     customer_id=customer_id,
                     extraction_cache_dir=args.cache_dir,
+                    seen_invoices=seen_invoices,
                 )
                 route = decision.route.value
                 extraction = extracted.pop("_extraction", {})

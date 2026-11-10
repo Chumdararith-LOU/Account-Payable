@@ -29,6 +29,7 @@ class CheckCode(str, Enum):
     NO_LINE_ITEMS = "NO_LINE_ITEMS"
     DATE_IN_FUTURE = "DATE_IN_FUTURE"
     CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
+    KHR_CONVERSION_MISMATCH = "KHR_CONVERSION_MISMATCH"  # total x rate != KHR total (D-116)
 
 
 @dataclass(frozen=True)

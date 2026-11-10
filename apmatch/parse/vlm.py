@@ -60,9 +60,20 @@ VLM_NUM_CTX = int(os.getenv("VLM_NUM_CTX", "8192"))
 # "json":   plain JSON mode, schema only in the prompt (older Ollama).
 VLM_FORMAT = os.getenv("VLM_FORMAT", "schema")
 
-# Bump whenever the prompt or schemas change: it is recorded with every
-# extraction and is part of the extraction-cache key.
-PROMPT_VERSION = "2026-11-08.1"  # unchanged in PROD-B4: parsing changed, not the prompt
+# Bump a kind's version whenever its prompt or schema changes: it is recorded
+# with every extraction and is part of the extraction-cache key, so only the
+# documents whose prompt changed are read again.
+PROMPT_VERSIONS: dict[str, str] = {
+    "invoice": "2026-11-10.1",  # + exchange_rate, total_khr (D-116)
+    "purchase_order": "2026-11-10.1",  # + vendor_tax_id (D-116)
+    "grni": "2026-11-08.1",
+    "payment_advice": "2026-11-08.1",
+}
+PROMPT_VERSION = "+".join(f"{k}:{v}" for k, v in PROMPT_VERSIONS.items())  # for reports
+
+
+def prompt_version(kind) -> str:
+    return PROMPT_VERSIONS[DocumentKind(kind).value]
 
 _STR = {"type": ["string", "null"]}
 
@@ -119,11 +130,14 @@ SCHEMAS: dict[DocumentKind, dict] = {
         "discount_amount": _printed(_NUMBER_DESC),
         "tax_amount": _printed(_NUMBER_DESC),
         "total": _printed(_NUMBER_DESC),
+        "exchange_rate": _printed("KHR per 1 USD, exactly as printed; null if not shown"),
+        "total_khr": _printed("the grand total restated in riel (KHR), exactly as printed; null if not shown"),
         "line_items": _LINE_MONEY,
     }),
     DocumentKind.PURCHASE_ORDER: _obj({
         "po_number": _STR,
         "vendor_name": _STR,
+        "vendor_tax_id": _printed("the SUPPLIER's tax ID (TIN / VATTIN), exactly as printed"),
         "po_date": _printed(_DATE_DESC),
         "po_date_iso": _printed(_ISO_DESC),
         "currency": _STR,
@@ -153,12 +167,16 @@ _KIND_RULES: dict[DocumentKind, str] = {
         "This is a vendor INVOICE. vendor_name is the SELLER who issued the "
         "invoice (often labeled From / Vendor / Seller, or the company name at "
         "the top). It is NOT the 'Bill To' / buyer company. total is the final "
-        "amount payable (Grand Total), not the subtotal."
+        "amount payable (Grand Total), not the subtotal. vendor_tax_id is the "
+        "SELLER's tax ID. If the invoice also restates the grand total in riel "
+        "(KHR) with an exchange rate, copy both exactly as printed into total_khr "
+        "and exchange_rate — do not recalculate them."
     ),
     DocumentKind.PURCHASE_ORDER: (
         "This is a PURCHASE ORDER issued by a buyer. vendor_name is the "
         "SUPPLIER the order is addressed to (labeled Vendor / Supplier / To), "
-        "NOT the company issuing the purchase order."
+        "NOT the company issuing the purchase order. vendor_tax_id is that "
+        "SUPPLIER's tax ID, not the buyer's."
     ),
     DocumentKind.GRNI: (
         "This is a GOODS RECEIVED NOTE. vendor_name is the SUPPLIER who "
@@ -411,6 +429,20 @@ def _lines(items, field_errors: list[str], with_money: bool) -> tuple[LineItem, 
     return tuple(out)
 
 
+def _rate(v, field_errors: list[str]) -> Decimal | None:
+    """An exchange rate such as "4,100" or "1 USD = 4100 KHR" -> Decimal("4100")."""
+    s = _text(v)
+    if s is None:
+        return None
+    nums = re.findall(r"\d[\d,]*(?:\.\d+)?", s)
+    values = [parse_money(n) for n in nums]
+    values = [x for x in values if x is not None and x > 1]
+    if not values:
+        field_errors.append(f"exchange_rate: {v!r}")
+        return None
+    return max(values)
+
+
 def _money_field(data: dict, key: str, field_errors: list[str]):
     v = data.get(key)
     m = _money_value(v)
@@ -441,6 +473,8 @@ def document_from_payload(kind: DocumentKind, data: dict, field_errors: list[str
             grn_number=_docnum(data.get("grn_number")),
             vendor_tax_id=_text(data.get("vendor_tax_id")),
             discount_amount=_money_field(data, "discount_amount", field_errors),
+            exchange_rate=_rate(data.get("exchange_rate"), field_errors),
+            total_khr=_money_field(data, "total_khr", field_errors),
         )
     if kind == DocumentKind.PURCHASE_ORDER:
         return PurchaseOrder(
@@ -450,6 +484,7 @@ def document_from_payload(kind: DocumentKind, data: dict, field_errors: list[str
             total=_money_field(data, "total", field_errors),
             line_items=_lines(data.get("line_items"), field_errors, with_money=True),
             currency=currency_from_text(data.get("currency"), data.get("total")),
+            vendor_tax_id=_text(data.get("vendor_tax_id")),
         )
     if kind == DocumentKind.GRNI:
         return GRNI(
@@ -558,7 +593,7 @@ def extract_vlm_detailed(kind: DocumentKind, image_path: Path) -> VlmExtraction:
         document=None,
         model=VLM_MODEL,
         model_digest=model_digest(VLM_BASE_URL, VLM_MODEL),
-        prompt_version=PROMPT_VERSION,
+        prompt_version=prompt_version(kind),
     )
     t0 = time.time()
     try:

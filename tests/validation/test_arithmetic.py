@@ -327,3 +327,35 @@ def test_missing_required_field_sorts_before_arithmetic():
     assert CheckCode.MISSING_REQUIRED_FIELD in codes
     assert CheckCode.SUBTOTAL_MISMATCH in codes
     assert codes.index(CheckCode.MISSING_REQUIRED_FIELD) < codes.index(CheckCode.SUBTOTAL_MISMATCH)
+
+
+# --- KHR restatement of a USD total (D-116) ---------------------------------
+
+def _usd_invoice_with_khr(total_khr, rate="4080"):
+    from datetime import date as _date
+    from decimal import Decimal as _D
+
+    from apmatch.schema.documents import Invoice as _Inv
+    from apmatch.schema.documents import LineItem as _Line
+
+    line = _Line(1, "Desk", _D("2"), _D("2500.00"), _D("5000.00"))
+    return _Inv("INV-1", "V", _date(2025, 4, 18), "USD", _D("5000.00"), _D("120.50"), _D("5120.50"),
+                (line,), exchange_rate=_D(rate), total_khr=_D(total_khr))
+
+
+def test_khr_conversion_rounded_to_hundred_riel_passes():
+    from apmatch.validation.arithmetic import validate_invoice
+    from apmatch.validation.result import CheckCode as _C
+
+    r = validate_invoice(_usd_invoice_with_khr("20891600"))  # 5120.50 x 4080 = 20,891,640
+    assert _C.KHR_CONVERSION_MISMATCH not in {f.code for f in r.checks_failed}
+
+
+def test_khr_conversion_error_is_a_blocker():
+    from apmatch.validation.arithmetic import validate_invoice
+    from apmatch.validation.result import CheckCode as _C
+    from apmatch.validation.result import Severity as _S
+
+    r = validate_invoice(_usd_invoice_with_khr("20892500"))
+    f = [x for x in r.checks_failed if x.code is _C.KHR_CONVERSION_MISMATCH]
+    assert f and f[0].severity is _S.BLOCKER

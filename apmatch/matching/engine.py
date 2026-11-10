@@ -212,6 +212,21 @@ class MatchingEngine:
                     "",
                 )
             )
+        # Vendor tax ID (D-116): same company name but a different TIN is a
+        # different legal entity. One differing character is taken as a misread.
+        if invoice.vendor_tax_id and po.vendor_tax_id:
+            a, b = _ref_key(invoice.vendor_tax_id), _ref_key(po.vendor_tax_id)
+            if a != b and not (len(a) == len(b) and sum(x != y for x, y in zip(a, b, strict=True)) == 1):
+                failures.append(
+                    MatchFailure(
+                        MatchCode.VENDOR_MISMATCH,
+                        Severity.WARNING,
+                        "header (tax ID)",
+                        po.vendor_tax_id,
+                        invoice.vendor_tax_id,
+                        "",
+                    )
+                )
         # Currency: compare invoice against PO and PARD, but only when both
         # sides are populated. Missing currency on either side skips the check
         # (no false positive). See module docstring.

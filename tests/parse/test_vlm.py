@@ -90,7 +90,7 @@ def test_invoice_transcribed_values_are_parsed_by_code(monkeypatch, tmp_path):
     assert doc.line_items[1].line_no == 2
     assert res.error is None and res.field_errors == []
     assert res.model_digest == "sha256:test"
-    assert res.prompt_version == vlm.PROMPT_VERSION
+    assert res.prompt_version == vlm.prompt_version(DocumentKind.INVOICE)
     assert res.format_used == "schema"
 
     payload = seen[0]["payload"]
@@ -249,3 +249,20 @@ def test_date_candidates_recorded(monkeypatch, tmp_path):
     res = vlm.extract_vlm_detailed(DocumentKind.INVOICE, _img(tmp_path))
     assert set(res.date_candidates) == {date(2025, 9, 4), date(2025, 4, 9)}
     assert res.summary()["date_candidates"] == ["2025-09-04", "2025-04-09"]
+
+
+def test_khr_restatement_and_po_tax_id_are_read(monkeypatch, tmp_path):
+    payload = dict(INVOICE_PAYLOAD, exchange_rate="1 USD = 4,080 KHR", total_khr="20,892,500 ៛")
+    _serve(monkeypatch, payload)
+    inv = vlm.extract_vlm(DocumentKind.INVOICE, _img(tmp_path))
+    assert inv.exchange_rate == Decimal("4080")
+    assert inv.total_khr == Decimal("20892500.00")
+    _serve(monkeypatch, {"po_number": "PO-1", "vendor_name": "V", "vendor_tax_id": "K006-593015924",
+                         "po_date": "06-Sep-2025", "currency": "USD", "total": "1.00", "line_items": []})
+    po = vlm.extract_vlm(DocumentKind.PURCHASE_ORDER, _img(tmp_path))
+    assert po.vendor_tax_id == "K006-593015924"
+
+
+def test_prompt_versions_are_per_kind():
+    assert set(vlm.PROMPT_VERSIONS) == {k.value for k in DocumentKind}
+    assert vlm.prompt_version(DocumentKind.GRNI) == vlm.PROMPT_VERSIONS["grni"]

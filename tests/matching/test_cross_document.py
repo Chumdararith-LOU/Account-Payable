@@ -142,3 +142,23 @@ def test_unsupported_currency_is_never_auto_approved():
     assert MatchCode.CURRENCY_UNSUPPORTED in _codes(r)
     assert r.outcome is Outcome.DISCREPANCY
     assert MatchCode.CURRENCY_UNSUPPORTED not in _codes(_std(currency="KHR"))
+
+
+def _with_tins(inv_tin, po_tin):
+    inv = [_l(1, *CHAIR), _l(2, *LAMP)]
+    sub = sum((li.amount for li in inv), D("0"))
+    invoice = Invoice("INV-1", "Mekong Supplies Co., Ltd.", date(2026, 8, 20), "USD", sub, D("70.00"),
+                      sub + D("70.00"), tuple(inv), po_number="PO-1", vendor_tax_id=inv_tin)
+    po = PurchaseOrder("PO-1", "Mekong Supplies Co., Ltd.", date(2026, 8, 15), sub * D("1.10"),
+                       tuple(inv), "USD", vendor_tax_id=po_tin)
+    grn = GRNI("GRN-1", "Mekong Supplies Co., Ltd.", date(2026, 8, 18),
+               (_l(1, "Office Chair", "10"), _l(2, "Desk Lamp", "20")))
+    pard = PaymentAdvice("PARD-1", "INV-1", invoice.total, date(2026, 8, 25), None, "USD")
+    return ENGINE.match(invoice, po, grn, pard)
+
+
+def test_same_name_different_tax_id_is_a_vendor_mismatch():
+    assert MatchCode.VENDOR_MISMATCH in _codes(_with_tins("K003-883108241", "K006-593015924"))
+    assert MatchCode.VENDOR_MISMATCH not in _codes(_with_tins("K003-883108241", "K003 883108241"))
+    assert MatchCode.VENDOR_MISMATCH not in _codes(_with_tins("K003-883108241", "K003-883108247"))  # misread
+    assert MatchCode.VENDOR_MISMATCH not in _codes(_with_tins("K003-883108241", None))

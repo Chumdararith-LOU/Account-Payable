@@ -196,3 +196,13 @@ def test_old_cache_format_is_reparsed_from_info(images, monkeypatch, tmp_path):
     doc, info = p._recognize_and_parse(p._Engines(object(), object()), DocumentKind.PAYMENT_ADVICE,
                                        path, False, cache)
     assert doc.pard_number == "PARD-9" and info["cache"] == "hit"
+
+
+def test_duplicate_invoice_flagged_across_a_batch(images, fake_vlm):
+    seen: dict = {}
+    first = _run(images, seen_invoices=seen)
+    second = _run(images, seen_invoices=seen)
+    assert first[2].route.value == "AUTO_APPROVE"
+    codes = {f.code.value for f in second[0].failures}
+    assert "DUPLICATE_INVOICE" in codes
+    assert second[2].route.value != "AUTO_APPROVE"

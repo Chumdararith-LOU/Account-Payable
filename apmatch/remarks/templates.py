@@ -33,6 +33,9 @@ TEMPLATES: dict[CheckCode, str] = {
         "Line {location} amount mismatch: expected {expected}, actual {actual} (off by {delta})."
     ),
     CheckCode.SUBTOTAL_MISMATCH: "Subtotal mismatch: expected {expected}, actual {actual} (off by {delta}).",
+    CheckCode.KHR_CONVERSION_MISMATCH: (
+        "Riel total does not match the exchange rate: expected {expected} KHR, printed {actual} KHR (off by {delta})."
+    ),
     CheckCode.TAX_MISMATCH: "Tax mismatch: expected {expected}, actual {actual} (off by {delta}).",
     CheckCode.DISCOUNT_MISMATCH: "Discount mismatch: expected {expected}, actual {actual} (off by {delta}).",
     CheckCode.TOTAL_MISMATCH: "Total mismatch: expected {expected}, actual {actual} (off by {delta}).",

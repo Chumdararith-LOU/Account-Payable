@@ -93,7 +93,7 @@ def _heuristic(engines: _Engines, kind, path: Path, ocr_debug: bool):
 def _cache_path(cache_dir: Path, kind, path: Path, backend: str) -> Path:
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     if backend == "vlm":
-        version = f"vlm|{vlm_module.VLM_MODEL}|{vlm_module.PROMPT_VERSION}"
+        version = f"vlm|{vlm_module.VLM_MODEL}|{vlm_module.prompt_version(kind)}"
     else:
         version = f"ocr|{HEURISTIC_VERSION}"
     key = hashlib.sha256(f"{digest}|{kind.value}|{version}".encode()).hexdigest()[:32]
@@ -199,6 +199,32 @@ def lazy_ocr_engines():
     return _Lazy(_router), _Lazy(_layout)
 
 
+def invoice_key(invoice) -> tuple[str, str] | None:
+    """(company, invoice number) identity used by the duplicate check."""
+    from apmatch.matching.normalize import normalize_company
+
+    if invoice is None or not invoice.invoice_number:
+        return None
+    number = "".join(ch for ch in invoice.invoice_number.upper() if ch.isalnum())
+    return normalize_company(invoice.vendor_name), number
+
+
+def check_duplicate(invoice, seen: dict, run_id: str):
+    """In-memory duplicate check for batch runs (the API uses the audit log, D-108).
+
+    The same supplier + invoice number seen earlier in the run marks this
+    invoice as a duplicate of that run — also when it was re-dated or re-totalled.
+    The first occurrence is registered; later ones are flagged.
+    """
+    key = invoice_key(invoice)
+    if key is None:
+        return invoice
+    if key in seen:
+        return replace(invoice, duplicate_of_run_id=seen[key])
+    seen[key] = run_id
+    return invoice
+
+
 def decide_documents(invoice, po, grni, pard, embedding_model=None):
     """The deterministic half of the pipeline: validate -> match -> route.
 
@@ -231,6 +257,7 @@ def run_pipeline(
     customer_id: str = "default",
     session=None,
     extraction_cache_dir: Path | None = None,
+    seen_invoices: dict | None = None,
 ) -> tuple[MatchResult, ValidationResult, RoutingDecision, AuditEntry, dict]:
     """Run the full chain over up to four document images.
 
@@ -249,6 +276,9 @@ def run_pipeline(
     persist them for the review UI. That dict also carries ``_extraction``:
     per-document source and VLM diagnostics (model digest, prompt version,
     raw output, field errors).
+
+    ``seen_invoices`` (batch runs, no DB): a dict shared across calls; an
+    invoice whose supplier + number was seen before is a duplicate.
     """
     engines = _Engines(router, layout)
     cache_dir = Path(extraction_cache_dir) if extraction_cache_dir else None
@@ -286,6 +316,10 @@ def run_pipeline(
         if prior is not None:
             invoice = replace(invoice, duplicate_of_run_id=prior)
 
+    run_id = uuid4().hex
+    if seen_invoices is not None and session is None:
+        invoice = check_duplicate(invoice, seen_invoices, run_id)
+
     validation, match, decision = decide_documents(invoice, po, grni, pard, embedding_model)
 
     # Reviewer-facing remark rule (D-052): for a MATCH outcome the
@@ -295,7 +329,7 @@ def run_pipeline(
     remark = summarize(validation) if match.outcome is Outcome.MATCH else summarize_match(match)
 
     audit_entry = AuditEntry(
-        run_id=uuid4().hex,
+        run_id=run_id,
         run_timestamp=datetime.now(timezone.utc),
         invoice_number=invoice.invoice_number,
         po_number=po.po_number if po else None,

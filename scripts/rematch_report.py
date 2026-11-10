@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from apmatch.api.pipeline import decide_documents
+from apmatch.api.pipeline import check_duplicate, decide_documents
 from apmatch.audit.hashing import _canonical
 from apmatch.evaluation import case_passed, format_summary, summarize
 from apmatch.parse import vlm
@@ -67,12 +67,14 @@ def _rebuild(case: dict) -> tuple[dict, dict]:
 
 def rescore(report: dict, embedding_model=None) -> list[dict]:
     out = []
-    for case in report["cases"]:
+    seen: dict = {}  # duplicate check across the batch, in case order (D-116)
+    for case in sorted(report["cases"], key=lambda c: c["case_id"]):
         if not case.get("documents"):
             out.append(dict(case))  # ERROR / missing-file cases stay as they were
             continue
         docs, candidates = _rebuild(case)
         docs = reconcile(docs, candidates)
+        docs["invoice"] = check_duplicate(docs["invoice"], seen, case["case_id"])
         invoice, po, grni, pard = (docs[k] for k in DOC_KEYS)
         validation, match, decision = decide_documents(invoice, po, grni, pard, embedding_model)
         route = decision.route.value

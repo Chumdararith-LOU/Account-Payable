@@ -66,7 +66,8 @@
 | PROD-B1c | Line-item table-parser fix + header spatial/vendor fix + batch rerun | done | (PROD-B1c) |
 | PROD-B3 | VLM hardening, unreadable->review routing, vendor match, honest batch metrics (D-109..D-112) | done | (PROD-B3) |
 | PROD-B4 | Cross-document checks, 5% tolerance, partial billing, case reconcile (D-113, D-114) | done | (PROD-B4) |
-| PROD-B5 | USD/KHR scope (drop Indian style), price-misread repair, PO-ref misread; usd-khr-120 batch (D-115) | in progress | (PROD-B5) |
+| PROD-B5 | USD/KHR scope (drop Indian style), price-misread repair, PO-ref misread; usd-khr-120 batch (D-115) | done | (PROD-B5) |
+| PROD-B6 | Vendor tax ID, batch duplicate check, KHR conversion check; per-kind prompt versions (D-116) | in progress | (PROD-B6) |
 | PROD-B | Customer-scoped templates | pending | |
 
 ## Deferred

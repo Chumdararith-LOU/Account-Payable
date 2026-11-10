@@ -61,6 +61,9 @@ from apmatch.validation.result import (
 # Tolerances: one cent.
 LINE_AMOUNT_TOLERANCE = Decimal("0.01")
 TOTAL_TOLERANCE = Decimal("0.01")
+# Riel totals are printed rounded to the hundred riel: a correct conversion is
+# within 50 KHR; the planted conversion errors in the batches are 900+ KHR.
+KHR_CONVERSION_TOLERANCE = Decimal("100")
 
 _SEV_RANK = {Severity.BLOCKER: 2, Severity.WARNING: 1, Severity.INFO: 0}
 
@@ -282,6 +285,25 @@ def validate_invoice(inv: Invoice) -> ValidationResult:
         )
     else:
         passed.add(CheckCode.DATE_IN_FUTURE)
+
+    # KHR restatement of a USD total (D-116): total x rate must give the riel
+    # total, rounded to the hundred riel (so within KHR_CONVERSION_TOLERANCE).
+    if inv.total is not None and inv.exchange_rate is not None and inv.total_khr is not None:
+        expected_khr = _q2(inv.total * inv.exchange_rate)
+        diff = abs(expected_khr - inv.total_khr)
+        if diff > KHR_CONVERSION_TOLERANCE:
+            failures.append(
+                CheckFailure(
+                    CheckCode.KHR_CONVERSION_MISMATCH,
+                    Severity.BLOCKER,
+                    "header",
+                    str(expected_khr),
+                    str(inv.total_khr),
+                    str(diff),
+                )
+            )
+        else:
+            passed.add(CheckCode.KHR_CONVERSION_MISMATCH)
 
     return _finish("invoice", passed, failures)
 
