@@ -49,3 +49,6 @@ dashboard.html
 # Test fixtures are small; keep them out of the image unless
 # we later add an in-image smoke test.
 tests/
+
+# Frontend: built and served separately (docuflow-ui/README.md), not part of the API image
+docuflow-ui/

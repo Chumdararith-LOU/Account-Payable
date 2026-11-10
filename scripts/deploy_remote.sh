@@ -36,6 +36,8 @@ rsync -az --delete \
   --exclude='__pycache__/' \
   --exclude='.pytest_cache/' \
   --exclude='.ruff_cache/' \
+  --exclude='docuflow-ui/node_modules/' \
+  --exclude='docuflow-ui/dist/' \
   ./ "${SSH_TARGET}:${REMOTE_DIR}/"
 
 # 2. Build and start on the remote
