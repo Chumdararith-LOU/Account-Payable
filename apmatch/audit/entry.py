@@ -40,5 +40,10 @@ class AuditEntry:
     # Multi-tenant tag (D-091). Defaulted and last: dataclass fields with
     # defaults must trail the required ones, so it cannot sit mid-class.
     customer_id: str = "default"
-    # Which backend extracted the invoice (PROD-B2): "vlm" or "heuristic".
+    # Which backend extracted the invoice (PROD-B2): "vlm", "heuristic",
+    # "mixed", or "reviewer" (values typed in by a reviewer).
     extraction_source: str = "vlm"
+    # Review workflow: one submission = one case; corrections and reviewer
+    # decisions are new rows with the same case_id. None = its own run_id.
+    case_id: str | None = None
+    decided_by: str = "system"  # "system" or "reviewer"

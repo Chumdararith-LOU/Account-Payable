@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, true
 from sqlalchemy.orm import Session
 
 from apmatch.audit.models import AuditLog
@@ -45,6 +45,15 @@ class RecentRun:
     route_reason: RouteReason
     score_value: Decimal
     remark: str
+    case_id: str | None = None
+    customer_id: str = "default"
+    decided_by: str = "system"
+
+
+@dataclass(frozen=True)
+class CodeCount:
+    code: str
+    count: int
 
 
 @dataclass(frozen=True)
@@ -66,7 +75,92 @@ def _row_to_recent_run(row: AuditLog) -> RecentRun:
         route_reason=RouteReason(row.route_reason),
         score_value=row.score_value,
         remark=row.remark,
+        case_id=row.case_id or row.run_id,
+        customer_id=row.customer_id,
+        decided_by=row.decided_by,
     )
+
+
+def _latest_per_case(customer_id: str | None = None):
+    """Subquery: the newest run of every case (corrections supersede earlier runs)."""
+    case_key = func.coalesce(AuditLog.case_id, AuditLog.run_id)
+    stmt = (
+        select(AuditLog.run_id)
+        .distinct(case_key)
+        .order_by(case_key, AuditLog.run_timestamp.desc(), AuditLog.run_id.desc())
+    )
+    if customer_id is not None:
+        stmt = stmt.where(AuditLog.customer_id == customer_id)
+    return stmt.subquery()
+
+
+def count_cases_by_route(session: Session, customer_id: str | None = None) -> RouteCounts:
+    """Route counts over CASES (latest run of each), not over runs."""
+    latest = _latest_per_case(customer_id)
+    stmt = (
+        select(AuditLog.route, func.count())
+        .where(AuditLog.run_id.in_(select(latest.c.run_id)))
+        .group_by(AuditLog.route)
+    )
+    counts = {route: count for route, count in session.execute(stmt).all()}
+    return RouteCounts(
+        auto_approve=counts.get(Route.AUTO_APPROVE.value, 0),
+        human_review=counts.get(Route.HUMAN_REVIEW.value, 0),
+        reject=counts.get(Route.REJECT.value, 0),
+    )
+
+
+def review_queue(session: Session, customer_id: str | None = None, limit: int = 200) -> tuple[RecentRun, ...]:
+    """Cases whose latest run is HUMAN_REVIEW, oldest first (first in, first out)."""
+    if limit < 1 or limit > 500:
+        raise ValueError(f"limit must be between 1 and 500, got {limit}")
+    latest = _latest_per_case(customer_id)
+    stmt = (
+        select(AuditLog)
+        .where(AuditLog.run_id.in_(select(latest.c.run_id)))
+        .where(AuditLog.route == Route.HUMAN_REVIEW.value)
+        .order_by(AuditLog.run_timestamp.asc(), AuditLog.run_id.asc())
+        .limit(limit)
+    )
+    return tuple(_row_to_recent_run(row) for row in session.execute(stmt).scalars().all())
+
+
+def case_history(session: Session, case_id: str) -> tuple[RecentRun, ...]:
+    """Every run of one case, oldest first."""
+    stmt = (
+        select(AuditLog)
+        .where(func.coalesce(AuditLog.case_id, AuditLog.run_id) == case_id)
+        .order_by(AuditLog.run_timestamp.asc(), AuditLog.run_id.asc())
+    )
+    return tuple(_row_to_recent_run(row) for row in session.execute(stmt).scalars().all())
+
+
+def list_customers(session: Session) -> tuple[str, ...]:
+    stmt = select(AuditLog.customer_id).distinct().order_by(AuditLog.customer_id)
+    return tuple(session.execute(stmt).scalars().all())
+
+
+def failure_code_counts(
+    session: Session, customer_id: str | None = None, limit: int = 8
+) -> tuple[CodeCount, ...]:
+    """Most frequent failure codes over the latest run of every case (computed in Postgres)."""
+    latest = _latest_per_case(customer_id)
+    f = (
+        func.jsonb_array_elements(AuditLog.validation_failures.op("||")(AuditLog.match_failures))
+        .table_valued("value")
+        .render_derived(name="f")
+    )
+    code = f.c.value.op("->>")("code")
+    stmt = (
+        select(code.label("code"), func.count().label("n"))
+        .select_from(AuditLog)
+        .join(f, true())
+        .where(AuditLog.run_id.in_(select(latest.c.run_id)))
+        .group_by(code)
+        .order_by(func.count().desc(), code.asc())
+        .limit(limit)
+    )
+    return tuple(CodeCount(code=c, count=n) for c, n in session.execute(stmt).all())
 
 
 def count_by_route(
@@ -179,6 +273,8 @@ def find_prior_invoice_run(
     invoice_number: str,
     invoice_date: date | None,
     total: Decimal | None,
+    customer_id: str | None = None,
+    exclude_case_id: str | None = None,
 ) -> str | None:
     """Return the run_id of any prior run for the same invoice_number, or None.
 
@@ -192,9 +288,11 @@ def find_prior_invoice_run(
     """
     if not invoice_number:
         return None
-    stmt = (
-        select(AuditLog.run_id)
-        .where(AuditLog.invoice_number == invoice_number)
-        .limit(1)
-    )
-    return session.execute(stmt).scalar_one_or_none()
+    stmt = select(AuditLog.run_id).where(AuditLog.invoice_number == invoice_number)
+    # Another customer's supplier may use the same number: not a duplicate.
+    if customer_id is not None:
+        stmt = stmt.where(AuditLog.customer_id == customer_id)
+    # A reviewer's re-check of the same submission is not a resubmission.
+    if exclude_case_id is not None:
+        stmt = stmt.where(func.coalesce(AuditLog.case_id, AuditLog.run_id) != exclude_case_id)
+    return session.execute(stmt.order_by(AuditLog.run_timestamp.asc()).limit(1)).scalar_one_or_none()

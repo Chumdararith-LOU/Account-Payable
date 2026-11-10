@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TopBar from './components/TopBar';
+import { CustomerProvider } from './customer';
 import Dashboard from './pages/Dashboard';
 import UploadBatch from './pages/UploadBatch';
 import AuditTrail from './pages/AuditTrail';
+import ReviewQueue from './pages/ReviewQueue';
+import CaseReview from './pages/CaseReview';
 
 const queryClient = new QueryClient();
 
@@ -17,6 +20,7 @@ const tabs = [
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <CustomerProvider>
       <BrowserRouter>
         <div className="min-h-screen flex flex-col">
           <TopBar />
@@ -42,12 +46,14 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/upload" element={<UploadBatch />} />
-              <Route path="/review" element={<div className="p-4 text-gray-500">Review Queue Building...</div>} />
+              <Route path="/review" element={<ReviewQueue />} />
+              <Route path="/case/:runId" element={<CaseReview />} />
               <Route path="/audit" element={<AuditTrail />} />
             </Routes>
           </main>
         </div>
       </BrowserRouter>
+      </CustomerProvider>
     </QueryClientProvider>
   );
 }

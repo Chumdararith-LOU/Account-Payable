@@ -127,6 +127,8 @@ class AuditRepository:
                 invoice_number=entry.invoice_number,
                 customer_id=entry.customer_id,
                 extraction_source=entry.extraction_source,
+                case_id=entry.case_id,  # NULL = its own case (queries coalesce with run_id)
+                decided_by=entry.decided_by,
                 po_number=entry.po_number,
                 grn_number=entry.grn_number,
                 pard_ref=entry.pard_ref,
@@ -150,6 +152,8 @@ class AuditRepository:
             invoice_number=row.invoice_number,
             customer_id=row.customer_id,
             extraction_source=row.extraction_source,
+            case_id=row.case_id,
+            decided_by=row.decided_by,
             po_number=row.po_number,
             grn_number=row.grn_number,
             pard_ref=row.pard_ref,

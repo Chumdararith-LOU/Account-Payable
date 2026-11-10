@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { useCustomer } from '../customer';
 import { X, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 export default function AuditTrail() {
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const { customer } = useCustomer();
 
   // Fetch recent runs for the table
   const { data: recentRuns, isLoading } = useQuery({
-    queryKey: ['recentRuns'],
-    queryFn: () => api.get('/kpis/recent?limit=50').then(res => res.data),
+    queryKey: ['recentRuns', customer, 50],
+    queryFn: () => api.get('/kpis/recent', { params: { limit: 50, customer_id: customer } }).then(res => res.data),
     refetchInterval: 5000, // Auto-refresh every 5s
   });
 
@@ -97,6 +100,7 @@ export default function AuditTrail() {
                   <div className="mb-4">
                     <div className="text-[11px] text-gray-500 font-bold uppercase mb-1">Document</div>
                     <div className="font-mono text-lg font-bold text-navy">{runDetails.invoice_number}</div>
+                    <Link to={`/case/${runDetails.run_id}`} className="btn inline-block mt-2 no-underline">Open case</Link>
                     <div className="mt-2 text-[11px]">
                       <span className={`px-2 py-1 rounded border font-bold ${getRouteStyle(runDetails.route)}`}>
                         {runDetails.route}
@@ -107,7 +111,7 @@ export default function AuditTrail() {
                   <div className="mb-4">
                     <div className="text-[11px] text-gray-500 font-bold uppercase mb-1">Extraction Engine</div>
                     <div className="font-bold text-sm">
-                      {runDetails.extraction_source === 'vlm' ? '🤖 Qwen2.5-VL' : '⚠️ Heuristic OCR (Fallback)'}
+                      {{ vlm: 'Qwen2.5-VL', heuristic: 'Heuristic OCR (fallback)', mixed: 'Qwen2.5-VL + OCR fallback', reviewer: 'Corrected by a reviewer' }[runDetails.extraction_source as string] ?? runDetails.extraction_source}
                     </div>
                   </div>
 
@@ -125,6 +129,7 @@ export default function AuditTrail() {
                         {runDetails.validation_failures.map((f: any, i: number) => (
                           <li key={i} className="bg-red-50 border border-red-200 p-2 text-[11px]">
                             <b className="text-red-700">{f.code}</b> ({f.severity})<br/>
+                            {f.message && <span className="text-gray-800">{f.message}<br/></span>}
                             <span className="text-gray-600">Location: {f.location}</span>
                           </li>
                         ))}
@@ -141,6 +146,7 @@ export default function AuditTrail() {
                         {runDetails.match_failures.map((f: any, i: number) => (
                           <li key={i} className="bg-orange-50 border border-orange-200 p-2 text-[11px]">
                             <b className="text-orange-700">{f.code}</b> ({f.severity})<br/>
+                            {f.message && <span className="text-gray-800">{f.message}<br/></span>}
                             <span className="text-gray-600">Location: {f.location}</span><br/>
                             {f.expected && <span className="text-gray-600">Expected: {f.expected} | Actual: {f.actual}</span>}
                           </li>

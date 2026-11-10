@@ -60,7 +60,11 @@ def test_kpis_recent_limit(client_tx, api_session, test_api_key):
     assert resp.status_code == 200
     body = resp.json()
     assert len(body) == 2
-    assert all(set(r) == {"run_id", "run_timestamp", "invoice_number", "route", "route_reason", "score", "remark"} for r in body)
+    assert all(
+        set(r) == {"run_id", "run_timestamp", "invoice_number", "route", "route_reason", "score", "remark",
+                   "case_id", "customer_id", "decided_by"}
+        for r in body
+    )
 
 
 def test_kpis_routes_filtered_by_customer_id(client_tx, api_session, test_api_key):

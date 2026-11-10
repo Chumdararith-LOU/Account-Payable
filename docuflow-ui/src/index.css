@@ -22,3 +22,17 @@
     @apply border border-gray-400 bg-white text-[#222] px-1 py-0.5 shadow-inset-input focus:outline-none;
   }
 }
+
+/* Secondary button in the same Windows-7 family as .btn and the tabs. */
+@layer components {
+  .btn-plain {
+    @apply bg-win7-panel text-[#222] font-bold text-[12px] px-3 py-1.5 border border-gray-400 rounded-[3px] cursor-pointer shadow-retro-btn active:translate-y-[1px] active:shadow-none transition-all hover:bg-gray-200;
+  }
+  .btn:disabled, .btn-plain:disabled {
+    @apply opacity-60 cursor-not-allowed;
+  }
+  /* Classic greyed-out field, as Windows 7 shows a read-only text box. */
+  .input-retro:disabled {
+    @apply bg-[#f0f0f0] text-[#555] cursor-default;
+  }
+}

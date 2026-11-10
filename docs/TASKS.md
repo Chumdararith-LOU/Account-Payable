@@ -68,8 +68,10 @@
 | PROD-B4 | Cross-document checks, 5% tolerance, partial billing, case reconcile (D-113, D-114) | done | (PROD-B4) |
 | PROD-B5 | USD/KHR scope (drop Indian style), price-misread repair, PO-ref misread; usd-khr-120 batch (D-115) | done | (PROD-B5) |
 | PROD-B6 | Vendor tax ID, batch duplicate check, KHR conversion check; per-kind prompt versions (D-116) | done | (PROD-B6) |
+| UI-1 | Review workflow: review queue, case review (correct + re-check, approve/reject with note), case KPIs; frontend on the API (D-117) | done | (UI-1) |
 | PROD-B7 | Held-out accuracy check on unseen documents (real customer sample) | pending | |
 | PROD-B | Customer-scoped templates | pending | |
+| UI-2 | Per-user login (replace the shared browser API key; reviewer name on decisions); PDF upload | pending | |
 
 ## Deferred
 

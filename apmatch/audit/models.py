@@ -58,3 +58,7 @@ class AuditLog(Base):
     extraction_source: Mapped[str] = mapped_column(
         String(16), nullable=False, server_default="vlm"
     )
+    # Review workflow: all runs of one submission share case_id (the first
+    # run's run_id); decided_by is "system" or "reviewer".
+    case_id: Mapped[str | None] = mapped_column(String(32), index=True)
+    decided_by: Mapped[str] = mapped_column(String(16), nullable=False, server_default="system")

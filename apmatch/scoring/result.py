@@ -34,6 +34,10 @@ class RouteReason(str, Enum):
     LOW_OVERALL_SCORE = "LOW_OVERALL_SCORE"
     UNREADABLE_FIELD = "UNREADABLE_FIELD"  # a required field could not be read (D-110)
 
+    # reviewer decisions (review workflow): a person decided, not the rules
+    REVIEWER_APPROVED = "REVIEWER_APPROVED"
+    REVIEWER_REJECTED = "REVIEWER_REJECTED"
+
 
 @dataclass(frozen=True)
 class ConfidenceScore:

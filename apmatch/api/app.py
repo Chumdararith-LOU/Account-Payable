@@ -21,7 +21,7 @@ import shutil
 import tempfile
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -34,21 +34,36 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from apmatch.api import config
-from apmatch.api.pipeline import run_pipeline
+from apmatch.api.pipeline import recheck_documents, run_pipeline
 from apmatch.api.schemas import (
     AuditResponse,
+    CodeCountOut,
+    DecisionRequest,
     ErrorResponse,
     FailureOut,
     HealthResponse,
     MatchResponse,
     RecentRunOut,
+    RecheckRequest,
     RouteCountsOut,
     SimilarityMatchOut,
     TemplatesOut,
 )
 from apmatch.audit.entry import AuditEntry
-from apmatch.audit.kpis import count_by_route, recent_runs
+from apmatch.audit.kpis import (
+    case_history,
+    count_by_route,
+    count_cases_by_route,
+    failure_code_counts,
+    list_customers,
+    recent_runs,
+    review_queue,
+)
 from apmatch.audit.repository import AuditEntryNotFound, AuditRepository
+from apmatch.matching.result import MatchFailure
+from apmatch.remarks.matching import remark_for_match
+from apmatch.remarks.templates import remark_for
+from apmatch.scoring.result import Route, RouteReason
 
 logging.basicConfig(level=config.APMATCH_LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("apmatch.api")
@@ -145,6 +160,13 @@ def _suffix_for(upload: UploadFile) -> str:
     return suffix if suffix in _IMAGE_SUFFIXES else ".png"
 
 
+def _failure_message(failure) -> str:
+    try:
+        return remark_for_match(failure) if isinstance(failure, MatchFailure) else remark_for(failure)
+    except Exception:  # a message is a convenience; never fail the response for it
+        return ""
+
+
 def _failure_out(failure) -> FailureOut:
     return FailureOut(
         code=failure.code.value,
@@ -153,6 +175,22 @@ def _failure_out(failure) -> FailureOut:
         expected=failure.expected,
         actual=failure.actual,
         delta=failure.delta,
+        message=_failure_message(failure),
+    )
+
+
+def _recent_out(r) -> RecentRunOut:
+    return RecentRunOut(
+        run_id=r.run_id,
+        run_timestamp=r.run_timestamp,
+        invoice_number=r.invoice_number,
+        route=r.route.value,
+        route_reason=r.route_reason.value,
+        score=float(r.score_value),
+        remark=r.remark,
+        case_id=r.case_id,
+        customer_id=r.customer_id,
+        decided_by=r.decided_by,
     )
 
 
@@ -304,13 +342,30 @@ def get_audit(run_id: str, session: Session = Depends(get_session)) -> AuditResp
         entry = AuditRepository.get(session, run_id)
     except AuditEntryNotFound:
         raise ApiError(404, "AUDIT_NOT_FOUND", "No audit entry with that run_id")
-    return _audit_response(entry)
+    return _audit_response(entry, session)
 
 
-def _audit_response(entry: AuditEntry) -> AuditResponse:
+def _read_sidecar(run_id: str) -> dict | None:
+    sidecar = _storage_dir() / "runs" / f"{run_id}.json"
+    return json.loads(sidecar.read_text(encoding="utf-8")) if sidecar.is_file() else None
+
+
+def _write_sidecar(run_id: str, extracted: dict | None) -> None:
+    if extracted is None:
+        return
+    try:
+        runs_dir = _storage_dir() / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+        (runs_dir / f"{run_id}.json").write_text(json.dumps(extracted, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        logger.warning("could not write sidecar for %s", run_id, exc_info=True)
+
+
+def _audit_response(entry: AuditEntry, session: Session | None = None) -> AuditResponse:
     # Extraction sidecar written by /match; absent for older runs.
-    sidecar = _storage_dir() / "runs" / f"{entry.run_id}.json"
-    extracted = json.loads(sidecar.read_text(encoding="utf-8")) if sidecar.is_file() else None
+    extracted = _read_sidecar(entry.run_id)
+    case_id = entry.case_id or entry.run_id
+    history = [_recent_out(r) for r in case_history(session, case_id)] if session is not None else []
     return AuditResponse(
         run_id=entry.run_id,
         run_timestamp=entry.run_timestamp,
@@ -329,15 +384,26 @@ def _audit_response(entry: AuditEntry) -> AuditResponse:
         customer_id=entry.customer_id,
         extraction_source=entry.extraction_source,
         extracted=extracted,
+        case_id=case_id,
+        decided_by=entry.decided_by,
+        history=history,
     )
 
 
 @app.get("/documents/{run_id}/{name}/image", dependencies=[Depends(require_api_key)])
-def document_image(run_id: str, name: str) -> FileResponse:
-    """The uploaded scan for one run, for the review UI's image viewer."""
+def document_image(run_id: str, name: str, session: Session = Depends(get_session)) -> FileResponse:
+    """The uploaded scan for one run, for the review UI's image viewer.
+
+    Corrections and reviewer decisions have no uploads of their own: their
+    images are the case's original ones (stored under the case_id).
+    """
     if not _RUN_ID_RE.fullmatch(run_id) or name not in _DOC_NAMES:
         raise ApiError(404, "DOCUMENT_NOT_FOUND", "No document image with that id")
-    for path in (_storage_dir() / "images").glob(f"{run_id}_{name}.*"):
+    try:
+        stem = AuditRepository.get(session, run_id).case_id or run_id
+    except AuditEntryNotFound:
+        stem = run_id
+    for path in (_storage_dir() / "images").glob(f"{stem}_{name}.*"):
         media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         return FileResponse(path, media_type=media_type)
     raise ApiError(404, "DOCUMENT_NOT_FOUND", "No document image with that id")
@@ -371,18 +437,126 @@ def kpis_recent(
     customer_id: str | None = None,
     session: Session = Depends(get_session),
 ) -> list[RecentRunOut]:
-    return [
-        RecentRunOut(
-            run_id=r.run_id,
-            run_timestamp=r.run_timestamp,
-            invoice_number=r.invoice_number,
-            route=r.route.value,
-            route_reason=r.route_reason.value,
-            score=float(r.score_value),
-            remark=r.remark,
+    return [_recent_out(r) for r in recent_runs(session, limit, customer_id)]
+
+
+# --- Review workflow -------------------------------------------------------
+# Corrections and reviewer decisions are NEW audit rows with the same case_id:
+# the log stays append-only and every step of a case is kept.
+
+
+def _load_entry(session: Session, run_id: str) -> AuditEntry:
+    if not _RUN_ID_RE.fullmatch(run_id):
+        raise ApiError(404, "AUDIT_NOT_FOUND", "No audit entry with that run_id")
+    try:
+        return AuditRepository.get(session, run_id)
+    except AuditEntryNotFound:
+        raise ApiError(404, "AUDIT_NOT_FOUND", "No audit entry with that run_id") from None
+
+
+def _require_open_case(session: Session, entry: AuditEntry) -> str:
+    """A reviewer may act only on the newest step of a case that is still open.
+
+    Open means the newest step is HUMAN_REVIEW, or a REJECT made by the system
+    (a misread can be corrected). Anything approved, or decided by a reviewer,
+    is final: acting again would let one invoice be approved twice.
+    """
+    case_id = entry.case_id or entry.run_id
+    history = case_history(session, case_id)
+    if history and history[-1].run_id != entry.run_id:
+        raise ApiError(409, "STALE_RUN", "This is not the newest step of the case")
+    closed = entry.route is Route.AUTO_APPROVE or entry.decided_by == "reviewer"
+    if closed:
+        raise ApiError(409, "CASE_CLOSED", "This case already has a final decision")
+    return case_id
+
+
+@app.post("/runs/{run_id}/recheck", response_model=AuditResponse, dependencies=[Depends(require_api_key)])
+def recheck_run(
+    run_id: str, body: RecheckRequest, request: Request, session: Session = Depends(get_session)
+) -> AuditResponse:
+    """Re-decide a case from the documents a reviewer corrected. No OCR, no VLM."""
+    original = _load_entry(session, run_id)
+    case_id = _require_open_case(session, original)
+    try:
+        _, _, _, entry, extracted = recheck_documents(
+            body.documents,
+            customer_id=original.customer_id,
+            case_id=case_id,
+            session=session,
+            embedding_model=getattr(request.app.state, "embedding_model", None),
         )
-        for r in recent_runs(session, limit, customer_id)
-    ]
+    except (ValueError, TypeError, ArithmeticError, KeyError):
+        raise ApiError(400, "INVALID_DOCUMENT", "A corrected value could not be read") from None
+    AuditRepository.append(session, entry)
+    session.commit()
+    _write_sidecar(entry.run_id, extracted)
+    logger.info("recheck case=%s run_id=%s route=%s", case_id, entry.run_id, entry.route.value)
+    return _audit_response(entry, session)
+
+
+@app.post("/runs/{run_id}/decision", response_model=AuditResponse, dependencies=[Depends(require_api_key)])
+def decide_run(run_id: str, body: DecisionRequest, session: Session = Depends(get_session)) -> AuditResponse:
+    """Record a reviewer's final decision (approve / reject) with a note."""
+    original = _load_entry(session, run_id)
+    case_id = _require_open_case(session, original)
+    approve = body.decision == "approve"
+    entry = AuditEntry(
+        run_id=uuid4().hex,
+        run_timestamp=datetime.now(UTC),
+        invoice_number=original.invoice_number,
+        po_number=original.po_number,
+        grn_number=original.grn_number,
+        pard_ref=original.pard_ref,
+        route=Route.AUTO_APPROVE if approve else Route.REJECT,
+        route_reason=RouteReason.REVIEWER_APPROVED if approve else RouteReason.REVIEWER_REJECTED,
+        score_value=original.score_value,
+        remark=f"Reviewer {'approved' if approve else 'rejected'}: {body.note.strip()}"[:1024],
+        validation_failures=original.validation_failures,
+        match_failures=original.match_failures,
+        input_hash=original.input_hash,
+        similarity_matches=original.similarity_matches,
+        customer_id=original.customer_id,
+        extraction_source=original.extraction_source,
+        case_id=case_id,
+        decided_by="reviewer",
+    )
+    AuditRepository.append(session, entry)
+    session.commit()
+    _write_sidecar(entry.run_id, _read_sidecar(original.run_id))
+    logger.info("decision case=%s run_id=%s route=%s", entry.case_id, entry.run_id, entry.route.value)
+    return _audit_response(entry, session)
+
+
+@app.get("/review-queue", response_model=list[RecentRunOut], dependencies=[Depends(require_api_key)])
+def get_review_queue(
+    customer_id: str | None = None, limit: int = 200, session: Session = Depends(get_session)
+) -> list[RecentRunOut]:
+    """Cases waiting for a person: latest run is HUMAN_REVIEW, oldest first."""
+    if not 1 <= limit <= 500:
+        raise ApiError(400, "INVALID_LIMIT", "limit must be between 1 and 500")
+    return [_recent_out(r) for r in review_queue(session, customer_id, limit)]
+
+
+@app.get("/kpis/cases", response_model=RouteCountsOut, dependencies=[Depends(require_api_key)])
+def kpis_cases(customer_id: str | None = None, session: Session = Depends(get_session)) -> RouteCountsOut:
+    """Route counts per CASE (latest run of each submission)."""
+    c = count_cases_by_route(session, customer_id)
+    return RouteCountsOut(auto_approve=c.auto_approve, human_review=c.human_review, reject=c.reject, total=c.total)
+
+
+@app.get("/kpis/failure-codes", response_model=list[CodeCountOut], dependencies=[Depends(require_api_key)])
+def kpis_failure_codes(
+    customer_id: str | None = None, limit: int = 8, session: Session = Depends(get_session)
+) -> list[CodeCountOut]:
+    if not 1 <= limit <= 50:
+        raise ApiError(400, "INVALID_LIMIT", "limit must be between 1 and 50")
+    return [CodeCountOut(code=c.code, count=c.count) for c in failure_code_counts(session, customer_id, limit)]
+
+
+@app.get("/customers", response_model=list[str], dependencies=[Depends(require_api_key)])
+def get_customers(session: Session = Depends(get_session)) -> list[str]:
+    return list(list_customers(session))
 
 
 # Browser frontend (static/index.html), served same-origin at / so the UI

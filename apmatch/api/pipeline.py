@@ -225,6 +225,85 @@ def check_duplicate(invoice, seen: dict, run_id: str):
     return invoice
 
 
+def build_audit_entry(
+    invoice, po, grni, pard, validation, match, decision, *,
+    run_id: str, customer_id: str, extraction_source: str,
+    case_id: str | None = None, decided_by: str = "system",
+) -> AuditEntry:
+    # Reviewer-facing remark rule (D-052): for a MATCH outcome the validation
+    # summary is what the reviewer needs; for non-MATCH the match summary
+    # explains the discrepancy.
+    remark = summarize(validation) if match.outcome is Outcome.MATCH else summarize_match(match)
+    return AuditEntry(
+        run_id=run_id,
+        run_timestamp=datetime.now(timezone.utc),
+        invoice_number=invoice.invoice_number,
+        po_number=po.po_number if po else None,
+        grn_number=grni.grn_number if grni else None,
+        pard_ref=pard.pard_number if pard else None,
+        route=decision.route,
+        route_reason=decision.reason,
+        score_value=Decimal(str(decision.score.value)).quantize(Decimal("0.0001")),
+        remark=remark,
+        validation_failures=validation.checks_failed,
+        match_failures=match.failures,
+        input_hash=compute_input_hash(invoice, po, grni, pard),
+        similarity_matches=match.similarity_matches,
+        customer_id=customer_id,
+        extraction_source=extraction_source,
+        case_id=case_id,
+        decided_by=decided_by,
+    )
+
+
+def recheck_documents(
+    documents: dict,
+    *,
+    customer_id: str,
+    case_id: str,
+    session=None,
+    embedding_model=None,
+):
+    """Re-decide a case from documents a reviewer corrected (review workflow).
+
+    The reviewer's values are authoritative: only missing values are derived
+    and a missing invoice currency is filled from the PO / payment advice; no
+    date or price "repairs" are applied over what a person typed. The rules
+    then decide exactly as for a fresh submission. The duplicate check
+    ignores earlier runs of the same case. Returns the same 5-tuple as
+    run_pipeline; the caller appends the audit entry.
+    """
+    from apmatch.parse.reconcile import fill_currency
+    from apmatch.schema.serialize import DOC_KEYS, document_from_dict
+
+    docs = {k: derive(document_from_dict(k, documents.get(k))) for k in DOC_KEYS}
+    if docs["invoice"] is None:
+        raise ValueError("invoice is required")
+    docs = fill_currency(docs)
+    invoice, po, grni, pard = (docs[k] for k in DOC_KEYS)
+    if session is not None and invoice.invoice_number:
+        from apmatch.audit.kpis import find_prior_invoice_run
+
+        prior = find_prior_invoice_run(
+            session,
+            vendor_tax_id=invoice.vendor_tax_id,
+            invoice_number=invoice.invoice_number,
+            invoice_date=invoice.invoice_date,
+            total=invoice.total,
+            customer_id=customer_id,
+            exclude_case_id=case_id,
+        )
+        invoice = replace(invoice, duplicate_of_run_id=prior)
+    validation, match, decision = decide_documents(invoice, po, grni, pard, embedding_model)
+    entry = build_audit_entry(
+        invoice, po, grni, pard, validation, match, decision,
+        run_id=uuid4().hex, customer_id=customer_id, extraction_source="reviewer", case_id=case_id,
+    )
+    extracted = canonical_documents(invoice, po, grni, pard)
+    extracted["_extraction"] = {k: ({"source": "reviewer"} if docs[k] is not None else None) for k in DOC_KEYS}
+    return match, validation, decision, entry, extracted
+
+
 def decide_documents(invoice, po, grni, pard, embedding_model=None):
     """The deterministic half of the pipeline: validate -> match -> route.
 
@@ -312,6 +391,7 @@ def run_pipeline(
             invoice_number=invoice.invoice_number,
             invoice_date=invoice.invoice_date,
             total=invoice.total,
+            customer_id=customer_id,
         )
         if prior is not None:
             invoice = replace(invoice, duplicate_of_run_id=prior)
@@ -321,30 +401,9 @@ def run_pipeline(
         invoice = check_duplicate(invoice, seen_invoices, run_id)
 
     validation, match, decision = decide_documents(invoice, po, grni, pard, embedding_model)
-
-    # Reviewer-facing remark rule (D-052): for a MATCH outcome the
-    # validation summary is what the reviewer needs (the match is clean);
-    # for non-MATCH the match summary explains the discrepancy. The two
-    # remark modules (templates.py, matching.py) remain independent.
-    remark = summarize(validation) if match.outcome is Outcome.MATCH else summarize_match(match)
-
-    audit_entry = AuditEntry(
-        run_id=run_id,
-        run_timestamp=datetime.now(timezone.utc),
-        invoice_number=invoice.invoice_number,
-        po_number=po.po_number if po else None,
-        grn_number=grni.grn_number if grni else None,
-        pard_ref=pard.pard_number if pard else None,
-        route=decision.route,
-        route_reason=decision.reason,
-        score_value=Decimal(str(decision.score.value)).quantize(Decimal("0.0001")),
-        remark=remark,
-        validation_failures=validation.checks_failed,
-        match_failures=match.failures,
-        input_hash=compute_input_hash(invoice, po, grni, pard),
-        similarity_matches=match.similarity_matches,
-        customer_id=customer_id,
-        extraction_source=_summarize_sources(infos),
+    audit_entry = build_audit_entry(
+        invoice, po, grni, pard, validation, match, decision,
+        run_id=run_id, customer_id=customer_id, extraction_source=_summarize_sources(infos),
     )
     extracted = canonical_documents(invoice, po, grni, pard)
     extracted["_extraction"] = infos

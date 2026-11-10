@@ -1,6 +1,11 @@
 import { useState, useRef } from 'react';
-import { UploadCloud, CheckCircle, AlertCircle, FileText, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { UploadCloud, CheckCircle, AlertCircle, FileText, Loader2, FolderOpen } from 'lucide-react';
 import api from '../api/client';
+import { reasonLabel } from '../api/types';
+import RouteChip from '../components/RouteChip';
+import { useCustomer } from '../customer';
 
 type DocType = 'inv' | 'po' | 'grn' | 'pard';
 
@@ -12,49 +17,45 @@ interface FileSet {
 }
 
 export default function UploadBatch() {
+  const { customer } = useCustomer();
+  const queryClient = useQueryClient();
   const [sets, setSets] = useState<FileSet[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const processFiles = (files: File[]) => {
-    // If they select 4 files at once, assume it's one complete set.
-    if (files.length === 4) {
-      const newSet: FileSet = { id: `CASE-${Math.floor(Math.random() * 10000)}`, files: {}, status: 'pending' };
-
-      files.forEach(file => {
-        const name = file.name.toUpperCase();
-        if (name.includes('INV')) newSet.files.inv = file;
-        else if (name.includes('PO')) newSet.files.po = file;
-        else if (name.includes('GRN')) newSet.files.grn = file;
-        else if (name.includes('PARD')) newSet.files.pard = file;
-      });
-
-      setSets(prev => [...prev, newSet]);
-      return;
-    }
-
-    // Otherwise, fallback to the old filename regex grouping
-    const newSets: FileSet[] = [];
-    files.forEach((file) => {
-      const name = file.name.toUpperCase();
-      let type: DocType | null = null;
-      if (name.includes('INV')) type = 'inv';
-      else if (name.includes('PO')) type = 'po';
-      else if (name.includes('GRN')) type = 'grn';
-      else if (name.includes('PARD')) type = 'pard';
-
-      const match = file.name.match(/[_-]([a-zA-Z0-9-]+)\./);
-      const refId = match ? match[1] : file.name;
-
-      let existingSet = newSets.find(s => s.id === refId);
-      if (!existingSet) {
-        existingSet = { id: refId, files: {}, status: 'pending' };
-        newSets.push(existingSet);
+    const groups = new Map<string, FileSet>();
+    const groupFor = (key: string) => {
+      let set = groups.get(key);
+      if (!set) {
+        set = { id: key, files: {}, status: 'pending' };
+        groups.set(key, set);
       }
-      if (type) existingSet.files[type] = file;
+      return set;
+    };
+
+    files.forEach((file) => {
+      const type = docTypeOf(file.name);
+      if (!type) return; // not an INV / PO / GRN / PARD file (e.g. labels.csv)
+      // A folder upload ("CASE-0001/INV_....jpg") groups by folder: one folder = one case.
+      const path = (file as File & { webkitRelativePath?: string }).webkitRelativePath || '';
+      const parts = path.split('/').filter(Boolean);
+      let key: string;
+      if (parts.length >= 2) {
+        key = parts[parts.length - 2];
+      } else if (files.length <= 4) {
+        key = 'SET-1'; // up to four loose files: one case
+      } else {
+        // Loose files: group on the number after the prefix ("INV-123.pdf" + "PO-123.png").
+        const m = file.name.match(/^[A-Za-z]+[_-]+(.+?)\.[^.]+$/);
+        key = m ? m[1] : file.name;
+      }
+      groupFor(key).files[type] = file;
     });
 
-    setSets(prev => [...prev, ...newSets]);
+    const newSets = Array.from(groups.values()).sort((x, y) => x.id.localeCompare(y.id));
+    setSets((prev) => [...prev, ...newSets]);
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -96,7 +97,7 @@ export default function UploadBatch() {
         if (set.files.grn) formData.append('grni', set.files.grn);
         if (set.files.pard) formData.append('pard', set.files.pard);
 
-        const res = await api.post(`/match?customer_id=default`, formData);
+        const res = await api.post('/match', formData, { params: { customer_id: customer } });
         updatedSets[i] = { ...updatedSets[i], status: 'success', result: res.data };
       } catch (err: any) {
         console.error(err);
@@ -105,6 +106,7 @@ export default function UploadBatch() {
       setSets([...updatedSets]);
     }
     setIsProcessing(false);
+    queryClient.invalidateQueries();
   };
 
   return (
@@ -131,15 +133,30 @@ export default function UploadBatch() {
                   className="hidden"
                   ref={fileInputRef}
                   onChange={onFileChange}
-                  accept="image/*,.pdf"
+                  accept="image/*"
                 />
+              </div>
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                ref={folderInputRef}
+                onChange={onFileChange}
+                {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
+              />
+              <div className="mt-3 flex items-center justify-between">
+                <button className="btn-plain flex items-center gap-1" onClick={() => folderInputRef.current?.click()}>
+                  <FolderOpen size={14} /> Choose Folder…
+                </button>
+                <span className="text-[11px] text-gray-600">Customer: <b className="text-navy">{customer}</b></span>
               </div>
               <div className="mt-3 text-[11px] text-gray-600">
                 <p className="font-bold mb-1">Grouping Rules:</p>
                 <ul className="list-disc pl-4 space-y-1">
-                  <li>Files must start with <code className="bg-gray-200 px-1">INV-</code>, <code className="bg-gray-200 px-1">PO-</code>, etc.</li>
-                  <li>Matching numbers will be grouped automatically.</li>
-                  <li>Example: <code className="bg-gray-200 px-1">INV-123.pdf</code> and <code className="bg-gray-200 px-1">PO-123.png</code> will form one set.</li>
+                  <li>File names start with <code className="bg-gray-200 px-1">INV</code>, <code className="bg-gray-200 px-1">PO</code>, <code className="bg-gray-200 px-1">GRN</code> or <code className="bg-gray-200 px-1">PARD</code>.</li>
+                  <li>Choosing a folder: every sub-folder is one case (e.g. <code className="bg-gray-200 px-1">CASE-0001/</code>).</li>
+                  <li>Up to four loose files form one case; more are grouped by the number in the name (<code className="bg-gray-200 px-1">INV-123.png</code> + <code className="bg-gray-200 px-1">PO-123.png</code>).</li>
+                  <li>Images only (PNG, JPG). PDF support is coming.</li>
                 </ul>
               </div>
             </div>
@@ -203,7 +220,13 @@ export default function UploadBatch() {
                         <td className="p-2 text-center">
                           {set.status === 'pending' && <span className="text-gray-500 font-bold">Ready</span>}
                           {set.status === 'processing' && <span className="text-warning font-bold flex items-center justify-center gap-1"><Loader2 size={12} className="animate-spin"/> OCR...</span>}
-                          {set.status === 'success' && <span className="text-success font-bold flex items-center justify-center gap-1"><CheckCircle size={12}/> {set.result?.route}</span>}
+                          {set.status === 'success' && (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="flex items-center gap-1"><CheckCircle size={12} className="text-success"/> <RouteChip route={set.result?.route} /></span>
+                              <span className="text-[10px] text-gray-600">{reasonLabel(set.result?.route_reason)}</span>
+                              <Link to={`/case/${set.result?.run_id}`} className="text-[10px] text-blue-600 hover:underline">Open case</Link>
+                            </div>
+                          )}
                           {set.status === 'error' && (
                             <span className="text-danger font-bold flex items-center justify-center gap-1 text-[10px]" title={set.result?.route}>
                               <AlertCircle size={12}/> {set.result?.route || 'Failed'}
@@ -221,6 +244,16 @@ export default function UploadBatch() {
       </div>
     </div>
   );
+}
+
+// INV_..., PO_..., GRN_... / RCV_..., PARD_... / PAY_... (the prefix decides the type).
+function docTypeOf(fileName: string): DocType | null {
+  const name = fileName.toUpperCase();
+  if (name.startsWith('INV')) return 'inv';
+  if (name.startsWith('PARD') || name.startsWith('PAY')) return 'pard';
+  if (name.startsWith('PO')) return 'po';
+  if (name.startsWith('GRN') || name.startsWith('RCV')) return 'grn';
+  return null;
 }
 
 // Small helper component for the table

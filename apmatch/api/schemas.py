@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
@@ -26,6 +26,8 @@ class FailureOut(BaseModel):
     expected: str
     actual: str
     delta: str
+    # Plain-language explanation for reviewers (from the remark templates).
+    message: str = ""
 
 
 class SimilarityMatchOut(BaseModel):
@@ -85,6 +87,11 @@ class AuditResponse(BaseModel):
     # Canonical extracted documents (invoice/po/grni/pard) for the review UI.
     # None for runs made before extraction persistence existed.
     extracted: dict | None = None
+    # Review workflow: the submission this run belongs to, who decided, and
+    # every run of the case (oldest first).
+    case_id: str | None = None
+    decided_by: str = "system"
+    history: list[RecentRunOut] = []
 
 
 class TemplatesOut(BaseModel):
@@ -106,8 +113,31 @@ class RecentRunOut(BaseModel):
     route_reason: str
     score: float
     remark: str
+    case_id: str | None = None
+    customer_id: str = "default"
+    decided_by: str = "system"
+
+
+class CodeCountOut(BaseModel):
+    code: str
+    count: int
+
+
+class RecheckRequest(BaseModel):
+    # Canonical documents (same shape as AuditResponse.extracted) as corrected
+    # by the reviewer: {"invoice": {...}, "po": {...}|null, "grni": ..., "pard": ...}.
+    documents: dict
+
+
+class DecisionRequest(BaseModel):
+    decision: Literal["approve", "reject"]
+    note: str = Field(min_length=1, max_length=500)
 
 
 class ErrorResponse(BaseModel):
     error_code: str  # e.g. "AUTH_MISSING", "MISSING_DOCUMENT"
     detail: str  # human-readable, but never contains user data
+
+
+# AuditResponse refers to RecentRunOut, defined after it.
+AuditResponse.model_rebuild()
