@@ -53,6 +53,7 @@ from apmatch.matching.config import (
     AMOUNT_TOLERANCE_REL,
     MATCH_CODE_WEIGHTS,
     QTY_TOLERANCE_ABS,
+    SUPPORTED_CURRENCIES,
     TAX_RATE_MAX,
     TAX_RATE_MIN,
     TAX_TOLERANCE_ABS,
@@ -228,6 +229,19 @@ class MatchingEngine:
                 )
             )
         pard_cur = normalize_currency(pard.currency or "")
+        # Only USD and KHR are processed (D-115); anything else goes to a human.
+        for where, cur in (("invoice", inv_cur), ("PO", po_cur), ("payment advice", pard_cur)):
+            if cur and cur not in SUPPORTED_CURRENCIES:
+                failures.append(
+                    MatchFailure(
+                        MatchCode.CURRENCY_UNSUPPORTED,
+                        Severity.WARNING,
+                        where,
+                        "USD or KHR",
+                        cur,
+                        "",
+                    )
+                )
         if inv_cur and pard_cur and inv_cur != pard_cur:
             failures.append(
                 MatchFailure(
@@ -404,7 +418,7 @@ class MatchingEngine:
         # 4c. The invoice must cite the PO it is matched against.
         if po.po_number:
             cited = invoice.po_number
-            if not cited or _ref_key(cited) != _ref_key(po.po_number):
+            if not cited or not _refs_agree(cited, po.po_number, invoice, po):
                 failures.append(
                     MatchFailure(
                         MatchCode.PO_REFERENCE_MISMATCH,
@@ -542,6 +556,13 @@ def _names_close(a: str, b: str) -> bool:
     return difflib.SequenceMatcher(None, ca, cb).ratio() >= _CLOSE_NAME_MIN
 
 
+def names_close(a: str, b: str, *, exact_ok: bool = False) -> bool:
+    """Public: the same item (exactly, if ``exact_ok``, or closely named)."""
+    if exact_ok and normalize_text(a) == normalize_text(b):
+        return True
+    return _names_close(a, b)
+
+
 def _find_close_line(
     lines: tuple[LineItem, ...], inv_line: LineItem, *, against_po: bool
 ) -> LineItem | None:
@@ -572,6 +593,21 @@ def _find_close_line(
 def _ref_key(number: str) -> str:
     """Document number for comparison: letters and digits only, uppercased."""
     return _NON_ALNUM_RE.sub("", normalize_number_text(number))
+
+
+def _refs_agree(cited: str, po_number: str, invoice: Invoice, po: PurchaseOrder) -> bool:
+    """Same PO reference. One differing character ("3878" vs "3876") is taken
+    as a misread only when the invoice total equals the PO total to the cent."""
+    a, b = _ref_key(cited), _ref_key(po_number)
+    if a == b:
+        return True
+    one_off = len(a) == len(b) and sum(x != y for x, y in zip(a, b, strict=True)) == 1
+    return (
+        one_off
+        and invoice.total is not None
+        and po.total is not None
+        and abs(invoice.total - po.total) <= TOTAL_TOLERANCE
+    )
 
 
 def _line_value(line: LineItem) -> Decimal | None:

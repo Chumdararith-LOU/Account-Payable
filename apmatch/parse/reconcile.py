@@ -14,6 +14,13 @@ overrides a value the document states unambiguously.
    tightest overall span, then the reading the extractor already chose.
    Unambiguous dates are never changed, so a real chronology problem printed
    unambiguously is still caught by the matching engine.
+
+3. Misread unit price. When an invoice line's qty x price does not give its
+   amount, but amount / qty equals the price of the same item on the PO AND
+   differs from the price read by exactly one digit ("12.80" vs "13.80"),
+   the price was misread: use amount / qty. A real pricing error (price as
+   on the PO, amount wrong) is never "repaired", because then amount / qty
+   does not equal the PO price.
 """
 
 from __future__ import annotations
@@ -21,6 +28,9 @@ from __future__ import annotations
 import itertools
 from dataclasses import replace
 from datetime import date
+from decimal import Decimal
+
+from apmatch.schema.coercion import to_unit_price
 
 # Business order of the four documents, and the date field of each.
 _ORDER = ("po", "grni", "invoice", "pard")
@@ -84,7 +94,42 @@ def fill_currency(docs: dict) -> dict:
     return dict(docs, invoice=replace(inv, currency="USD"))
 
 
+def _one_digit_apart(a: Decimal, b: Decimal) -> bool:
+    sa, sb = f"{a:.2f}", f"{b:.2f}"
+    return len(sa) == len(sb) and sum(x != y for x, y in zip(sa, sb, strict=True)) == 1
+
+
+def repair_misread_prices(docs: dict) -> dict:
+    inv, po = docs.get("invoice"), docs.get("po")
+    if inv is None or po is None:
+        return docs
+    from apmatch.matching.engine import (
+        names_close,  # local: keep parse -> matching one-way at import
+    )
+
+    cent = Decimal("0.01")
+    changed = False
+    lines = []
+    for li in inv.line_items:
+        q, p, a = li.quantity, li.unit_price, li.amount
+        if q and p is not None and a is not None and abs(q * p - a) > cent:
+            implied = to_unit_price(a / q)
+            for pl in po.line_items:
+                if (
+                    pl.unit_price is not None
+                    and abs(pl.unit_price - implied) <= cent
+                    and _one_digit_apart(p, pl.unit_price)
+                    and names_close(li.description, pl.description, exact_ok=True)
+                ):
+                    li = replace(li, unit_price=implied)
+                    changed = True
+                    break
+        lines.append(li)
+    return dict(docs, invoice=replace(inv, line_items=tuple(lines))) if changed else docs
+
+
 def reconcile(docs: dict, date_candidates: dict[str, list[date]] | None = None) -> dict:
     """Apply all case-level rules. ``docs`` maps invoice/po/grni/pard to documents."""
     docs = fill_currency(docs)
+    docs = repair_misread_prices(docs)
     return resolve_dates(docs, date_candidates)

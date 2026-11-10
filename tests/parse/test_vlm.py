@@ -221,7 +221,7 @@ def test_currency_from_text():
     assert vlm.currency_from_text(None, "1,036,000 KHR") == "KHR"
     assert vlm.currency_from_text("៛") == "KHR"
     assert vlm.currency_from_text(None, "$12.00") == "USD"
-    assert vlm.currency_from_text("Rs. 500") == "INR"
+    assert vlm.currency_from_text("₹500") is None  # rupee not supported (D-115)
     assert vlm.currency_from_text(None, None) is None
 
 

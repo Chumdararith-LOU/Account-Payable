@@ -58,7 +58,7 @@ class VendorSpec(FieldSpec):
 class CurrencySpec(FieldSpec):
     """Currency extraction: a symbol/code map plus the ISO-token fallback.
 
-    symbol_map: (token, code) pairs, e.g. (("$", "USD"), ("₹", "INR")).
+    symbol_map: (token, code) pairs, e.g. (("$", "USD"), ("៛", "KHR")).
         Matched in source order; the first token found in any block wins.
         Empty = fall straight through to the ISO 4217 token detector.
     default: currency code to assume when NO marker is found at all.

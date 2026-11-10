@@ -101,7 +101,7 @@ def test_khr_tax_tolerance_is_whole_riel():
 def test_invoice_without_po_reference_goes_to_review():
     r = _std(po_ref=None)
     assert MatchCode.PO_REFERENCE_MISMATCH in _codes(r)
-    r2 = _std(po_ref="PO-9")
+    r2 = _std(po_ref="PO-77")
     assert MatchCode.PO_REFERENCE_MISMATCH in _codes(r2)
     r3 = _std(po_ref="po 1")  # same reference, different punctuation/case
     assert MatchCode.PO_REFERENCE_MISMATCH not in _codes(r3)
@@ -127,3 +127,18 @@ def test_close_names_match_only_when_numbers_agree():
     r2 = _case([_l(1, "Office Chair Mat", "10", "60.00")], [_l(1, *CHAIR)],
                [_l(1, "Office Chair", "10")], tax="60.00")
     assert MatchCode.NO_MATCHING_PO_LINE in _codes(r2)
+
+
+def test_one_character_po_reference_misread_tolerated_only_when_totals_agree():
+    # Same money as the PO: "PO-2" is a misread of "PO-1".
+    assert MatchCode.PO_REFERENCE_MISMATCH not in _codes(_std(po_ref="PO-2"))
+    # Different money: a one-character difference is still a mismatch.
+    r = _std(po_ref="PO-2", po_total="999.00")
+    assert MatchCode.PO_REFERENCE_MISMATCH in _codes(r)
+
+
+def test_unsupported_currency_is_never_auto_approved():
+    r = _std(currency="INR")
+    assert MatchCode.CURRENCY_UNSUPPORTED in _codes(r)
+    assert r.outcome is Outcome.DISCREPANCY
+    assert MatchCode.CURRENCY_UNSUPPORTED not in _codes(_std(currency="KHR"))

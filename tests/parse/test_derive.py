@@ -74,3 +74,4 @@ def test_derive_po_total_and_passthrough():
     grni = GRNI(grn_number="G-1", vendor_name="V", grni_date=date(2026, 1, 1), line_items=())
     assert derive(grni) is grni
     assert derive(None) is None
+

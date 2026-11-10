@@ -226,3 +226,15 @@ join, case-level currency + date reconcile. The 5 remaining false approvals
 (CASE-0005, 0068, 0074, 0086, 0110) show no difference in the extracted data;
 their planted discrepancy must be identified from the batch labels.
 Target (scaled from 100/120): >= 167/200 with 0 false approvals.
+
+### PROD-B4 real runs and the scope change (PROD-B5)
+
+| Batch | Passed | Straight-through | False approvals |
+|---|---|---|---|
+| cases-200, B4 (cache re-score, embeddings on) | 195/200 | 67/67 | 5 |
+| old batch-120 (kh/us/in), B4 VLM run | 99/120 | 35/54 | 1 |
+
+17 of the old batch's 21 failures were Indian GST invoices. India is out of
+scope (D-115), so the accuracy test is now the two USD/KHR batches:
+`cases-200` and `batch-usd-khr-120`. On the old batch, kh is 40/40 and us
+38/40 after PROD-B5 (offline re-score).

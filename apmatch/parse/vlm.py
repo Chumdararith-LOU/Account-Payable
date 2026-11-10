@@ -226,7 +226,6 @@ class VlmExtraction:
 
 _CURRENCY_MARKS = (
     ("៛", "KHR"), ("RIEL", "KHR"), ("KHR", "KHR"),
-    ("₹", "INR"), ("INR", "INR"), ("RS.", "INR"), ("RS ", "INR"),
     ("US$", "USD"), ("USD", "USD"), ("$", "USD"),
     ("THB", "THB"), ("฿", "THB"), ("VND", "VND"), ("EUR", "EUR"), ("€", "EUR"),
 )

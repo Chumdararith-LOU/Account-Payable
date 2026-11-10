@@ -50,3 +50,18 @@ def test_unambiguous_dates_are_never_changed():
              "grni": [date(2025, 4, 10)], "pard": [date(2025, 4, 15)]}
     assert resolve_dates(docs, cands) == docs
     assert reconcile(docs, None) == docs
+
+
+def test_misread_unit_price_repaired_only_when_amount_agrees_with_po():
+    from apmatch.schema.documents import LineItem
+
+    def inv_with(price, amount):
+        line = LineItem(1, "Stapler", D("17"), D(price), D(amount))
+        return Invoice("INV-1", "V", None, "USD", D("1"), D("0"), D("1"), (line,))
+
+    po = PurchaseOrder("PO-1", "V", None, D("1"), (LineItem(1, "Stapler", D("17"), D("13.80"), D("234.60")),))
+    fixed = reconcile({"invoice": inv_with("12.80", "234.60"), "po": po, "grni": None, "pard": None})
+    assert fixed["invoice"].line_items[0].unit_price == D("13.8000")
+    # Price as on the PO but amount wrong: a real error, left for validation.
+    kept = reconcile({"invoice": inv_with("13.80", "250.00"), "po": po, "grni": None, "pard": None})
+    assert kept["invoice"].line_items[0].unit_price == D("13.80")

@@ -122,23 +122,6 @@ def test_us_invoice_extracts_dollar_amount():
     assert inv.total == Decimal("228.97")
 
 
-def test_in_invoice_extracts_rupee_amount():
-    blocks = (
-        _b("INVOICE #", 100, 100, 250, 140),
-        _b("IN-123", 300, 110, 400, 150),
-        _b("Invoice Date", 100, 200, 250, 240),
-        _b("15/08/2025", 300, 210, 420, 250),
-        _b("Seller Name", 100, 300, 180, 340),
-        _b("Shree Ganesh Appliances", 230, 310, 450, 350),
-        _b("Total", 100, 400, 200, 440),
-        _b("₹1,234.56", 250, 410, 400, 450),
-    )
-    inv = extract_invoice(OCRResult(source_file="in", text_blocks=blocks, tables=()))
-    assert inv.currency == "INR"
-    assert inv.vendor_name == "Shree Ganesh Appliances"
-    assert inv.total == Decimal("1234.56")
-
-
 def test_vendor_heuristic_finds_company_when_no_label():
     # No vendor label; the top-20% legal-suffix block is the vendor.
     blocks = (

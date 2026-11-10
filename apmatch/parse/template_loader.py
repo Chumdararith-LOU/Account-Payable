@@ -26,7 +26,7 @@ from apmatch.parse.templates import (
 # templates/ sits at the repo root: apmatch/parse/template_loader.py -> up 3.
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
 
-_VALID_STYLES = {"kh", "us", "in", "generic"}  # open set; these are the known ones
+_VALID_STYLES = {"kh", "us", "generic"}  # open set; these are the known ones
 
 
 def _field_spec(d: dict | None) -> FieldSpec:

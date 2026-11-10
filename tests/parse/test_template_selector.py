@@ -30,13 +30,6 @@ def test_selector_picks_us_for_us_document():
     assert template.style == "us"
 
 
-def test_selector_picks_in_for_in_document():
-    blocks = (_b("INVOICE #"), _b("Invoice Date"), _b("Seller"))
-    template, _ = select_template(blocks, templates_by_id())
-    assert template is not None
-    assert template.style == "in"
-
-
 def test_selector_falls_back_to_generic_on_garbage():
     blocks = (_b("random text"), _b("foo bar"), _b("xyz 123"))
     template, score = select_template(blocks, templates_by_id())

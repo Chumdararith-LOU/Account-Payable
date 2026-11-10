@@ -33,12 +33,11 @@ def parse_money(s: str | None) -> Decimal | None:
     if not text:
         return None
     # Strip a leading currency code / symbol.
-    text = re.sub(r"^(USD|KHR|THB|VND|CNY|EUR|GBP|JPY|INR)\s*", "", text, flags=re.IGNORECASE)
-    text = text.replace("$", "").replace("₹", "").replace("៛", "").strip()
-    text = re.sub(r"^Rs\.?\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^(USD|KHR|THB|VND|CNY|EUR|GBP|JPY)\s*", "", text, flags=re.IGNORECASE)
+    text = text.replace("$", "").replace("៛", "").strip()
     # Trailing currency code, e.g. "1,036,000.00 KHR" — without this, the
     # "KHR" tail survives into Decimal() and the parse returns None.
-    text = re.sub(r"\s*(USD|KHR|THB|VND|CNY|EUR|GBP|JPY|INR)\s*$", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\s*(USD|KHR|THB|VND|CNY|EUR|GBP|JPY)\s*$", "", text, flags=re.IGNORECASE).strip()
     # Space used as a thousands separator ("1 036 000"). Very common when OCR
     # splits a KHR amount across blocks. Only collapse when the pattern is
     # unambiguous: every space is between digit groups of 3.

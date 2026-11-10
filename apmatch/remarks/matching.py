@@ -67,6 +67,9 @@ MATCH_TEMPLATES: dict[MatchCode, str] = {
     MatchCode.PO_REFERENCE_MISMATCH: (
         "Invoice cites purchase order {actual}, but the PO provided is {expected}."
     ),
+    MatchCode.CURRENCY_UNSUPPORTED: (
+        "Currency {actual} on the {location} is not supported (USD and KHR only)."
+    ),
     MatchCode.RECEIVED_AFTER_INVOICE: (
         "Goods were received on {actual}, after the invoice date {expected}."
     ),

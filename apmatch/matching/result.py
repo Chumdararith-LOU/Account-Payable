@@ -59,6 +59,7 @@ class MatchCode(str, Enum):
     TAX_MISMATCH = "TAX_MISMATCH"  # invoice tax != PO's implied tax rate
     PO_REFERENCE_MISMATCH = "PO_REFERENCE_MISMATCH"  # invoice cites no / another PO
     RECEIVED_AFTER_INVOICE = "RECEIVED_AFTER_INVOICE"  # goods received after the invoice date
+    CURRENCY_UNSUPPORTED = "CURRENCY_UNSUPPORTED"  # not USD or KHR (D-115)
 
 
 @dataclass(frozen=True)

@@ -15,6 +15,7 @@ __all__ = [
     "MATCHABLE_FIELDS",
     "MATCH_CODE_WEIGHTS",
     "QTY_TOLERANCE_ABS",
+    "SUPPORTED_CURRENCIES",
     "TAX_RATE_MAX",
     "TAX_RATE_MIN",
     "TAX_TOLERANCE_ABS",
@@ -57,6 +58,10 @@ TAX_RATE_MAX = Decimal("0.30")
 # delete it.
 VENDOR_NAME_FUZZY_MIN = Decimal("0.90")
 
+# The product handles USD and KHR only (D-115). A document in any other
+# currency is never auto-approved: it routes to human review.
+SUPPORTED_CURRENCIES = frozenset({"USD", "KHR"})
+
 # Currency codes must match exactly (ISO 4217) — no constant needed; the engine
 # does an exact string compare on the normalized code.
 
@@ -93,4 +98,5 @@ MATCH_CODE_WEIGHTS: dict[MatchCode, Decimal] = {
     MatchCode.TAX_MISMATCH: Decimal("0.3"),
     MatchCode.PO_REFERENCE_MISMATCH: Decimal("0.3"),
     MatchCode.RECEIVED_AFTER_INVOICE: Decimal("0.1"),
+    MatchCode.CURRENCY_UNSUPPORTED: Decimal("0.5"),
 }
