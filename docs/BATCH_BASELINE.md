@@ -238,3 +238,25 @@ Target (scaled from 100/120): >= 167/200 with 0 false approvals.
 scope (D-115), so the accuracy test is now the two USD/KHR batches:
 `cases-200` and `batch-usd-khr-120`. On the old batch, kh is 40/40 and us
 38/40 after PROD-B5 (offline re-score).
+
+## PROD-B6 — both USD/KHR batches pass (2026-11-10)
+
+| Batch | Passed | Straight-through | False approvals | Run |
+|---|---|---|---|---|
+| batch-usd-khr-120 | 120/120 | 43/43 | 0 | 38 min (invoices + POs re-read) |
+| cases-200 | 200/200 | 67/67 | 0 | 63 min (invoices + POs re-read) |
+
+Reports: `reports/batch-b6-vlm-usdkhr-120.json`, `reports/batch-b6-vlm-200.json`.
+Answer keys: `reports/labels/`. Caught for the planted reason (checked against
+the answer keys' scenario column): 76/77 and 130/133 discrepancy/pending cases;
+the other 4 are still routed to review/reject, but by a neighbouring check
+(e.g. an extra invoice line joined to the wrong PO line shows as a price
+mismatch instead of "no matching PO line").
+
+Trajectory on the accuracy test: old OCR pipeline 55.8% (old 120 batch, B1c)
+-> Qwen B3 83% -> B4 97.5% -> B6 100% on both USD/KHR batches.
+
+Caveat: the B4-B6 rules were written while looking at these two batches and
+their answer keys. 100% here shows the rules are implemented correctly; it is
+not yet an independent accuracy estimate. Measure next on a batch neither the
+rules nor the prompts have seen (ideally real customer documents).
