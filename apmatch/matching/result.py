@@ -55,6 +55,11 @@ class MatchCode(str, Enum):
     # similarity fallback — match accepted but in the review band
     SIMILARITY_MATCH_REVIEW = "SIMILARITY_MATCH_REVIEW"
 
+    # cross-document checks (PROD-B4, D-113)
+    TAX_MISMATCH = "TAX_MISMATCH"  # invoice tax != PO's implied tax rate
+    PO_REFERENCE_MISMATCH = "PO_REFERENCE_MISMATCH"  # invoice cites no / another PO
+    RECEIVED_AFTER_INVOICE = "RECEIVED_AFTER_INVOICE"  # goods received after the invoice date
+
 
 @dataclass(frozen=True)
 class MatchFailure:

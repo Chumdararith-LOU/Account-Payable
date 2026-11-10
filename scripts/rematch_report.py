@@ -28,19 +28,52 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from apmatch.api.pipeline import decide_documents
+from apmatch.audit.hashing import _canonical
 from apmatch.evaluation import case_passed, format_summary, summarize
+from apmatch.parse import vlm
 from apmatch.parse.derive import derive
-from apmatch.schema.serialize import documents_from_canonical
+from apmatch.parse.dispatch import DocumentKind
+from apmatch.parse.reconcile import reconcile
+from apmatch.schema.serialize import DOC_KEYS, documents_from_canonical
+
+_KIND = {
+    "invoice": DocumentKind.INVOICE,
+    "po": DocumentKind.PURCHASE_ORDER,
+    "grni": DocumentKind.GRNI,
+    "pard": DocumentKind.PAYMENT_ADVICE,
+}
+
+
+def _rebuild(case: dict) -> tuple[dict, dict]:
+    """Documents + date candidates for one case, using the CURRENT parsing code.
+
+    A document the VLM read is rebuilt from its stored raw reply (so parsing
+    fixes are measured too); anything else from the stored document.
+    """
+    stored = dict(zip(DOC_KEYS, documents_from_canonical(case["documents"]), strict=True))
+    docs, candidates = {}, {}
+    for key in DOC_KEYS:
+        info = (case.get("extraction") or {}).get(key) or {}
+        raw = (info.get("vlm") or {}).get("raw_output")
+        if info.get("source") == "vlm" and raw:
+            data = vlm.parse_model_json(raw)
+            docs[key] = vlm.document_from_payload(_KIND[key], data, [])
+            candidates[key] = vlm.date_candidates(_KIND[key], data)
+        else:
+            docs[key] = stored[key]
+        docs[key] = derive(docs[key])
+    return docs, candidates
 
 
 def rescore(report: dict, embedding_model=None) -> list[dict]:
     out = []
     for case in report["cases"]:
-        docs = case.get("documents")
-        if not docs:
+        if not case.get("documents"):
             out.append(dict(case))  # ERROR / missing-file cases stay as they were
             continue
-        invoice, po, grni, pard = (derive(d) for d in documents_from_canonical(docs))
+        docs, candidates = _rebuild(case)
+        docs = reconcile(docs, candidates)
+        invoice, po, grni, pard = (docs[k] for k in DOC_KEYS)
         validation, match, decision = decide_documents(invoice, po, grni, pard, embedding_model)
         route = decision.route.value
         failures = [
@@ -50,6 +83,7 @@ def rescore(report: dict, embedding_model=None) -> list[dict]:
         ]
         out.append(dict(
             case,
+            documents={k: _canonical(docs[k]) for k in DOC_KEYS},
             previous_route=case.get("actual_route"),
             actual_route=route,
             actual_reason=decision.reason.value,

@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from apmatch.evaluation import TARGET_PASSED, case_passed, format_summary, summarize
+from apmatch.evaluation import case_passed, format_summary, summarize, target_passed
 from scripts.rematch_report import rescore
 
 FIXTURES = Path(__file__).resolve().parents[1] / "integration" / "fixtures"
@@ -36,9 +36,14 @@ def test_summary_reports_the_honest_numbers():
     assert s["false_approvals"] == {"count": 1, "case_ids": ["C4"]}
     assert s["review_all_baseline"]["passed"] == 3  # C3, C4, C5 would pass as HUMAN_REVIEW
     assert s["route_matrix"]["DISCREPANCY"] == {"REJECT": 1, "AUTO_APPROVE": 1}
-    assert s["target"]["met"] is False and s["target"]["passed_min"] == TARGET_PASSED
+    assert s["target"]["met"] is False and s["target"]["passed_min"] == 5
     text = format_summary(s)
     assert "false approvals (must be 0): 1" in text and "NOT MET" in text
+
+
+def test_target_scales_with_batch_size():
+    assert target_passed(120) == 100
+    assert target_passed(200) == 167
 
 
 def _docs(path: Path) -> dict:

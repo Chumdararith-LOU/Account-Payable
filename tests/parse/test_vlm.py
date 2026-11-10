@@ -223,3 +223,29 @@ def test_currency_from_text():
     assert vlm.currency_from_text(None, "$12.00") == "USD"
     assert vlm.currency_from_text("Rs. 500") == "INR"
     assert vlm.currency_from_text(None, None) is None
+
+
+def test_bare_dollar_sign_defers_currency_to_the_case(monkeypatch, tmp_path):
+    payload = dict(INVOICE_PAYLOAD, currency="$", subtotal="14,646,000$", tax_amount="1,464,600$",
+                   total="16,110,600$")
+    _serve(monkeypatch, payload)
+    doc = vlm.extract_vlm(DocumentKind.INVOICE, _img(tmp_path))
+    assert doc.currency is None  # reconcile fills it from the PO / payment advice
+    assert vlm.strong_currency("USD 10.00") == "USD"
+    assert vlm.strong_currency("៛10,000") == "KHR"
+    assert vlm.strong_currency("$10.00") is None
+
+
+def test_dates_are_not_document_numbers(monkeypatch, tmp_path):
+    payload = dict(INVOICE_PAYLOAD, grn_number="12-Jun-2026", po_number="22/09/2025")
+    _serve(monkeypatch, payload)
+    doc = vlm.extract_vlm(DocumentKind.INVOICE, _img(tmp_path))
+    assert doc.grn_number is None and doc.po_number is None
+
+
+def test_date_candidates_recorded(monkeypatch, tmp_path):
+    payload = dict(INVOICE_PAYLOAD, invoice_date="04/09/2025", invoice_date_iso="2025-04-09")
+    _serve(monkeypatch, payload)
+    res = vlm.extract_vlm_detailed(DocumentKind.INVOICE, _img(tmp_path))
+    assert set(res.date_candidates) == {date(2025, 9, 4), date(2025, 4, 9)}
+    assert res.summary()["date_candidates"] == ["2025-09-04", "2025-04-09"]

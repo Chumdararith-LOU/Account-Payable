@@ -64,7 +64,8 @@
 | PROD-B1a | YAML template system for header extraction (kh/us/in/generic) | done | (PROD-B1a) |
 | PROD-B1b | Line-item alignment diagnostic (measurement; root cause = table column mis-id) | done | (PROD-B1b) |
 | PROD-B1c | Line-item table-parser fix + header spatial/vendor fix + batch rerun | done | (PROD-B1c) |
-| PROD-B3 | VLM hardening, unreadable->review routing, vendor match, honest batch metrics (D-109..D-112) | in progress | (PROD-B3) |
+| PROD-B3 | VLM hardening, unreadable->review routing, vendor match, honest batch metrics (D-109..D-112) | done | (PROD-B3) |
+| PROD-B4 | Cross-document checks, 5% tolerance, partial billing, case reconcile (D-113, D-114) | in progress | (PROD-B4) |
 | PROD-B | Customer-scoped templates | pending | |
 
 ## Deferred

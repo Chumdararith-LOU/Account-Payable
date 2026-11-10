@@ -62,7 +62,7 @@ VLM_FORMAT = os.getenv("VLM_FORMAT", "schema")
 
 # Bump whenever the prompt or schemas change: it is recorded with every
 # extraction and is part of the extraction-cache key.
-PROMPT_VERSION = "2026-11-08.1"
+PROMPT_VERSION = "2026-11-08.1"  # unchanged in PROD-B4: parsing changed, not the prompt
 
 _STR = {"type": ["string", "null"]}
 
@@ -203,6 +203,7 @@ class VlmExtraction:
     raw_output: str | None = None
     error: str | None = None
     field_errors: list[str] = field(default_factory=list)
+    date_candidates: list[date] = field(default_factory=list)
     duration_s: float = 0.0
 
     def summary(self) -> dict:
@@ -215,6 +216,7 @@ class VlmExtraction:
             "ok": self.document is not None,
             "error": self.error,
             "field_errors": list(self.field_errors),
+            "date_candidates": [d.isoformat() for d in self.date_candidates],
             "duration_s": round(self.duration_s, 2),
             "raw_output": (self.raw_output or "")[:8000],
         }
@@ -261,6 +263,21 @@ def currency_from_text(*texts) -> str | None:
     return None
 
 
+def strong_currency(*texts) -> str | None:
+    """Currency only from an explicit code or an unambiguous sign; a bare "$"
+    is not enough (returns None so the case-level reconcile decides)."""
+    for t in texts:
+        s = _text(t)
+        if not s:
+            continue
+        code = currency_from_text(s.upper().replace("US$", "USD").replace("$", ""))
+        if code is not None and code != "USD":
+            return code
+        if "USD" in s.upper():
+            return "USD"
+    return None
+
+
 def _money_value(v):
     s = _num_str(v)
     if s is None:
@@ -278,6 +295,8 @@ def _docnum(v) -> str | None:
     if s is None:
         return None
     s = re.sub(r"^(?:no\s*[.:]|number\s*[:.]?|#)\s*[:.]?\s*", "", s, flags=re.IGNORECASE)
+    if _date_candidates(s):
+        return None  # the model put a date in a document-number field
     return parse_document_number(s.replace(" ", ""))
 
 
@@ -326,6 +345,31 @@ def resolve_date(printed, iso) -> date | None:
     if candidates:
         return candidates[0]
     return iso_date
+
+
+# The main date field of each document kind (printed text, model's ISO reading).
+DATE_FIELDS: dict[DocumentKind, str] = {
+    DocumentKind.INVOICE: "invoice_date",
+    DocumentKind.PURCHASE_ORDER: "po_date",
+    DocumentKind.GRNI: "grni_date",
+    DocumentKind.PAYMENT_ADVICE: "payment_date",
+}
+
+
+def date_candidates(kind: DocumentKind, data: dict) -> list[date]:
+    """Every date the printed text can mean (two for "03/04/2026", one otherwise).
+
+    Used by the case-level reconcile step to pick, for ambiguous dates, the
+    reading that gives a coherent PO -> GRN -> invoice -> payment order.
+    Falls back to the single resolved date when the print is unparseable.
+    """
+    name = DATE_FIELDS[DocumentKind(kind)]
+    printed = _text(data.get(name))
+    cands = _date_candidates(printed) if printed else []
+    if cands:
+        return cands
+    resolved = resolve_date(printed, data.get(f"{name}_iso"))
+    return [resolved] if resolved else []
 
 
 def _lines(items, field_errors: list[str], with_money: bool) -> tuple[LineItem, ...]:
@@ -381,12 +425,10 @@ def _money_field(data: dict, key: str, field_errors: list[str]):
 def document_from_payload(kind: DocumentKind, data: dict, field_errors: list[str]):
     """Build the schema dataclass from the model's JSON. Never raises for bad values."""
     if kind == DocumentKind.INVOICE:
-        currency = currency_from_text(
-            data.get("currency"), data.get("total"), data.get("subtotal")
-        )
-        if currency is None:
-            currency = "USD"
-            field_errors.append("currency: not found, defaulted to USD")
+        # No default here: when the invoice prints no currency — or only a
+        # bare "$", which the model also reports for the riel sign — the
+        # case-level reconcile step takes it from the PO / payment advice (D-114).
+        currency = strong_currency(data.get("currency"), data.get("total"), data.get("subtotal"))
         return Invoice(
             invoice_number=_docnum(data.get("invoice_number")),
             vendor_name=_text(data.get("vendor_name")),
@@ -525,6 +567,7 @@ def extract_vlm_detailed(kind: DocumentKind, image_path: Path) -> VlmExtraction:
         result.raw_output = content
         data = parse_model_json(content)
         result.document = document_from_payload(kind, data, result.field_errors)
+        result.date_candidates = date_candidates(kind, data)
     except Exception as exc:
         result.error = f"{type(exc).__name__}: {str(exc)[:300]}"
         logger.warning("VLM extraction failed for %s: %s", Path(image_path).name, result.error)

@@ -16,10 +16,14 @@ passes all DISCREPANCY and PENDING INFO cases. So the summary also reports:
                       (the money-losing error; must be 0)
   - review_all_baseline: the pass rate of "send everything to a human"
 
-Acceptance target (D-112): passed >= TARGET_PASSED AND false_approvals == 0.
+Acceptance target (D-112): passed >= TARGET_RATE of the cases (100/120,
+the original "100+ of 120" target, scaled to the batch size) AND
+false_approvals == 0.
 """
 
 from __future__ import annotations
+
+import math
 
 PASS_ROUTES = {
     "MATCH": {"AUTO_APPROVE"},
@@ -28,6 +32,11 @@ PASS_ROUTES = {
 }
 
 TARGET_PASSED = 100  # of the 120-case labeled batch (D-098 target "100+")
+TARGET_RATE = TARGET_PASSED / 120  # same bar for any batch size (167 of 200)
+
+
+def target_passed(total: int) -> int:
+    return math.ceil(total * TARGET_RATE - 1e-9)
 
 
 def case_passed(expected: str, route: str) -> bool:
@@ -80,9 +89,9 @@ def summarize(results: list[dict]) -> dict:
         "false_approvals": {"count": len(false_approvals), "case_ids": false_approvals},
         "review_all_baseline": {"passed": review_all, "rate": rate(review_all, total)},
         "target": {
-            "passed_min": TARGET_PASSED,
+            "passed_min": target_passed(total),
             "false_approvals_max": 0,
-            "met": passed >= TARGET_PASSED and not false_approvals,
+            "met": passed >= target_passed(total) and not false_approvals,
         },
         "route_matrix": routes,
         "by_style": by_style,

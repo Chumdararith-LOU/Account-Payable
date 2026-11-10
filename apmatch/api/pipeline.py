@@ -15,7 +15,7 @@ import json
 import logging
 import os
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
@@ -27,6 +27,7 @@ from apmatch.matching.result import MatchResult, Outcome
 from apmatch.parse import dispatch
 from apmatch.parse import vlm as vlm_module
 from apmatch.parse.derive import derive
+from apmatch.parse.reconcile import reconcile
 from apmatch.remarks.matching import summarize_match
 from apmatch.remarks.templates import summarize
 from apmatch.schema.serialize import document_from_dict
@@ -99,28 +100,47 @@ def _cache_path(cache_dir: Path, kind, path: Path, backend: str) -> Path:
     return cache_dir / f"{key}.json"
 
 
+def _vlm_from_raw(kind, raw: str):
+    """Re-parse a stored raw model reply with the CURRENT parsing code."""
+    field_errors: list[str] = []
+    data = vlm_module.parse_model_json(raw)
+    doc = vlm_module.document_from_payload(kind, data, field_errors)
+    return doc, field_errors, vlm_module.date_candidates(kind, data)
+
+
 def _recognize_and_parse(engines: _Engines, kind, path: Path, ocr_debug: bool, cache_dir: Path | None = None):
     """Returns (document, info). info["source"] is "vlm" or "heuristic".
 
     The returned document is the RAW extraction (before derivation); the
-    caller applies ``derive``. With ``cache_dir`` set, extractions are cached
-    per (file content, kind, backend, model, prompt version) so a batch can be
-    re-scored after a logic change without re-running OCR or the VLM.
+    caller applies ``derive`` and ``reconcile``. With ``cache_dir`` set,
+    extractions are cached per (file content, kind, backend, model, prompt
+    version). For VLM extractions the cache holds the model's raw reply and
+    re-parses it on every hit, so a parsing fix takes effect without calling
+    the model again.
     """
     backend = extraction_backend()
     cache_file = _cache_path(cache_dir, kind, path, backend) if cache_dir else None
     if cache_file is not None and cache_file.is_file():
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
         info = dict(cached["info"], cache="hit")
+        # PROD-B3 cache files kept the raw reply only inside info["vlm"].
+        raw = cached.get("raw_output") or ((info.get("vlm") or {}).get("raw_output"))
+        if info.get("source") == "vlm" and raw:
+            doc, field_errors, cands = _vlm_from_raw(kind, raw)
+            info["vlm"] = dict(info["vlm"] or {}, field_errors=field_errors,
+                               date_candidates=[d.isoformat() for d in cands])
+            return doc, info
         return document_from_dict(_DOC_KEY[kind], cached["document"]), info
 
     info: dict = {"source": None, "vlm": None, "cache": "miss" if cache_file else None}
     doc = None
+    raw_output = None
     if backend == "vlm":
         result = vlm_module.extract_vlm_detailed(kind, path)
         info["vlm"] = result.summary()
         if result.document is not None:
             doc = result.document
+            raw_output = result.raw_output
             info["source"] = "vlm"
         else:
             # Loud on purpose: a silent fallback hides VLM outages (PROD-B2).
@@ -132,10 +152,21 @@ def _recognize_and_parse(engines: _Engines, kind, path: Path, ocr_debug: bool, c
     if cache_file is not None:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.write_text(
-            json.dumps({"document": _canonical(doc), "info": info}, ensure_ascii=False),
+            json.dumps({"document": _canonical(doc), "info": info, "raw_output": raw_output},
+                       ensure_ascii=False),
             encoding="utf-8",
         )
     return doc, info
+
+
+def date_candidates_from_infos(infos: dict) -> dict[str, list]:
+    """Per-document date readings recorded by the VLM extraction."""
+    out: dict[str, list] = {}
+    for key, info in infos.items():
+        cands = ((info or {}).get("vlm") or {}).get("date_candidates") or []
+        if (info or {}).get("source") == "vlm" and cands:
+            out[key] = [date.fromisoformat(c) for c in cands]
+    return out
 
 
 class _Lazy:
@@ -237,6 +268,8 @@ def run_pipeline(
         docs[key] = derive(doc)
         infos[key] = info
 
+    # Case-level rules that need all four documents (currency, ambiguous dates).
+    docs = reconcile(docs, date_candidates_from_infos(infos))
     invoice, po, grni, pard = docs["invoice"], docs["po"], docs["grni"], docs["pard"]
 
     # Duplicate-invoice check (D-108): only when a session is provided (the

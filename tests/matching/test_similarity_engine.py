@@ -29,7 +29,7 @@ def _line(no, desc, qty="1", price=None, amount=None):
 
 
 def _invoice(lines, vendor="Mekong Supplies Co., Ltd.", currency="USD", total="100.00"):
-    return Invoice("INV-1", vendor, date(2026, 8, 20), currency, Decimal("90.00"), Decimal("10.00"), Decimal(total), lines)
+    return Invoice("INV-1", vendor, date(2026, 8, 20), currency, Decimal("90.00"), Decimal("10.00"), Decimal(total), lines, po_number="PO-1")
 
 
 def _po(lines, vendor="Mekong Supplies Co., Ltd.", currency=None):
@@ -63,10 +63,10 @@ def test_exact_match_takes_precedence_over_similarity():
 
 
 def test_similarity_accept_band_matches_without_failure():
-    stub = StubEmbeddingModel({("widget alpha", "widget alpha deluxe"): 0.85})
+    stub = StubEmbeddingModel({("widget alpha", "deluxe widget alpha"): 0.85})
     engine = MatchingEngine(embedding_model=stub)
     inv = _invoice((_line(1, "Widget Alpha", "1", "10.00", "10.00"),))
-    po = _po((_line(1, "Widget Alpha Deluxe", "1", "10.00"),))
+    po = _po((_line(1, "Deluxe Widget Alpha", "1", "10.00"),))
     grni = _grni((_line(1, "Widget Alpha", "1"),))
     r = engine.match(inv, po, grni, _pard())
     assert MatchCode.NO_MATCHING_PO_LINE not in _codes(r)
@@ -80,27 +80,27 @@ def test_similarity_accept_band_matches_without_failure():
 
 
 def test_similarity_review_band_matches_with_warning():
-    stub = StubEmbeddingModel({("widget alpha", "widget alpha deluxe"): 0.60})
+    stub = StubEmbeddingModel({("widget alpha", "deluxe widget alpha"): 0.60})
     engine = MatchingEngine(embedding_model=stub)
     inv = _invoice((_line(1, "Widget Alpha", "1", "10.00", "10.00"),))
-    po = _po((_line(1, "Widget Alpha Deluxe", "1", "10.00"),))
+    po = _po((_line(1, "Deluxe Widget Alpha", "1", "10.00"),))
     grni = _grni((_line(1, "Widget Alpha", "1"),))
     r = engine.match(inv, po, grni, _pard())
     assert MatchCode.NO_MATCHING_PO_LINE not in _codes(r)
     assert MatchCode.SIMILARITY_MATCH_REVIEW in _codes(r)
     warn = next(f for f in r.failures if f.code is MatchCode.SIMILARITY_MATCH_REVIEW)
     assert warn.severity is Severity.WARNING
-    assert warn.expected == "widget alpha deluxe"
+    assert warn.expected == "deluxe widget alpha"
     assert warn.actual == "widget alpha"
     assert r.similarity_matches[0].band == "review"
     assert r.outcome is Outcome.DISCREPANCY
 
 
 def test_similarity_below_review_is_no_match():
-    stub = StubEmbeddingModel({("widget alpha", "widget alpha deluxe"): 0.40})
+    stub = StubEmbeddingModel({("widget alpha", "deluxe widget alpha"): 0.40})
     engine = MatchingEngine(embedding_model=stub)
     inv = _invoice((_line(1, "Widget Alpha", "1", "10.00", "10.00"),))
-    po = _po((_line(1, "Widget Alpha Deluxe", "1", "10.00"),))
+    po = _po((_line(1, "Deluxe Widget Alpha", "1", "10.00"),))
     grni = _grni((_line(1, "Widget Alpha", "1"),))
     r = engine.match(inv, po, grni, _pard())
     assert MatchCode.NO_MATCHING_PO_LINE in _codes(r)
@@ -110,7 +110,7 @@ def test_similarity_below_review_is_no_match():
 def test_similarity_disabled_when_no_model():
     engine = MatchingEngine()
     inv = _invoice((_line(1, "Widget Alpha", "1", "10.00", "10.00"),))
-    po = _po((_line(1, "Widget Alpha Deluxe", "1", "10.00"),))
+    po = _po((_line(1, "Deluxe Widget Alpha", "1", "10.00"),))
     grni = _grni((_line(1, "Widget Alpha", "1"),))
     r = engine.match(inv, po, grni, _pard())
     assert MatchCode.NO_MATCHING_PO_LINE in _codes(r)
@@ -118,20 +118,20 @@ def test_similarity_disabled_when_no_model():
 
 
 def test_similarity_match_records_model_version():
-    stub = StubEmbeddingModel({("widget alpha", "widget alpha deluxe"): 0.85})
+    stub = StubEmbeddingModel({("widget alpha", "deluxe widget alpha"): 0.85})
     engine = MatchingEngine(embedding_model=stub)
     inv = _invoice((_line(1, "Widget Alpha", "1", "10.00", "10.00"),))
-    po = _po((_line(1, "Widget Alpha Deluxe", "1", "10.00"),))
+    po = _po((_line(1, "Deluxe Widget Alpha", "1", "10.00"),))
     grni = _grni((_line(1, "Widget Alpha", "1"),))
     r = engine.match(inv, po, grni, _pard())
     assert r.similarity_matches[0].model_version == StubEmbeddingModel.model_version
 
 
 def test_similarity_match_records_both_thresholds():
-    stub = StubEmbeddingModel({("widget alpha", "widget alpha deluxe"): 0.85})
+    stub = StubEmbeddingModel({("widget alpha", "deluxe widget alpha"): 0.85})
     engine = MatchingEngine(embedding_model=stub)
     inv = _invoice((_line(1, "Widget Alpha", "1", "10.00", "10.00"),))
-    po = _po((_line(1, "Widget Alpha Deluxe", "1", "10.00"),))
+    po = _po((_line(1, "Deluxe Widget Alpha", "1", "10.00"),))
     grni = _grni((_line(1, "Widget Alpha", "1"),))
     r = engine.match(inv, po, grni, _pard())
     sim = r.similarity_matches[0]
@@ -155,12 +155,12 @@ def test_similarity_ties_broken_by_line_no():
 def test_similarity_grn_independent_from_po():
     # The invoice line matches differently against PO (accept) and GRN (review).
     stub = StubEmbeddingModel(
-        {("widget alpha", "widget alpha po"): 0.85, ("widget alpha", "widget alpha grn"): 0.60}
+        {("widget alpha", "alpha component"): 0.85, ("widget alpha", "alpha assembly"): 0.60}
     )
     engine = MatchingEngine(embedding_model=stub)
     inv = _invoice((_line(1, "Widget Alpha", "1", "10.00", "10.00"),))
-    po = _po((_line(1, "Widget Alpha Po", "1", "10.00"),))
-    grni = _grni((_line(1, "Widget Alpha Grn", "1"),))
+    po = _po((_line(1, "Alpha Component", "1", "10.00"),))
+    grni = _grni((_line(1, "Alpha Assembly", "1"),))
     r = engine.match(inv, po, grni, _pard())
     assert len(r.similarity_matches) == 2
     by_loc = {s.location: s for s in r.similarity_matches}

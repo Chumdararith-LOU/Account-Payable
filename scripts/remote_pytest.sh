@@ -21,6 +21,10 @@ REMOTE_DIR="${APMATCH_REMOTE_DEV:-/home/rith/apmatch-dev}"
 #    -T: no TTY (safe for non-interactive invocations)
 #    --rm: remove container when done
 #    --entrypoint: override the image's uvicorn entrypoint
+# Quote each argument for the remote shell, so multi-word arguments such as
+# -m "not slow" arrive as one argument (printf %q escapes spaces/quotes).
+ARGS="$(printf '%q ' "$@")"
+
 ssh "${SERVER}" "cd ${REMOTE_DIR} && \
   if [ ! -f .env.server ]; then echo 'ERROR: ${REMOTE_DIR}/.env.server missing on server' >&2; exit 2; fi && \
   docker compose \
@@ -30,4 +34,4 @@ ssh "${SERVER}" "cd ${REMOTE_DIR} && \
     --env-file .env.server \
     run --rm -T \
     --entrypoint /opt/venv/bin/python \
-    api -m pytest $*"
+    api -m pytest ${ARGS}"

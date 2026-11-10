@@ -206,3 +206,23 @@ header cases and (b) the line-item/matching alignment issues. Both are **PROD-B1
 scope (template application to PO/GRN/PARD, vendor buyer-rejection, positional-
 fallback iteration, and the matching-engine alignment fixes). The trajectory is
 monotonic: PROD-B0 = 5.8% → B0.5 = 50.8% → B1a = 50.8% → **B1c = 55.8%**.
+
+## VLM extraction, 200-case batch (PROD-B3 / PROD-B4)
+
+A newer labeled batch (`cases-200`, 4 styles x 50: kh, kh_sme, kh_tax, us)
+run with Qwen2.5-VL as the extractor. Report:
+`reports/batch-b3-vlm-200.json`. Metrics now include straight-through
+(MATCH -> AUTO_APPROVE) and false approvals (non-MATCH -> AUTO_APPROVE),
+because routing everything to review already scores 133/200 (D-112).
+
+| Run | Passed | Straight-through | False approvals |
+|---|---|---|---|
+| PROD-B3 (GPU run, 110 min) | 166/200 | 50/67 | 17 |
+| PROD-B4 (offline re-score of the same extractions, no embeddings) | 195/200 | 67/67 | 5 |
+
+PROD-B4 changes (D-113, D-114): 5% price tolerance, partial billing,
+tax vs PO rate, PO reference check, receipt-after-invoice, close-name line
+join, case-level currency + date reconcile. The 5 remaining false approvals
+(CASE-0005, 0068, 0074, 0086, 0110) show no difference in the extracted data;
+their planted discrepancy must be identified from the batch labels.
+Target (scaled from 100/120): >= 167/200 with 0 false approvals.

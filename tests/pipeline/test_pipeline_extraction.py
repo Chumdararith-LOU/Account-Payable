@@ -54,7 +54,7 @@ def fake_vlm(monkeypatch):
         calls.append(DocumentKind(kind))
         return vlm.VlmExtraction(
             document=_fixture_doc(kind), model="fake", model_digest="sha256:f",
-            prompt_version=vlm.PROMPT_VERSION, format_used="schema", raw_output="{}",
+            prompt_version=vlm.PROMPT_VERSION, format_used="schema", raw_output=None,
         )
 
     monkeypatch.setattr(vlm, "extract_vlm_detailed", fake)
@@ -151,3 +151,48 @@ def test_lazy_engines_build_once_on_first_use(monkeypatch):
     proxy.recognize("a")
     proxy.recognize("b")
     assert built == ["router"]
+
+
+def test_cache_hit_reparses_raw_vlm_output_with_current_code(images, monkeypatch, tmp_path):
+    raw = json.dumps({
+        "invoice_number": "INV-2026-1123", "vendor_name": "Mekong Supplies Co., Ltd.",
+        "invoice_date": "20/08/2026", "invoice_date_iso": "2026-08-20", "currency": "$",
+        "po_number": "PO-2026-0451", "subtotal": "1,000.00", "tax_amount": "100.00", "total": "1,100.00",
+        "line_items": [],
+    })
+
+    def fake(kind, path):
+        doc = _fixture_doc(kind)
+        return vlm.VlmExtraction(document=doc, model="f", model_digest=None, prompt_version="p",
+                                 raw_output=raw if DocumentKind(kind) is DocumentKind.INVOICE else None)
+
+    monkeypatch.setattr(vlm, "extract_vlm_detailed", fake)
+    monkeypatch.setenv("EXTRACTION_BACKEND", "vlm")
+    cache = tmp_path / "cache"
+    _run(images, extraction_cache_dir=cache)
+    _, _, _, _, extracted = _run(images, extraction_cache_dir=cache)
+    # Second run re-parsed the raw reply: no line items in it, and the bare "$"
+    # currency was resolved from the PO by reconcile.
+    assert extracted["invoice"]["line_items"] == []
+    assert extracted["invoice"]["currency"] == "USD"
+    assert extracted["_extraction"]["invoice"]["vlm"]["date_candidates"] == ["2026-08-20"]
+
+
+def test_old_cache_format_is_reparsed_from_info(images, monkeypatch, tmp_path):
+    """A PROD-B3 cache file (raw reply only inside info.vlm) is still re-parsed."""
+    import apmatch.api.pipeline as p
+
+    monkeypatch.setenv("EXTRACTION_BACKEND", "vlm")
+    monkeypatch.setattr(vlm, "extract_vlm_detailed", lambda *a: pytest.fail("VLM called"))
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    raw = json.dumps({"pard_number": "PARD-9", "invoice_number": "INV-2026-1123",
+                      "amount": "1,100.00", "currency": "USD", "payment_date": "25/08/2026",
+                      "payment_date_iso": "2026-08-25", "reference": None})
+    path = images[DocumentKind.PAYMENT_ADVICE]
+    f = p._cache_path(cache, DocumentKind.PAYMENT_ADVICE, path, "vlm")
+    f.write_text(json.dumps({"document": {"pard_number": "STALE"},
+                             "info": {"source": "vlm", "vlm": {"raw_output": raw}, "cache": "miss"}}))
+    doc, info = p._recognize_and_parse(p._Engines(object(), object()), DocumentKind.PAYMENT_ADVICE,
+                                       path, False, cache)
+    assert doc.pard_number == "PARD-9" and info["cache"] == "hit"

@@ -38,7 +38,9 @@ runtime; we deliberately do NOT cast.
 from __future__ import annotations
 
 import dataclasses
+import difflib
 import json
+import re
 import sys
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
@@ -51,6 +53,11 @@ from apmatch.matching.config import (
     AMOUNT_TOLERANCE_REL,
     MATCH_CODE_WEIGHTS,
     QTY_TOLERANCE_ABS,
+    TAX_RATE_MAX,
+    TAX_RATE_MIN,
+    TAX_TOLERANCE_ABS,
+    TAX_TOLERANCE_ABS_KHR,
+    TAX_TOLERANCE_REL,
     TOTAL_TOLERANCE,
     UNIT_PRICE_TOLERANCE,
     UNIT_PRICE_TOLERANCE_REL,
@@ -237,6 +244,8 @@ class MatchingEngine:
         similarity_matches: list[SimilarityMatch] = []
         for n, inv_line in enumerate(invoice.line_items, start=1):
             po_line = _find_line(po.line_items, inv_line.description)
+            if po_line is None:
+                po_line = _find_close_line(po.line_items, inv_line, against_po=True)
             if po_line is None and self._embedding_model is not None:
                 po_line, sim = self._similarity_lookup(inv_line, po.line_items, "PO")
                 if sim is not None:
@@ -265,10 +274,13 @@ class MatchingEngine:
                 )
             else:
                 loc = f"line {n} (INV) -> line {po_line.line_no} (PO)"
+                # Partial billing is normal: an invoice may bill fewer units
+                # than ordered (the GRN check below ties it to what was
+                # received). Billing MORE than ordered is a discrepancy.
                 if (
                     inv_line.quantity is not None
                     and po_line.quantity is not None
-                    and abs(inv_line.quantity - po_line.quantity) > QTY_TOLERANCE_ABS
+                    and inv_line.quantity - po_line.quantity > QTY_TOLERANCE_ABS
                 ):
                     failures.append(
                         MatchFailure(
@@ -296,12 +308,14 @@ class MatchingEngine:
                                 str(diff),
                             )
                         )
+                billed_qty = inv_line.quantity if inv_line.quantity is not None else po_line.quantity
                 if (
                     inv_line.amount is not None
-                    and po_line.quantity is not None
+                    and billed_qty is not None
                     and po_line.unit_price is not None
                 ):
-                    po_amount = po_line.quantity * po_line.unit_price
+                    # The amount the PO price allows for the quantity billed.
+                    po_amount = billed_qty * po_line.unit_price
                     diff = abs(inv_line.amount - po_amount)
                     max_val = max(abs(inv_line.amount), abs(po_amount))
                     if diff > AMOUNT_TOLERANCE and (
@@ -319,6 +333,8 @@ class MatchingEngine:
                         )
 
             grni_line = _find_line(grni.line_items, inv_line.description)
+            if grni_line is None:
+                grni_line = _find_close_line(grni.line_items, inv_line, against_po=False)
             if grni_line is None and self._embedding_model is not None:
                 grni_line, sim = self._similarity_lookup(inv_line, grni.line_items, "GRN")
                 if sim is not None:
@@ -377,6 +393,43 @@ class MatchingEngine:
                     str(invoice.total),
                     str(pard.amount),
                     str(abs(pard.amount - invoice.total)),
+                )
+            )
+
+        # 4b. Invoice tax vs the PO's tax rate (D-113).
+        tax_failure = _tax_check(invoice, po)
+        if tax_failure is not None:
+            failures.append(tax_failure)
+
+        # 4c. The invoice must cite the PO it is matched against.
+        if po.po_number:
+            cited = invoice.po_number
+            if not cited or _ref_key(cited) != _ref_key(po.po_number):
+                failures.append(
+                    MatchFailure(
+                        MatchCode.PO_REFERENCE_MISMATCH,
+                        Severity.WARNING,
+                        "header (invoice vs PO)",
+                        po.po_number,
+                        cited or "none",
+                        "",
+                    )
+                )
+
+        # 4d. Goods received after the invoice date: hold for review.
+        if (
+            grni.grni_date is not None
+            and invoice.invoice_date is not None
+            and grni.grni_date > invoice.invoice_date
+        ):
+            failures.append(
+                MatchFailure(
+                    MatchCode.RECEIVED_AFTER_INVOICE,
+                    Severity.WARNING,
+                    "header (GRN vs invoice)",
+                    str(invoice.invoice_date),
+                    str(grni.grni_date),
+                    "",
                 )
             )
 
@@ -453,6 +506,114 @@ class MatchingEngine:
             pard_ref=pard.pard_number,
             similarity_matches=tuple(similarity_matches),
         )
+
+
+_NON_ALNUM_RE = re.compile(r"[\W_]+", re.UNICODE)
+_PREFIX_MIN_CHARS = 4
+_CLOSE_NAME_MIN = 0.85
+
+
+def _compact(description: str) -> str:
+    return _NON_ALNUM_RE.sub("", normalize_text(description))
+
+
+def _price_agrees(a: Decimal, b: Decimal) -> bool:
+    diff = abs(a - b)
+    biggest = max(abs(a), abs(b))
+    return diff <= UNIT_PRICE_TOLERANCE or (biggest != 0 and diff / biggest <= UNIT_PRICE_TOLERANCE_REL)
+
+
+def _names_close(a: str, b: str) -> bool:
+    """Same item named a little differently (deterministic, no model):
+    - one name starts with the other, ignoring spaces/punctuation, >= 4 chars
+      ("UPS 1000VA" vs "UPS1000VA -600W -Line-interactive")
+    - same words in another order ("Belt, serpentine" vs "Serpentine belt")
+    - a typo-level spelling difference ("Filmaent" vs "Filament", >= 0.85)
+    """
+    ca, cb = _compact(a), _compact(b)
+    if min(len(ca), len(cb)) < _PREFIX_MIN_CHARS:
+        return False
+    if ca.startswith(cb) or cb.startswith(ca):
+        return True
+    words_a = sorted(_NON_ALNUM_RE.sub(" ", normalize_text(a)).split())
+    words_b = sorted(_NON_ALNUM_RE.sub(" ", normalize_text(b)).split())
+    if words_a == words_b:
+        return True
+    return difflib.SequenceMatcher(None, ca, cb).ratio() >= _CLOSE_NAME_MIN
+
+
+def _find_close_line(
+    lines: tuple[LineItem, ...], inv_line: LineItem, *, against_po: bool
+) -> LineItem | None:
+    """Tier 2 line join, after exact and before embeddings (D-113).
+
+    Matches when the names are close (``_names_close``) AND the numbers
+    agree: for a PO line the unit price is within tolerance and the invoice
+    does not bill more than ordered; for a GRN line the quantity is equal.
+    Requiring the numbers keeps "Office Chair" from matching an unrelated
+    "Office Chair Mat". First match in source order.
+    """
+    for line in lines:
+        if not _names_close(inv_line.description, line.description):
+            continue
+        if against_po:
+            if inv_line.unit_price is None or line.unit_price is None:
+                continue
+            if not _price_agrees(inv_line.unit_price, line.unit_price):
+                continue
+            if inv_line.quantity is not None and line.quantity is not None and inv_line.quantity > line.quantity:
+                continue
+        elif inv_line.quantity is None or line.quantity is None or inv_line.quantity != line.quantity:
+            continue
+        return line
+    return None
+
+
+def _ref_key(number: str) -> str:
+    """Document number for comparison: letters and digits only, uppercased."""
+    return _NON_ALNUM_RE.sub("", normalize_number_text(number))
+
+
+def _line_value(line: LineItem) -> Decimal | None:
+    if line.amount is not None:
+        return line.amount
+    if line.quantity is not None and line.unit_price is not None:
+        return line.quantity * line.unit_price
+    return None
+
+
+def _tax_check(invoice: Invoice, po: PurchaseOrder) -> MatchFailure | None:
+    """Invoice tax vs the rate implied by the PO (PO total / PO lines - 1).
+
+    Skipped when an input is missing or the implied rate is not a plausible
+    tax rate (e.g. the PO total excludes tax).
+    """
+    if po.total is None or invoice.subtotal is None or invoice.tax_amount is None:
+        return None
+    values = [_line_value(li) for li in po.line_items]
+    if not values or any(v is None for v in values):
+        return None
+    base = sum(values, Decimal("0"))
+    if base <= 0:
+        return None
+    rate = po.total / base - 1
+    if not (TAX_RATE_MIN <= rate <= TAX_RATE_MAX):
+        return None
+    discount = invoice.discount_amount if invoice.discount_amount is not None else Decimal("0")
+    expected = (invoice.subtotal - discount) * rate
+    abs_tol = TAX_TOLERANCE_ABS_KHR if normalize_currency(invoice.currency or "") == "KHR" else TAX_TOLERANCE_ABS
+    tolerance = max(abs_tol, abs(expected) * TAX_TOLERANCE_REL)
+    diff = abs(invoice.tax_amount - expected)
+    if diff <= tolerance:
+        return None
+    return MatchFailure(
+        MatchCode.TAX_MISMATCH,
+        Severity.WARNING,
+        "header (invoice vs PO)",
+        str(to_money(expected)),
+        str(invoice.tax_amount),
+        str(to_money(diff)),
+    )
 
 
 def _find_line(lines: tuple[LineItem, ...], description: str) -> LineItem | None:

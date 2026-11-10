@@ -26,7 +26,7 @@ def _invoice(lines=None, vendor="Mekong Supplies Co., Ltd.", currency="USD", tot
             _line(2, "Desk Lamp", "20", "12.50", "250.00"),
             _line(3, "Whiteboard", "5", "60.00", "300.00"),
         )
-    return Invoice("INV-1", vendor, inv_date, currency, Decimal("1000.00"), Decimal("100.00"), Decimal(total) if total is not None else None, lines)
+    return Invoice("INV-1", vendor, inv_date, currency, Decimal("1000.00"), Decimal("100.00"), Decimal(total) if total is not None else None, lines, po_number="PO-1")
 
 
 def _po(lines=None, vendor="Mekong Supplies Co., Ltd.", currency=None):
@@ -169,10 +169,18 @@ def test_qty_mismatch_within_tolerance():
 
 
 def test_unit_price_mismatch_absolute():
-    # $45.00 vs $45.50: abs 0.50 > 0.01 AND rel 1.1% > 0.1% -> mismatch.
-    po = _po(lines=(_line(1, "Office Chair", "10", "45.50"), _line(2, "Desk Lamp", "20", "12.50"), _line(3, "Whiteboard", "5", "60.00")))
+    # $45.00 vs $48.00: abs 3.00 > 0.01 AND rel 6.25% > 5% -> mismatch.
+    po = _po(lines=(_line(1, "Office Chair", "10", "48.00"), _line(2, "Desk Lamp", "20", "12.50"), _line(3, "Whiteboard", "5", "60.00")))
     r = ENGINE.match(_invoice(), po, _grni(), _pard())
     assert MatchCode.UNIT_PRICE_MISMATCH in _codes(r)
+
+
+def test_unit_price_within_five_percent_is_accepted():
+    # $45.00 vs $45.50: rel 1.1% <= 5% (D-113) -> no mismatch.
+    po = _po(lines=(_line(1, "Office Chair", "10", "45.50"), _line(2, "Desk Lamp", "20", "12.50"), _line(3, "Whiteboard", "5", "60.00")))
+    r = ENGINE.match(_invoice(), po, _grni(), _pard())
+    assert MatchCode.UNIT_PRICE_MISMATCH not in _codes(r)
+    assert MatchCode.LINE_AMOUNT_MISMATCH not in _codes(r)
 
 
 def test_unit_price_mismatch_within_absolute():

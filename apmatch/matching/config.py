@@ -15,6 +15,11 @@ __all__ = [
     "MATCHABLE_FIELDS",
     "MATCH_CODE_WEIGHTS",
     "QTY_TOLERANCE_ABS",
+    "TAX_RATE_MAX",
+    "TAX_RATE_MIN",
+    "TAX_TOLERANCE_ABS",
+    "TAX_TOLERANCE_ABS_KHR",
+    "TAX_TOLERANCE_REL",
     "TOTAL_TOLERANCE",
     "UNIT_PRICE_TOLERANCE",
     "UNIT_PRICE_TOLERANCE_REL",
@@ -28,13 +33,24 @@ UNIT_PRICE_TOLERANCE = Decimal("0.01")  # one cent
 AMOUNT_TOLERANCE = Decimal("0.01")  # one cent
 TOTAL_TOLERANCE = Decimal("0.01")  # one cent
 
-# Relative tolerances — used ONLY for line-item unit price and amount when the
-# absolute tolerance would be too tight for large values. A line passes if
-# (abs diff <= ABS) OR (abs diff / max(|a|, |b|) <= REL).
-# NOT yet used by any engine; reserved for P1-08b, at which point a test
-# asserts the intended behavior.
-UNIT_PRICE_TOLERANCE_REL = Decimal("0.001")  # 0.1%
-AMOUNT_TOLERANCE_REL = Decimal("0.001")  # 0.1%
+# Relative tolerances for line-item unit price and amount (invoice vs PO).
+# A line passes if (abs diff <= ABS) OR (abs diff / max(|a|, |b|) <= REL).
+# 5% is the business rule from Plan.md §5 (D-113). Measured on the 200-case
+# batch: clean (MATCH) cases carry price variances up to 2.9%; planted price
+# discrepancies start at 8.5%.
+UNIT_PRICE_TOLERANCE_REL = Decimal("0.05")  # 5%
+AMOUNT_TOLERANCE_REL = Decimal("0.05")  # 5%
+
+# Invoice tax vs the tax rate implied by the PO (PO total / PO lines - 1).
+# Passes if abs diff <= max(ABS, REL * expected tax). ABS covers cent rounding;
+# KHR amounts are whole riel, rounded to the hundred (D-113).
+TAX_TOLERANCE_REL = Decimal("0.0005")
+TAX_TOLERANCE_ABS = Decimal("0.02")
+TAX_TOLERANCE_ABS_KHR = Decimal("100")
+# Only PO-implied rates in this range are treated as a tax rate. Outside it
+# (e.g. a PO whose total excludes tax) the tax check is skipped.
+TAX_RATE_MIN = Decimal("0.001")
+TAX_RATE_MAX = Decimal("0.30")
 
 # Vendor name: pure normalizations are expected to make these match; the fuzzy
 # threshold is reserved for P1-08b if needed. If it stays unused after P1-08b,
@@ -73,4 +89,8 @@ MATCH_CODE_WEIGHTS: dict[MatchCode, Decimal] = {
     # Review-band similarity match: the line IS matched, but a human should
     # confirm. Softest penalty — it flags uncertainty, not a value mismatch.
     MatchCode.SIMILARITY_MATCH_REVIEW: Decimal("0.1"),
+    # Cross-document checks added in PROD-B4 (D-113).
+    MatchCode.TAX_MISMATCH: Decimal("0.3"),
+    MatchCode.PO_REFERENCE_MISMATCH: Decimal("0.3"),
+    MatchCode.RECEIVED_AFTER_INVOICE: Decimal("0.1"),
 }
